@@ -1,0 +1,555 @@
+/* ============================= */
+/* ESTILOS BASE Y ESTRUCTURA    */
+/* ============================= */
+
+
+/* Que todo el documento use flexbox */
+html, body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Muestra scroll vertical solo cuando sea necesario */
+    overflow-x: hidden; /* Oculta scroll horizontal */
+}
+
+/* ============================= */
+/* ENCABEZADO Y NAVEGACIÓN      */
+/* ============================= */
+
+header {
+    background-color: #35495e;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+/* ============================= */
+/* CONTENIDO PRINCIPAL          */
+/* ============================= */
+
+
+
+main {
+    padding: 20px;
+    flex: 1; /* Ocupa todo el espacio disponible y empuja el footer hacia abajo */
+}
+
+
+h2 {
+    margin-top: 0;
+}
+
+/* ============================= */
+/* TABLA DE INVENTARIO          */
+/* ============================= */
+
+/* La tabla debe adaptarse al ancho disponible */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    table-layout: auto;
+}
+
+
+
+table thead {
+    background-color: #35495e;
+    color: white;
+    font-weight: bold;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+tbody tr:hover {
+    background-color: #eef3f7;
+}
+
+/* ============================= */
+/* PIE DE PÁGINA                 */
+/* ============================= */
+footer {
+  background-color: #35495e;
+  color: white;
+  text-align: center;
+  padding: 10px;
+  position: relative; /* Baja con el contenido */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+
+/* ============================= */
+/* FILTROS DE BÚSQUEDA          */
+/* ============================= */
+
+
+#filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 15px; /* Antes tenías 10px, esto da más espacio vertical */
+    margin-bottom: 15px;
+}
+
+#filtros > * {
+    flex: 0 0 auto;
+}
+
+
+
+/* Inputs y botones dentro de filtros */
+#filtros input,
+#filtros button {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: none;
+    outline: none;
+}
+
+.filtro-input {
+    width: 200px;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+
+/* Tamaño uniforme para inputs */
+#filtros input[type="text"],
+#filtros input[list],
+#filtros input[type="number"] {
+    width: 200px;
+}
+
+
+
+
+/* Estilo del botón */
+#filtros button {
+    background-color: #35495e;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#filtros button:hover {
+    background-color: #2a3c4d;
+}
+
+/* ============================= */
+/* AUTOCOMPLETADO RECURSO       */
+/* ============================= */
+
+
+
+#filtros .autocomplete-container {
+    position: relative;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.autocomplete-container {
+    position: relative;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+
+.autocomplete-container input {
+    width: 100%;
+}
+
+/* Caja de sugerencias */
+#sugerenciasRecurso.autocomplete-box {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    margin-top: 2px; /* ← mejora visual */
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 999;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#sugerenciasRecurso.autocomplete-box:empty {
+    display: none;
+}
+
+
+
+.sugerencia-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.sugerencia-item:hover {
+    background-color: #eef3f7;
+}
+
+#sugerenciasRecurso strong {
+    font-weight: bold;
+    color: #000000;
+}
+
+
+.editar-input {
+  padding: 5px;
+  font-size: 14px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+
+/* ============================= */
+/* BOTONES DE ACCIÓN EN TABLA   */
+/* ============================= */
+
+.tabla-acciones button {
+  margin: 2px 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.boton-editar {
+  background-color: #3498db;
+  color: white;
+}
+
+.boton-eliminar {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.boton-guardar {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.boton-cancelar {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.tabla-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+
+
+/* ============================= */
+/* FORMULARIO NUEVA FILA  */
+/* ============================= */
+
+/* Formulario agregar recurso */
+#formAgregar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#formAgregar input {
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.boton-agregar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.boton-agregar:hover {
+  background-color: #218838;
+}
+
+
+
+/* ============================= */
+/* EXPORTAR A CSV                */
+/* ============================= */
+
+/* Contenedor del menú exportar */
+.exportar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Botón principal */
+.boton-exportar {
+  background-color: #023e7e;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin-left: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.boton-exportar:hover {
+  background-color: #0069d9;
+}
+
+/* Contenido desplegable */
+/* ===== EXPORTAR (menú y submenús) ===== */
+.dropdown-content { display: none; position: absolute; background: #fff; min-width: 180px; border: 1px solid #ccc; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 10; }
+.dropdown-content.show { display: block; }
+
+.submenu { position: relative; }
+.submenu-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.submenu-btn:hover { background: #f1f1f1; }
+
+.submenu-content {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background: #fff;
+  min-width: 160px;
+  border: 1px solid #ccc;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  z-index: 11;
+}
+.submenu-content.show { display: block; }
+.submenu-content a { display: block; padding: 10px 14px; text-decoration: none; color: #000; }
+.submenu-content a:hover { background: #f6f6f6; }
+
+
+
+/* ============================= */
+/*          PAGINACION           */
+/* ============================= */
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  gap: 5px;
+}
+
+.paginacion button {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.paginacion button:hover {
+  background-color: #eee;
+}
+
+.paginacion button:disabled {
+  background-color: #ddd;
+  cursor: not-allowed;
+}
+
+/* Contenedor con scroll interno */
+.tabla-scroll {
+  max-height: 500px; /* ajustable según lo que quieras */
+  overflow-y: auto;
+  overflow-x: hidden; /* evita scroll horizontal */
+}
+
+
+table th, table td {
+  padding: 8px; /* en lugar de 12px */
+  font-size: 14px; /* en lugar de grande */
+}
+
+
+
+
+/* === Switch tema (deslizante) === */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+.theme-label {
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Botón deslizante */
+.switch {
+  width: 50px;
+  height: 26px;
+  border-radius: 999px;
+  background: #cbd5e1;           /* pista (claro) */
+  position: relative;
+  cursor: pointer;
+  transition: background .2s ease;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.15);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;              /* perilla */
+  transition: transform .2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+#themeSwitch:checked + .switch {
+  background: #4f46e5;           /* pista (activado) */
+}
+#themeSwitch:checked + .switch::after {
+  transform: translateX(24px);
+}
+
+
+
+/* === MODO OSCURO ======================================================= */
+body[data-theme="dark"] {
+  background-color: #0b1220;   /* fondo general */
+  color: #e5e7eb;              /* texto base */
+}
+
+/* Header y navegación */
+body[data-theme="dark"] header {
+  background-color: #1b3773;
+  color: #e5e7eb;
+}
+body[data-theme="dark"] nav ul li a { color: #e5e7eb; }
+
+/* Títulos */
+body[data-theme="dark"] h2, 
+body[data-theme="dark"] h3 { color: #e5e7eb; }
+
+/* Inputs, selects y botones “genéricos” de filtros/form */
+body[data-theme="dark"] #formAgregar input,
+body[data-theme="dark"] #filtros input,
+body[data-theme="dark"] #filtros select {
+  background-color: #0f172a;
+  color: #e5e7eb;
+  border: 1px solid #334155;
+}
+body[data-theme="dark"] ::placeholder { color: #94a3b8; }
+
+/* Botón limpiar (usa el botón general de filtros) */
+body[data-theme="dark"] #filtros button {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  border-color: #1f2937;
+}
+body[data-theme="dark"] #filtros button:hover {
+  background-color: #243041;
+}
+
+/* Botones de acción ya coloreados (editar/eliminar/guardar/cancelar) -> solo texto nítido */
+body[data-theme="dark"] .tabla-acciones button { color: #ffffff; }
+
+/* Tabla */
+body[data-theme="dark"] table {
+  background-color: #0f172a;
+  color: #e5e7eb;
+}
+body[data-theme="dark"] table thead {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+body[data-theme="dark"] th,
+body[data-theme="dark"] td {
+  border-color: #334155;
+}
+body[data-theme="dark"] tbody tr:hover {
+  background-color: #111827;
+}
+
+/* Autocomplete */
+body[data-theme="dark"] #sugerenciasRecurso.autocomplete-box {
+  background-color: #0f172a;
+  border-color: #334155;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+body[data-theme="dark"] .sugerencia-item:hover { background-color: #111827; }
+body[data-theme="dark"] #sugerenciasRecurso strong { color: #ffffff; }
+
+/* Dropdown Exportar y submenús */
+body[data-theme="dark"] .dropdown-content,
+body[data-theme="dark"] .submenu-content {
+  background: #0f172a;
+  border-color: #334155;
+}
+body[data-theme="dark"] .dropdown-content a,
+body[data-theme="dark"] .submenu-btn {
+  color: #e5e7eb;
+}
+body[data-theme="dark"] .dropdown-content a:hover,
+body[data-theme="dark"] .submenu-btn:hover {
+  background: #111827;
+}
+
+/* Footer */
+body[data-theme="dark"] footer {
+  background-color: #111827;
+  color: #cbd5e1;
+}
+
+/* Etiqueta del switch en oscuro (más clarita) */
+body[data-theme="dark"] .theme-label { color: #cbd5e1; }
