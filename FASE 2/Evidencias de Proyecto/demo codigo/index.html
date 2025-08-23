@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario Interactivo - v1.1</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <h1>Gestión de Inventario - Recursos Internos</h1>
+    <nav>
+      <ul>
+        <li><a href="#">Inicio</a></li>
+        <li><a href="#">Inventario</a></li>
+        <li><a href="#">Acerca de</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Listado de Recursos</h2>
+
+    <h3>Agregar nuevo recurso</h3>
+<form id="formAgregar" onsubmit="agregarRecurso(event)">
+  <input type="text" id="nuevoRecurso" placeholder="Nombre del recurso" required>
+  
+  <input type="text" id="nuevaCategoria" list="categoriasFormulario" placeholder="Categoría" required>
+  <datalist id="categoriasFormulario">
+    <option value="Bombas de agua">
+    <option value="Herramientas">
+    <option value="Materiales eléctricos">
+    <option value="Repuestos">
+    <option value="Lubricantes">
+  </datalist>
+  
+  <!-- Estado -->
+<input type="text" id="nuevoEstado" list="estadosFormulario" placeholder="Estado" required>
+<datalist id="estadosFormulario">
+  <option value="Disponible">
+  <option value="Bajo Stock">
+  <option value="En Uso">
+</datalist>
+
+  
+  <button type="submit" class="boton-agregar">Agregar</button>
+</form>
+
+
+
+
+   <!-- Contenedor de filtros -->
+<div id="filtros">
+  <!-- Filtro por ID -->
+  <input type="text" id="filtroIdRango" class="filtro-input"
+  placeholder="ID exacto o rango (ej: 2, 3-6, -10, 5-)"
+  oninput="filtrarTabla({resetPage:true})">
+
+
+
+<div class="autocomplete-container">
+  <input type="text" id="filtroRecurso" class="filtro-input"
+    placeholder="Filtrar por Recurso"
+    oninput="actualizarSugerencias(); filtrarTabla({resetPage:true})">
+  <div id="sugerenciasRecurso" class="autocomplete-box"></div>
+</div>
+
+  <!-- Filtro por categoría -->
+  <input type="text" id="filtroCategoria" class="filtro-input" list="categorias"
+  placeholder="Filtrar por Categoría" oninput="filtrarTabla({resetPage:true})">
+  <datalist id="categorias">
+    <option value="Bombas de agua">
+    <option value="Herramientas">
+    <option value="Materiales eléctricos">
+    <option value="Repuestos">
+    <option value="Lubricantes">
+  </datalist>
+
+  <!-- Filtro por estado -->
+  <input type="text" id="filtroEstado" class="filtro-input" list="estados"
+  placeholder="Filtrar por Estado" oninput="filtrarTabla({resetPage:true})">
+  <datalist id="estados">
+    <option value="Disponible">
+    <option value="Bajo Stock">
+    <option value="En Uso">
+  </datalist>
+
+
+  <!-- Ordenar por -->
+<select id="ordenarPor" class="filtro-input" onchange="ordenarTabla(); actualizarPaginacion()">
+  <option value="">Ordenar por...</option>
+  <option value="id-asc">ID ↑</option>
+  <option value="id-desc" selected>ID ↓</option>
+  <option value="recurso-asc">Recurso A-Z</option>
+  <option value="recurso-desc">Recurso Z-A</option>
+  <option value="categoria-asc">Categoría A-Z</option>
+  <option value="categoria-desc">Categoría Z-A</option>
+  <option value="estado-asc">Estado A-Z</option>
+  <option value="estado-desc">Estado Z-A</option>
+</select>
+
+
+  <!-- Botón limpiar -->
+  <button class="boton-limpiar" onclick="limpiarFiltros()">Limpiar filtros</button>
+
+
+<!-- Menú Exportar -->
+<div class="exportar-dropdown">
+  <button class="boton-exportar" onclick="toggleExportMenu()">Exportar ▼</button>
+
+  <div id="exportMenu" class="dropdown-content">
+    <!-- Excel -->
+    <div class="submenu">
+      <button class="submenu-btn" onclick="toggleSubmenu('excelSub')">Excel ▸</button>
+      <div id="excelSub" class="submenu-content">
+        <a href="#" onclick="exportarExcel('visible'); closeAllMenus()">Visible</a>
+        <a href="#" onclick="exportarExcel('todo'); closeAllMenus()">Todo</a>
+      </div>
+    </div>
+
+    <!-- CSV -->
+    <div class="submenu">
+      <button class="submenu-btn" onclick="toggleSubmenu('csvSub')">CSV ▸</button>
+      <div id="csvSub" class="submenu-content">
+        <a href="#" onclick="exportarCSV('visible'); closeAllMenus()">Visible</a>
+        <a href="#" onclick="exportarCSV('todo'); closeAllMenus()">Todo</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toggle tema -->
+<div class="theme-toggle" title="Cambiar tema">
+  <input type="checkbox" id="themeSwitch" hidden>
+  <label for="themeSwitch" class="switch" aria-label="Cambiar tema claro/oscuro"></label>
+  <span id="themeLabel" class="theme-label">Claro</span>
+</div>
+
+
+
+</div>
+
+<!-- Contenedor scroll interno opcional -->
+<div class="tabla-scroll">
+
+    <table id="tablaRecursos">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Recurso</th>
+          <th>Categoría</th>
+          <th>Estado</th>
+          <th>Acciones</th> <!-- Nueva columna -->
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Bombas sumergibles 1HP</td>
+          <td>Bombas de agua</td>
+          <td>Disponible</td>
+          <td>
+  <div class="tabla-acciones">
+    <button class="boton-editar" onclick="editarFila(this)">Editar</button>
+    <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
+  </div>
+</td>
+
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Kit reparación rodamientos</td>
+          <td>Repuestos</td>
+          <td>Bajo Stock</td>
+          <td>
+  <div class="tabla-acciones">
+    <button class="boton-editar" onclick="editarFila(this)">Editar</button>
+    <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
+  </div>
+</td>
+
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Llave Stilson 18”</td>
+          <td>Herramientas</td>
+          <td>Disponible</td>
+          <td>
+  <div class="tabla-acciones">
+    <button class="boton-editar" onclick="editarFila(this)">Editar</button>
+    <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
+  </div>
+</td>
+
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Grasa multipropósito 1kg</td>
+          <td>Lubricantes</td>
+          <td>En Uso</td>
+          <td>
+  <div class="tabla-acciones">
+    <button class="boton-editar" onclick="editarFila(this)">Editar</button>
+    <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
+  </div>
+</td>
+
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Cable eléctrico 3x2.5mm 100m</td>
+          <td>Materiales eléctricos</td>
+          <td>Disponible</td>
+          <td>
+  <div class="tabla-acciones">
+    <button class="boton-editar" onclick="editarFila(this)">Editar</button>
+    <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
+  </div>
+</td>
+
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Controles de paginación -->
+<div class="paginacion">
+  <button id="btnAnterior" onclick="cambiarPagina(-1)">Anterior</button>
+  <span id="infoPagina">Página 1</span>
+  <button id="btnSiguiente" onclick="cambiarPagina(1)">Siguiente</button>
+</div>
+  </main>
+
+  <footer>
+    <p>Versión 1.1 - Proyecto Personal para Portafolio</p>
+  </footer>
+
+  <script src="js/interaction.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</body>
+</html>
