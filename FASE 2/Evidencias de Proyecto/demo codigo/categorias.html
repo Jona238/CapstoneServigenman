@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Categorías - Inventario</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Gestión de Inventario - Recursos Internos</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="index.html">Inventario</a></li>
+        <li><a href="categorias.html">Categorías</a></li>
+        <li><a href="#">Acerca de</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Categorías</h2>
+    <p>Haz clic en una tarjeta para ver solo los recursos de esa categoría.</p>
+    <!-- Toggle tema -->
+<div class="theme-toggle" title="Cambiar tema">
+  <input type="checkbox" id="themeSwitch" hidden>
+  <label for="themeSwitch" class="switch" aria-label="Cambiar tema claro/oscuro"></label>
+  <span id="themeLabel" class="theme-label">Claro</span>
+</div>
+
+
+    <div id="categoryGrid" class="category-grid"></div>
+  </main>
+
+  <footer>
+    <p>Versión 1.1 - Proyecto Personal para Portafolio</p>
+  </footer>
+
+  <!-- Reutilizamos helpers del mismo JS -->
+  <script src="js/interaction.js"></script>
+  <script>
+    // Paleta de colores (se asignan sin repetir)
+    const PALETA = [
+      {bg:'#E3F2FD', hover:'#D6EBFC', text:'#0F172A'},
+      {bg:'#E8F5E9', hover:'#DCF0DE', text:'#0F172A'},
+      {bg:'#FFF8E1', hover:'#FFF1C2', text:'#0F172A'},
+      {bg:'#FCE4EC', hover:'#F8D3E0', text:'#0F172A'},
+      {bg:'#EDE7F6', hover:'#E1D9F3', text:'#0F172A'},
+      {bg:'#E0F7FA', hover:'#D2F3F8', text:'#0F172A'},
+      {bg:'#FFF3E0', hover:'#FFE5C2', text:'#0F172A'},
+      {bg:'#F3E5F5', hover:'#E8D5F0', text:'#0F172A'},
+    ];
+
+    const grid = document.getElementById('categoryGrid');
+
+    // lee items del localStorage y agrupa
+    function buildCategoryCards() {
+      const items = loadJSON('inventarioItems', []); // <-- requiere helpers del JS común
+      grid.innerHTML = '';
+
+      // agrupar por categoría
+      const map = new Map(); // {cat => count}
+      items.forEach(it => {
+        const cat = it.categoria || 'Sin categoría';
+        map.set(cat, (map.get(cat) || 0) + 1);
+      });
+
+      // si no hay nada:
+      if (map.size === 0) {
+        grid.innerHTML = '<p>No hay elementos aún. Agrega recursos en el inventario.</p>';
+        return;
+      }
+
+      // recuperar/crear mapa de colores persistente
+      let colorMap = loadJSON('categoriaColors', {});
+      const usados = new Set(Object.values(colorMap).map(c => c.bg+','+c.hover+','+c.text));
+      let idx = 0;
+
+      // crear cards
+      Array.from(map.entries())
+        .sort((a,b) => a[0].localeCompare(b[0], 'es')) // opcional: ordenar A-Z
+        .forEach(([cat, count]) => {
+          // asignar color estable
+          if (!colorMap[cat]) {
+            // buscar un color no usado (o ciclar)
+            let pick = null;
+            for (let k=0; k<PALETA.length; k++) {
+              const p = PALETA[(idx+k) % PALETA.length];
+              const key = p.bg+','+p.hover+','+p.text;
+              if (!usados.has(key)) { pick = p; usados.add(key); idx=(idx+k+1)%PALETA.length; break; }
+            }
+            // si se agotaron, igual asigna por índice
+            if (!pick) pick = PALETA[idx++ % PALETA.length];
+            colorMap[cat] = pick;
+          }
+          const col = colorMap[cat];
+
+          const card = document.createElement('div');
+          card.className = 'category-card';
+          card.style.setProperty('--card-bg', col.bg);
+          card.style.setProperty('--card-hover', col.hover);
+          card.style.setProperty('--card-text', col.text);
+
+          card.innerHTML = `
+            <div class="category-card__body">
+              <div class="category-card__icon">📦</div>
+              <h4 class="category-card__title">${cat}</h4>
+              <p class="category-card__hint">${count} recurso(s)</p>
+            </div>
+          `;
+
+          card.addEventListener('click', () => {
+            // guardar preset y navegar al inventario
+            localStorage.setItem('presetCategoria', cat);
+            window.location.href = 'index.html';
+          });
+
+          grid.appendChild(card);
+        });
+
+      // persistir colores
+      saveJSON('categoriaColors', colorMap);
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', buildCategoryCards);
+    // (opcional) escuchar storage por si abres ambas páginas a la vez:
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'inventarioItems') buildCategoryCards();
+    });
+  </script>
+</body>
+</html>
