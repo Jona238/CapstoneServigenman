@@ -1,3 +1,88 @@
+// ==== Helpers JSON en localStorage ====
+function loadJSON(key, defVal) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : defVal;
+  } catch { return defVal; }
+}
+function saveJSON(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+// ====== CLAVES ======
+const INVENTORY_KEY = 'inventarioData';       // <- clave única para inventario
+const CATS_KEY      = 'categoriasInventario'; // <- clave para categorías
+
+
+function nextIdFromStorage() {
+  const arr = loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla());
+  return arr.reduce((m, it) => Math.max(m, it.id || 0), 0) + 1;
+}
+
+// ====== RENDER helpers entre array <-> DOM ======
+function renderInventarioToDOM(arr) {
+  const tbody = document.querySelector('#tablaRecursos tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  arr.forEach(item=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.id}</td>
+      <td>${item.recurso}</td>
+      <td>${item.categoria}</td>
+      <td>${item.estado}</td>
+      <td>
+        <div class="tabla-acciones">
+          <button class="boton-editar" onclick="editarFila(this)">Editar</button>
+          <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ====== Bootstrap: cargar de storage si existe; sino sembrar desde DOM actual ======
+function bootstrapInventario() {
+  let data = loadJSON(INVENTORY_KEY, null);
+  if (Array.isArray(data) && data.length) {
+    // Ya existe inventario persistido -> renderízalo
+    renderInventarioToDOM(data);
+  } else {
+    // Si no hay nada en storage, sembrar desde DOM inicial
+    data = snapshotInventarioDesdeTabla();
+    saveJSON(INVENTORY_KEY, data);
+  }
+
+  // Inicializa categorías base si hace falta
+  let cats = loadJSON(CATS_KEY, null);
+  if (!Array.isArray(cats) || !cats.length) {
+    const set = new Set(data.map(x=>x.categoria).filter(Boolean));
+    saveJSON(CATS_KEY, Array.from(set).sort((a,b)=>a.localeCompare(b,'es')));
+  }
+}
+
+
+
+function snapshotInventarioDesdeTabla() {
+  const rows = Array.from(document.querySelectorAll('#tablaRecursos tbody tr'));
+  const items = rows.map(tr => {
+    const tds = tr.querySelectorAll('td');
+    return {
+      id: parseInt(tds[0].innerText, 10),
+      recurso: tds[1].innerText.trim(),
+      categoria: tds[2].innerText.trim(),
+      estado: tds[3].innerText.trim(),
+    };
+  });
+  return items;
+}
+function persistInventario() {
+  const items = snapshotInventarioDesdeTabla();
+  saveJSON(INVENTORY_KEY, items);
+}
+
+
+
 function filtrarTabla({ resetPage = true } = {}) {
   const inputIdRango = document.getElementById("filtroIdRango").value.trim();
   let idExacto = null, idDesde = null, idHasta = null;
@@ -39,6 +124,9 @@ function filtrarTabla({ resetPage = true } = {}) {
 
   if (resetPage) paginaActual = 1;
   actualizarPaginacion();
+
+  persistInventario(); // guarda el inventario actual para categorias.html
+
 }
 
 
@@ -92,12 +180,11 @@ function ordenarTabla() {
 
   // Volver a agregar filas ordenadas
   filas.forEach(fila => tbody.appendChild(fila));
+  persistInventario(); // guarda el inventario actual para categorias.html
+
 }
 
-// Ejecutar el orden predeterminado al cargar la página
-window.addEventListener("DOMContentLoaded", () => {
-  ordenarTabla();
-});
+
 
 
 
@@ -110,6 +197,8 @@ function limpiarFiltros() {
     filtrarTabla();
 
 }
+
+
 
 
 function actualizarSugerencias() {
@@ -200,6 +289,10 @@ function guardarFila(boton) {
   filtrarTabla();
   ordenarTabla();
   actualizarPaginacion();
+  persistInventario();
+  renderInventarioToDOM(loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla())); // re-sincroniza DOM
+
+
 }
 
 function cancelarEdicion(boton, recurso, categoria, estado) {
@@ -228,10 +321,14 @@ function eliminarFila(boton) {
   fila.remove();
 
   // Recalcular total filtrado y páginas
-  filtrarTabla();
-  ordenarTabla();
   // Ajustar página si quedó fuera de rango lo hace actualizarPaginacion()
+  persistInventario();
+  renderInventarioToDOM(loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla())); // re-sincroniza DOM
+  filtrarTabla({ resetPage: false });
+  ordenarTabla();
   actualizarPaginacion();
+
+
 }
 
 
@@ -240,90 +337,70 @@ function eliminarFila(boton) {
 let ultimoId = 0;
 
 
-document.addEventListener("DOMContentLoaded", () => {
-  const ids = Array.from(document.querySelectorAll("#tablaRecursos tbody tr td:first-child"))
-                   .map(td => parseInt(td.innerText));
-  ultimoId = ids.length ? Math.max(...ids) : 0;
-});
+
 
 
 
 function agregarRecurso(event) {
   event.preventDefault();
 
-  const recurso = document.getElementById("nuevoRecurso").value.trim();
+  const recurso   = document.getElementById("nuevoRecurso").value.trim();
   const categoria = document.getElementById("nuevaCategoria").value.trim();
-  const estado = document.getElementById("nuevoEstado").value.trim();
-
-  const datalistCategorias = document.getElementById("categoriasFormulario");
-  const datalistEstados = document.getElementById("estadosFormulario");
+  const estado    = document.getElementById("nuevoEstado").value.trim();
 
   if (!recurso || !categoria || !estado) return;
 
-   // Agregar nueva categoría si no existe
-  const opcionesCat = Array.from(datalistCategorias.options).map(o => o.value.toLowerCase());
-  if (!opcionesCat.includes(categoria.toLowerCase())) {
-  // Añadir al datalist del formulario
-  const nuevaOpcionForm = document.createElement("option");
-  nuevaOpcionForm.value = categoria;
-  datalistCategorias.appendChild(nuevaOpcionForm);
+  // === 1) Cargar inventario desde storage (o desde DOM si no hay) ===
+  const arr = loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla());
 
-  // Añadir al datalist del filtro
-  const datalistFiltroCat = document.getElementById("categorias");
-  const nuevaOpcionFiltro = document.createElement("option");
-  nuevaOpcionFiltro.value = categoria;
-  datalistFiltroCat.appendChild(nuevaOpcionFiltro);
-}
+  // === 2) ID único desde storage ===
+  const nuevo = { id: nextIdFromStorage(), recurso, categoria, estado };
 
+  // === 3) Agregar al arreglo y persistir ===
+  arr.push(nuevo);
+  saveJSON(INVENTORY_KEY, arr);
 
-  // 📌 Si el estado no existe, agregarlo
-  const opcionesEst = Array.from(datalistEstados.options).map(o => o.value.toLowerCase());
-  if (!opcionesEst.includes(estado.toLowerCase())) {
-    const nuevaOpcion = document.createElement("option");
-    nuevaOpcion.value = estado;
-    datalistEstados.appendChild(nuevaOpcion);
-  }
+  // === 4) Renderizar DOM desde el arreglo (en lugar de insertar una sola fila) ===
+  renderInventarioToDOM(arr);
 
-  // 📌 Incrementar ID único
-  ultimoId++;
+  // === 5) Datalist: categoría nueva (form + filtros) ===
+  (function syncDatalistsCategoria(catNueva) {
+    if (!catNueva) return;
 
-  // 📌 Agregar nueva fila a la tabla
-  const tabla = document.getElementById("tablaRecursos").querySelector("tbody");
-  const nuevaFila = tabla.insertRow();
+    const dlForm  = document.getElementById('categoriasFormulario');
+    const dlFilt  = document.getElementById('categorias');
 
-  nuevaFila.innerHTML = `
-    <td>${ultimoId}</td>
-    <td>${recurso}</td>
-    <td>${categoria}</td>
-    <td>${estado}</td>
-    <td>
-      <div class="tabla-acciones">
-        <button class="boton-editar" onclick="editarFila(this)">Editar</button>
-        <button class="boton-eliminar" onclick="eliminarFila(this)">Eliminar</button>
-      </div>
-    </td>
-  `;
+    if (dlForm && !Array.from(dlForm.options).some(o => o.value.toLowerCase() === catNueva.toLowerCase())) {
+      const opt = document.createElement('option'); opt.value = catNueva; dlForm.appendChild(opt);
+    }
+    if (dlFilt && !Array.from(dlFilt.options).some(o => o.value.toLowerCase() === catNueva.toLowerCase())) {
+      const opt2 = document.createElement('option'); opt2.value = catNueva; dlFilt.appendChild(opt2);
+    }
 
+    // Persistir categorías para categorias.html
+    let cats = loadJSON(CATS_KEY, []);
+    if (!cats.some(c => c.toLowerCase() === catNueva.toLowerCase())) {
+      cats.push(catNueva);
+      saveJSON(CATS_KEY, cats);
+    }
+  })(categoria);
+
+  // === 6) Reset del formulario ===
   document.getElementById("formAgregar").reset();
-  // Vuelve a evaluar el nuevo registro con los filtros activos
 
-// Guarda la página en la que estás
-const paginaPrev = paginaActual;
+  // === 7) Recordar página actual, re-filtrar/ordenar, repaginar sin mandarte a la página 1 ===
+  const paginaPrev = paginaActual;
+  filtrarTabla({ resetPage: false });
+  ordenarTabla();
+  persistInventario(); // guarda INVENTORY_KEY desde DOM
 
-// Reaplica filtro SIN resetear, reordena y repagina
-filtrarTabla({ resetPage: false });
-ordenarTabla();
-
-// Recalcula total de páginas y vuelve a la página anterior si sigue existiendo
-const totalFiltradas = document.querySelectorAll('#tablaRecursos tbody tr[data-match="1"]').length;
-const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina));
-paginaActual = Math.min(paginaPrev, totalPaginas);
-
-actualizarPaginacion();
-
-
-
+  // Volver a la página anterior si existe
+  const totalFiltradas = document.querySelectorAll('#tablaRecursos tbody tr[data-match="1"]').length;
+  const totalPaginas   = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina));
+  paginaActual = Math.min(paginaPrev, totalPaginas);
+  actualizarPaginacion();
 }
+
 
 
 // ==== MENU EXPORTAR ==== //
@@ -437,6 +514,9 @@ function actualizarPaginacion() {
     `Página ${paginaActual} de ${totalPaginas}`;
   document.getElementById("btnAnterior").disabled = paginaActual <= 1;
   document.getElementById("btnSiguiente").disabled = paginaActual >= totalPaginas;
+
+  persistInventario(); // guarda el inventario actual para categorias.html
+
 }
 
 
@@ -449,14 +529,8 @@ function cambiarPagina(direccion) {
 
 
 
-// ===== INICIALIZAR =====
-document.addEventListener("DOMContentLoaded", () => {
-  // con filtros vacíos, todas las filas deben quedar data-match="1"
-  filtrarTabla();
-  ordenarTabla();
-  paginaActual = 1;
-  actualizarPaginacion();
-});
+
+
 
 
 
@@ -533,3 +607,73 @@ function encabezadosTabla() {
     });
   }
 })();
+
+
+
+
+
+
+
+
+function initCategoriasDesdeTablaYListas() {
+  const set = new Set();
+
+  // 1) desde la tabla (columna Categoría = índice 2)
+  document.querySelectorAll('#tablaRecursos tbody tr').forEach(tr => {
+    const cat = (tr.cells[2]?.innerText || '').trim();
+    if (cat) set.add(cat);
+  });
+
+  // 2) desde datalist de filtros
+  document.querySelectorAll('#categorias option').forEach(opt => {
+    const v = (opt.value || '').trim();
+    if (v) set.add(v);
+  });
+
+  // 3) desde datalist del formulario
+  document.querySelectorAll('#categoriasFormulario option').forEach(opt => {
+    const v = (opt.value || '').trim();
+    if (v) set.add(v);
+  });
+
+  // Persistir
+  localStorage.setItem('categoriasInventario', JSON.stringify(Array.from(set)));
+}
+
+// Si hay un preset de categoría (puesto en categorias.html), aplicarlo a filtrosfunction aplicarPresetCategoria() {
+function aplicarPresetCategoria() {
+  const preset = localStorage.getItem('presetCategoria');
+  if (preset) {
+    const inputCat = document.getElementById('filtroCategoria');
+    if (inputCat) {
+      inputCat.value = preset;
+      if (typeof filtrarTabla === 'function') filtrarTabla({ resetPage: true });
+    }
+    localStorage.removeItem('presetCategoria');
+  }
+}
+document.addEventListener('DOMContentLoaded', aplicarPresetCategoria);
+
+
+
+
+
+
+
+
+
+// ===== INICIALIZAR =====
+document.addEventListener("DOMContentLoaded", () => {
+  // 1) Cargar inventario desde storage (o sembrar si no existe)
+  bootstrapInventario();
+
+  // 2) Orden, filtros y paginación inicial
+  ordenarTabla();
+  filtrarTabla({ resetPage: true });
+  paginaActual = 1;
+  actualizarPaginacion();
+
+  // 3) Preparar categorías persistidas y preset (si vienes desde categorias.html)
+  initCategoriasDesdeTablaYListas();
+  aplicarPresetCategoria();
+});
