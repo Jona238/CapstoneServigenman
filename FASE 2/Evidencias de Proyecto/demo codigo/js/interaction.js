@@ -133,56 +133,48 @@ function filtrarTabla({ resetPage = true } = {}) {
 
 
 function ordenarTabla() {
-  const criterio = document.getElementById("ordenarPor").value;
+  const sel = document.getElementById("ordenarPor");
+  if (!sel) return; // <- si no hay selector (p.ej. en categorias.html), no hacemos nada
+
+  const criterio = sel.value;
   const tbody = document.querySelector("#tablaRecursos tbody");
+  if (!tbody) return;
+
   const filas = Array.from(tbody.querySelectorAll("tr"));
 
   let columnaIndex;
   let ascendente = true;
 
   switch (criterio) {
-    case "id-asc":
-      columnaIndex = 0; ascendente = true; break;
-    case "id-desc":
-      columnaIndex = 0; ascendente = false; break;
-    case "recurso-asc":
-      columnaIndex = 1; ascendente = true; break;
-    case "recurso-desc":
-      columnaIndex = 1; ascendente = false; break;
-    case "categoria-asc":
-      columnaIndex = 2; ascendente = true; break;
-    case "categoria-desc":
-      columnaIndex = 2; ascendente = false; break;
-    case "estado-asc":
-      columnaIndex = 3; ascendente = true; break;
-    case "estado-desc":
-      columnaIndex = 3; ascendente = false; break;
-    default:
-      return; // No ordenar
+    case "id-asc":         columnaIndex = 0; ascendente = true;  break;
+    case "id-desc":        columnaIndex = 0; ascendente = false; break;
+    case "recurso-asc":    columnaIndex = 1; ascendente = true;  break;
+    case "recurso-desc":   columnaIndex = 1; ascendente = false; break;
+    case "categoria-asc":  columnaIndex = 2; ascendente = true;  break;
+    case "categoria-desc": columnaIndex = 2; ascendente = false; break;
+    case "estado-asc":     columnaIndex = 3; ascendente = true;  break;
+    case "estado-desc":    columnaIndex = 3; ascendente = false; break;
+    default: return;
   }
 
   filas.sort((a, b) => {
     let valorA = a.cells[columnaIndex].innerText.trim().toLowerCase();
     let valorB = b.cells[columnaIndex].innerText.trim().toLowerCase();
 
-    // Si la columna es ID, convertir a número
     if (columnaIndex === 0) {
-      valorA = parseInt(valorA);
-      valorB = parseInt(valorB);
+      valorA = parseInt(valorA, 10);
+      valorB = parseInt(valorB, 10);
       return ascendente ? valorA - valorB : valorB - valorA;
     }
-
-    // Para texto
     if (valorA < valorB) return ascendente ? -1 : 1;
     if (valorA > valorB) return ascendente ? 1 : -1;
     return 0;
   });
 
-  // Volver a agregar filas ordenadas
   filas.forEach(fila => tbody.appendChild(fila));
-  persistInventario(); // guarda el inventario actual para categorias.html
-
+  persistInventario();
 }
+
 
 
 
@@ -202,46 +194,36 @@ function limpiarFiltros() {
 
 
 function actualizarSugerencias() {
-  const recursoInput = document.getElementById("filtroRecurso");
+  const recursoInput   = document.getElementById("filtroRecurso");
   const sugerenciasDiv = document.getElementById("sugerenciasRecurso");
   const texto = recursoInput.value.toLowerCase();
   sugerenciasDiv.innerHTML = "";
 
-  if (texto.length < 2) {
-    sugerenciasDiv.className = "";
-    return;
-  }
+  if (texto.length < 2) { sugerenciasDiv.className = ""; return; }
 
   sugerenciasDiv.className = "autocomplete-box";
 
-  const recursos = [
-    "Bombas sumergibles 1HP",
-    "Kit reparación rodamientos",
-    "Llave Stilson 18”",
-    "Grasa multipropósito 1kg",
-    "Cable eléctrico 3x2.5mm 100m"
-  ];
+  // Tomar recursos desde storage (o DOM si no hay)
+  const arr = loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla());
+  const recursosUnicos = Array.from(new Set(arr.map(it => it.recurso))).sort((a,b)=>a.localeCompare(b,'es'));
 
-  const sugerencias = recursos.filter(r => r.toLowerCase().includes(texto));
+  const sugerencias = recursosUnicos.filter(r => r.toLowerCase().includes(texto)).slice(0, 12);
 
   sugerencias.forEach(opcion => {
     const div = document.createElement("div");
     div.className = "sugerencia-item";
-
-    // Resaltar coincidencia
     const regex = new RegExp(`(${texto})`, 'gi');
     div.innerHTML = opcion.replace(regex, "<strong>$1</strong>");
-
     div.onclick = () => {
       recursoInput.value = opcion;
       sugerenciasDiv.innerHTML = "";
       sugerenciasDiv.className = "";
-      filtrarTabla();
+      filtrarTabla({ resetPage: true });
     };
-
     sugerenciasDiv.appendChild(div);
   });
 }
+
 
 
 
@@ -274,6 +256,7 @@ function guardarFila(boton) {
   const nuevaCategoria = celdas[2].querySelector("input").value.trim();
   const nuevoEstado    = celdas[3].querySelector("input").value.trim();
 
+  // Actualiza DOM inmediato (opcional)
   celdas[1].innerText = nuevoRecurso;
   celdas[2].innerText = nuevaCategoria;
   celdas[3].innerText = nuevoEstado;
@@ -285,15 +268,19 @@ function guardarFila(boton) {
     </div>
   `;
 
-  // Revalidar con filtros, mantener orden y repaginar
-  filtrarTabla();
+  // Persistir desde DOM -> storage
+  persistInventario();
+
+  // Re-render desde storage (para asegurar sincronía total)
+  const arr = loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla());
+  renderInventarioToDOM(arr);
+
+  // Volver a aplicar filtros/orden/paginación (sin saltar de página)
+  filtrarTabla({ resetPage: false });
   ordenarTabla();
   actualizarPaginacion();
-  persistInventario();
-  renderInventarioToDOM(loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla())); // re-sincroniza DOM
-
-
 }
+
 
 function cancelarEdicion(boton, recurso, categoria, estado) {
   const fila = boton.closest("tr");
@@ -317,24 +304,29 @@ function cancelarEdicion(boton, recurso, categoria, estado) {
 
 function eliminarFila(boton) {
   if (!confirm("¿Estás seguro de que deseas eliminar este recurso?")) return;
+
+  // Quita del DOM
   const fila = boton.closest("tr");
   fila.remove();
 
-  // Recalcular total filtrado y páginas
-  // Ajustar página si quedó fuera de rango lo hace actualizarPaginacion()
+  // Persistir desde DOM -> storage
   persistInventario();
-  renderInventarioToDOM(loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla())); // re-sincroniza DOM
+
+  // Re-render desde storage
+  const arr = loadJSON(INVENTORY_KEY, snapshotInventarioDesdeTabla());
+  renderInventarioToDOM(arr);
+
+  // Reaplicar filtros/orden y ajustar página si corresponde
   filtrarTabla({ resetPage: false });
   ordenarTabla();
   actualizarPaginacion();
-
-
 }
+
 
 
  // agregar recurso 
 
-let ultimoId = 0;
+//let ultimoId = 0;
 
 
 
@@ -652,7 +644,7 @@ function aplicarPresetCategoria() {
     localStorage.removeItem('presetCategoria');
   }
 }
-document.addEventListener('DOMContentLoaded', aplicarPresetCategoria);
+
 
 
 
@@ -664,16 +656,193 @@ document.addEventListener('DOMContentLoaded', aplicarPresetCategoria);
 
 // ===== INICIALIZAR =====
 document.addEventListener("DOMContentLoaded", () => {
-  // 1) Cargar inventario desde storage (o sembrar si no existe)
-  bootstrapInventario();
-
-  // 2) Orden, filtros y paginación inicial
-  ordenarTabla();
-  filtrarTabla({ resetPage: true });
-  paginaActual = 1;
-  actualizarPaginacion();
-
-  // 3) Preparar categorías persistidas y preset (si vienes desde categorias.html)
-  initCategoriasDesdeTablaYListas();
-  aplicarPresetCategoria();
+  // Si estamos en index.html (existe la tabla)
+  if (document.getElementById('tablaRecursos')) {
+    bootstrapInventario();
+    ordenarTabla();
+    filtrarTabla({ resetPage: true });
+    paginaActual = 1;
+    actualizarPaginacion();
+    initCategoriasDesdeTablaYListas();
+    aplicarPresetCategoria();
+  }
+  // Si estamos en categorias.html, el carrusel se inicializa en el IIFE de categorías (más abajo).
 });
+
+
+
+
+
+<!-- interaction.js (reemplaza SOLO este bloque de categorías) -->
+// ================================
+//  CATEGORÍAS (carrusel, colores)
+// ================================
+(function () {
+  const ITEMS_KEY  = 'inventarioData';
+  const LEGACY_KEY = 'inventarioItems';
+  const COLORS_KEY = 'categoriaColors';
+
+  const PALETA = [
+    { bg:'#BFDBFE', hover:'#93C5FD', text:'#0B1324' },
+    { bg:'#A7F3D0', hover:'#6EE7B7', text:'#0B1324' },
+    { bg:'#FDE68A', hover:'#FCD34D', text:'#0B1324' },
+    { bg:'#FCA5A5', hover:'#F87171', text:'#0B1324' },
+    { bg:'#DDD6FE', hover:'#C4B5FD', text:'#0B1324' },
+    { bg:'#BAE6FD', hover:'#7DD3FC', text:'#0B1324' },
+    { bg:'#FBCFE8', hover:'#F9A8D4', text:'#0B1324' },
+    { bg:'#F59E0B', hover:'#FBBF24', text:'#0B1324' },
+  ];
+
+  const $ = s => document.querySelector(s);
+  const hash = s => { let h=0; for (let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i)|0; return Math.abs(h); };
+
+  function buildCategoryCards() {
+    const track = $('#categoryTrack');
+    if (!track) return null;
+
+    track.innerHTML = '';
+    const items = loadJSON(ITEMS_KEY, loadJSON(LEGACY_KEY, []));
+    const map = new Map();
+    items.forEach(it => {
+      const cat = (it.categoria || 'Sin categoría').trim();
+      if (cat) map.set(cat, (map.get(cat) || 0) + 1);
+    });
+
+    if (map.size === 0) {
+      track.innerHTML = '<p style="padding:8px 0">No hay elementos aún. Agrega recursos en el inventario.</p>';
+      return track;
+    }
+
+    // Colores persistidos
+    let colorMap = loadJSON(COLORS_KEY, {});
+    const usados = new Set(Object.values(colorMap).map(c => `${c.bg},${c.hover},${c.text}`));
+    const pickColor = (cat) => {
+      if (!colorMap[cat]) {
+        let p = PALETA.find(p => !usados.has(`${p.bg},${p.hover},${p.text}`));
+        if (!p) p = PALETA[hash(cat) % PALETA.length];
+        colorMap[cat] = p;
+        usados.add(`${p.bg},${p.hover},${p.text}`);
+      }
+      return colorMap[cat];
+    };
+
+    [...map.entries()]
+      .sort((a,b)=> a[0].localeCompare(b[0],'es'))
+      .forEach(([cat, count]) => {
+        const col = pickColor(cat);
+        const card = document.createElement('div');
+        card.className = 'category-card';
+        card.style.setProperty('--card-bg', col.bg);
+        card.style.setProperty('--card-hover', col.hover);
+        card.style.setProperty('--card-text', col.text);
+        card.style.backgroundColor = col.bg;
+        card.style.color = col.text;
+        card.innerHTML = `
+          <div class="category-card__body">
+            <div class="category-card__icon">📦</div>
+            <h4 class="category-card__title">${cat}</h4>
+            <p class="category-card__hint">${count} recurso(s)</p>
+          </div>`;
+        card.addEventListener('click', () => {
+          localStorage.setItem('presetCategoria', cat);
+          location.href = 'index.html';
+        });
+        track.appendChild(card);
+      });
+
+    saveJSON(COLORS_KEY, colorMap);
+    return track;
+  }
+
+  // --- NUEVO: bind de flechas robusto (usa scrollBy y paso real por tarjeta) ---
+  function bindArrows(track, prev, next) {
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+  const getGap = () => {
+    const cs = getComputedStyle(track);
+    return parseInt(cs.gap || cs.columnGap || '20', 10);
+  };
+  const getCardWidth = () => {
+    const card = track.querySelector('.category-card');
+    return card ? card.offsetWidth : Math.round(track.clientWidth / 3); // fallback
+  };
+  const oneStep = () => getCardWidth() + getGap();
+
+  function updateButtons() {
+    const atStart = track.scrollLeft <= 2;
+    const atEnd   = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+    prev.disabled = atStart;
+    next.disabled = atEnd;
+    prev.style.opacity = atStart ? .35 : 1;
+    next.style.opacity = atEnd   ? .35 : 1;
+  }
+
+  prev.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const left = clamp(track.scrollLeft - oneStep(), 0, track.scrollWidth);
+    track.scrollTo({ left, behavior: 'smooth' });
+  }, { capture: true });
+
+  next.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const left = clamp(track.scrollLeft + oneStep(), 0, track.scrollWidth);
+    track.scrollTo({ left, behavior: 'smooth' });
+  }, { capture: true });
+
+  track.addEventListener('scroll', updateButtons, { passive: true });
+  window.addEventListener('resize', updateButtons);
+  updateButtons();
+}
+
+
+  function initCarousel() {
+    // Tamaño por defecto (5 por vista)
+    if (!document.body.hasAttribute('data-cards')) {
+      document.body.setAttribute('data-cards', 'expanded');
+    }
+
+    const track = buildCategoryCards();
+    if (!track) return;
+
+    const prev = $('#catPrev');
+    const next = $('#catNext');
+    if (prev && next) bindArrows(track, prev, next);
+
+    // Switch compacto/extendido
+    const sw  = $('#cardsSwitch');
+    const lbl = $('#cardsLabel');
+    const saved = localStorage.getItem('cardsMode');
+    if (saved) {
+      document.body.setAttribute('data-cards', saved);
+      if (sw)  sw.checked = (saved === 'compact');
+      if (lbl) lbl.textContent = (saved === 'compact') ? 'Compacto' : 'Extendido';
+    }
+    sw?.addEventListener('change', () => {
+      const mode = sw.checked ? 'compact' : 'expanded';
+      document.body.setAttribute('data-cards', mode);
+      localStorage.setItem('cardsMode', mode);
+      if (lbl) lbl.textContent = sw.checked ? 'Compacto' : 'Extendido';
+    });
+
+    // Si cambia el inventario en otra pestaña, reconstruimos
+    window.addEventListener('storage', (e) => {
+      if (e.key === ITEMS_KEY || e.key === LEGACY_KEY) {
+        const t = buildCategoryCards();
+        if (t && prev && next) bindArrows(t, prev, next);
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initCarousel);
+
+  // Helpers de depuración (opcional)
+  window.__cat = {
+    track: () => document.getElementById('categoryTrack'),
+    count: () => document.querySelectorAll('#categoryTrack .category-card').length
+  };
+})();
+
+
+
+
+
