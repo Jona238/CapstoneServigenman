@@ -650,3 +650,219 @@ body[data-theme="dark"] .category-card {
   border-color: rgba(255,255,255,0.08);
   box-shadow: 0 2px 6px rgba(0,0,0,.35);
 }
+
+
+
+
+/* ============================= */
+/*  TARJETAS DE CATEGORÍAS (carrusel) */
+/* ============================= */
+
+/* --- carrusel base --- */
+.category-carousel {
+  position: relative;
+  margin: 16px auto 28px;
+  overflow: visible; /* flechas fuera */
+}
+
+.category-track{
+  display:flex;
+  gap:20px;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scroll-behavior:smooth;
+  justify-content:center;
+  padding:6px 12px;
+  scrollbar-width:none;
+}
+.category-track::-webkit-scrollbar{ display:none; }
+
+
+
+
+
+/* tarjeta base (los colores personalizados llegan vía --vars en inline style) */
+.category-card {
+  flex: 0 0 auto;            /* tamaño fijo según modo */
+  border-radius: 16px;
+  background: var(--card-bg, #e2e8f0);
+  color: var(--card-text, #0f172a);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+.category-card:hover {
+  transform: translateY(-2px);
+  background: var(--card-hover, #cbd5e1);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+}
+.category-card__body {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+  padding: 16px 18px;
+  text-align: center;
+}
+.category-card__icon { font-size: 26px; opacity: .95; }
+.category-card__title { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.15; }
+.category-card__hint  { margin: 0; font-size: 14px; opacity: .9; }
+
+/* --- flechas (fuera del carrusel) --- */
+.cat-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 18px rgba(0,0,0,.18);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: #0f172a;
+  z-index: 5;
+  user-select: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.cat-nav:hover { background: rgba(15, 23, 42, 0.15); }
+.cat-nav.prev { left: -60px;  }
+.cat-nav.next { right: -60px; }
+
+/* --- modo oscuro flechas --- */
+[data-theme="dark"] .cat-nav {
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .cat-nav:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ============================= */
+/*  MODOS: expanded / compact    */
+/* ============================= */
+
+/* EXTENDIDO (5 por vista en desktop) */
+body[data-cards="expanded"] .category-carousel {
+  /* 5 tarjetas * 320 + 4 gaps * 20 */
+  max-width: calc(320px * 5 + 20px * 4);
+}
+body[data-cards="expanded"] .category-card {
+  width: 320px;
+  min-height: 190px;
+}
+
+/* COMPACTO (6 por vista en desktop) */
+body[data-cards="compact"] .category-carousel {
+  /* 6 tarjetas * 260 + 5 gaps * 20 */
+  max-width: calc(260px * 6 + 20px * 5);
+}
+body[data-cards="compact"] .category-card {
+  width: 260px;
+  min-height: 170px;
+}
+
+/* ============================= */
+/*  Responsivo                   */
+/* ============================= */
+
+/* Tablet ancha: bajamos a 4 por vista aprox */
+@media (max-width: 1280px) {
+  body[data-cards="expanded"] .category-carousel {
+    max-width: calc(300px * 4 + 20px * 3);
+  }
+  body[data-cards="expanded"] .category-card { width: 300px; }
+
+  body[data-cards="compact"] .category-carousel {
+    max-width: calc(240px * 5 + 20px * 4);
+  }
+  body[data-cards="compact"] .category-card { width: 240px; }
+}
+
+/* Tablet: 3 por vista aprox */
+@media (max-width: 1024px) {
+  body[data-cards="expanded"] .category-carousel {
+    max-width: calc(300px * 3 + 20px * 2);
+  }
+  body[data-cards="compact"] .category-carousel {
+    max-width: calc(240px * 3 + 20px * 2);
+  }
+}
+
+/* Móvil grande: 2 por vista aprox, flechas más cerca */
+@media (max-width: 768px) {
+  .cat-nav { width: 36px; height: 36px; font-size: 18px; }
+  .cat-nav.prev { left: -20px; }
+  .cat-nav.next { right: -20px; }
+
+  body[data-cards="expanded"] .category-carousel {
+    max-width: calc(320px * 2 + 20px * 1);
+  }
+  body[data-cards="compact"] .category-carousel {
+    max-width: calc(260px * 2 + 20px * 1);
+  }
+}
+
+/* Móvil chico: 1 por vista */
+@media (max-width: 520px) {
+  body[data-cards="expanded"] .category-carousel { max-width: 92vw; }
+  body[data-cards="compact"] .category-carousel  { max-width: 92vw; }
+  body[data-cards="expanded"] .category-card { width: 86vw; }
+  body[data-cards="compact"] .category-card  { width: 86vw; }
+}
+
+
+
+/* === FORZAR FLECHAS VISIBLES EN CARRUSEL === */
+.category-carousel {
+  position: relative;
+  margin: 16px auto;         /* centra el carrusel */
+  overflow: visible;         /* no recorta flechas */
+}
+
+
+/* Flechas: SIEMPRE visibles y dentro del carrusel */
+.cat-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+  font-size: 22px;
+  z-index: 1000;             /* por encima de tarjetas */
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,.2);
+}
+
+.cat-nav:hover {
+  background: rgba(15, 23, 42, 0.22);
+}
+
+/* Flechas DENTRO del ancho del carrusel */
+.cat-nav.prev { left: 8px; }
+.cat-nav.next { right: 8px; }
+
+/* Modo oscuro */
+[data-theme="dark"] .cat-nav {
+  background: rgba(255,255,255,0.12);
+  color: #e5e7eb;
+}
+[data-theme="dark"] .cat-nav:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+
