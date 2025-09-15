@@ -7,18 +7,28 @@
 </head>
 <body>
 
-  <header>
+  <header class="site-header">
+  <div class="header-bar">
     <h1>Gestión de Inventario - Recursos Internos</h1>
-    <nav>
-  <ul>
-    <li><a href="index.html">Inicio</a></li>
-    <li><a href="index.html">Inventario</a></li>
-    <li><a href="categorias.html">Categorías</a></li>
-    <li><a href="#">Acerca de</a></li>
-  </ul>
-</nav>
 
-  </header>
+    <div class="header-actions">
+      <!-- Toggle tema en el header -->
+      <input type="checkbox" id="themeSwitch" hidden>
+      <label for="themeSwitch" class="switch" aria-label="Cambiar tema claro/oscuro"></label>
+      <span id="themeLabel" class="theme-label">Claro</span>
+    </div>
+  </div>
+
+  <nav>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="index.html">Inventario</a></li>
+      <li><a href="categorias.html">Categorías</a></li>
+      <li><a href="#">Acerca de</a></li>
+    </ul>
+  </nav>
+</header>
+
 
   <main>
     <h2>Listado de Recursos</h2>
@@ -131,12 +141,7 @@
   </div>
 </div>
 
-<!-- Toggle tema -->
-<div class="theme-toggle" title="Cambiar tema">
-  <input type="checkbox" id="themeSwitch" hidden>
-  <label for="themeSwitch" class="switch" aria-label="Cambiar tema claro/oscuro"></label>
-  <span id="themeLabel" class="theme-label">Claro</span>
-</div>
+
 
 
 
