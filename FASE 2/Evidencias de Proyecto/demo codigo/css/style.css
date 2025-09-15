@@ -866,3 +866,158 @@ body[data-cards="compact"] .category-card {
 }
 
 
+/* --- Modo oscuro: deja que el texto de las tarjetas use el color inline del card --- */
+body[data-theme="dark"] .category-card__title,
+body[data-theme="dark"] .category-card__hint {
+  color: inherit !important;     /* usa el --card-text que pones desde JS */
+  opacity: 1;                    /* quita el desvanecido del hint si molestaba */
+}
+
+/* Opcional: un pelín de sombra para legibilidad sobre colores muy claros */
+.category-card__title,
+.category-card__hint {
+  text-shadow: 0 1px 0 rgba(0,0,0,.15);
+}
+
+
+
+/* Header con barra superior y acciones a la derecha */
+.site-header {
+  background-color: #35495e;
+  color: white;
+  padding: 0; /* la barra ya tiene su padding */
+}
+
+.site-header .header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 28px; /* ajusta a gusto */
+}
+
+.site-header .header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mantener el nav como lo tenías */
+.site-header nav {
+  text-align: center;
+  padding: 6px 0 14px;
+}
+
+/* Oscuro */
+body[data-theme="dark"] .site-header {
+  background-color: #1b3773;
+}
+
+/* (tu switch/tema ya estaba estilado, se reutiliza) */
+
+
+/* Contenedor de dos filas de carruseles */
+.category-rows {
+  display: grid;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+
+
+/* ====== LEGIBILIDAD SUAVE (no cambia el layout) ====== */
+
+/* Escala base un poco mayor */
+:root { --ui-scale: 1; }
+html { font-size: calc(16px * var(--ui-scale)); }
+
+/* Titulares y textos de tarjetas */
+.category-card__title {
+  font-size: clamp(20px, 1.35rem, 24px);
+  font-weight: 800;
+  letter-spacing: .2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.08); /* mejora lectura sobre colores */
+}
+
+.category-card__hint {
+  font-size: 15px;
+  opacity: .95;
+}
+
+/* Más aire vertical en tarjetas */
+.category-card__body { padding: 22px 22px; }
+body[data-cards="expanded"] .category-card { min-height: 210px; }
+body[data-cards="compact"]  .category-card { min-height: 188px; }
+
+/* Badge de conteo (reemplaza el hint si quieres estilo pastilla) */
+.category-card__hint {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.06);
+  font-weight: 700;
+}
+[data-theme="dark"] .category-card__hint {
+  background: rgba(255,255,255,.14);
+}
+
+/* Texto siempre legible sobre cualquier color */
+.category-card {
+  color: #0b1324; /* claro */
+}
+[data-theme="dark"] .category-card {
+  color: #f8fafc; /* oscuro */
+}
+
+/* Mejor foco accesible (Tab) */
+.category-card:focus-visible,
+.cat-nav:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(96,165,250,.25);
+}
+
+/* Botones flecha un poco más visibles y clickables */
+.cat-nav {
+  width: 48px; height: 48px; font-size: 22px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+.cat-nav:hover { transform: translateY(-50%) scale(1.03); }
+
+/* Header más claro para el switch y navegación */
+header nav a { font-size: 18px; }
+
+
+
+/* Escalas separadas */
+:root{
+  --ui-scale: 1;        /* escala global del sitio */
+  --card-scale: 1;      /* escala solo para tarjetas */
+}
+
+/* Títulos y subtítulos de tarjetas dependen de --card-scale */
+.category-card__title{
+  font-size: calc(22px * var(--card-scale));
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.category-card__hint{
+  font-size: calc(15px * var(--card-scale));
+  font-weight: 700;
+  padding: calc(6px * var(--card-scale)) calc(10px * var(--card-scale));
+  border-radius: 999px;
+}
+
+/* Icono y padding también escalan */
+.category-card__icon{ font-size: calc(26px * var(--card-scale)); }
+.category-card__body{ padding: calc(18px * var(--card-scale)) calc(20px * var(--card-scale)); }
+
+/* Altura mínima sensible a la escala de tarjeta */
+body[data-cards="expanded"] .category-card{ min-height: calc(190px * var(--card-scale)); }
+body[data-cards="compact"]  .category-card{ min-height: calc(170px * var(--card-scale)); }
