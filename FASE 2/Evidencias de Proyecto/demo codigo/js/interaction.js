@@ -673,144 +673,182 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-<!-- interaction.js (reemplaza SOLO este bloque de categorías) -->
 // ================================
-//  CATEGORÍAS (carrusel, colores)
+//  CATEGORÍAS (multi-carrusel, colores, infinito)
 // ================================
 (function () {
   const ITEMS_KEY  = 'inventarioData';
   const LEGACY_KEY = 'inventarioItems';
   const COLORS_KEY = 'categoriaColors';
 
+  // Paleta más viva
   const PALETA = [
-    { bg:'#BFDBFE', hover:'#93C5FD', text:'#0B1324' },
+    { bg:'#FF7A7A', hover:'#FF5C5C', text:'#0B1324' },
+    { bg:'#9B8CFF', hover:'#7D6BFF', text:'#0B1324' },
+    { bg:'#B9FBC0', hover:'#86F3A1', text:'#0B1324' },
+    { bg:'#CDEAFE', hover:'#A9DAFE', text:'#0B1324' },
+    { bg:'#FFD166', hover:'#FFC145', text:'#0B1324' },
+    { bg:'#F8B4D9', hover:'#F38BC8', text:'#0B1324' },
     { bg:'#A7F3D0', hover:'#6EE7B7', text:'#0B1324' },
     { bg:'#FDE68A', hover:'#FCD34D', text:'#0B1324' },
-    { bg:'#FCA5A5', hover:'#F87171', text:'#0B1324' },
-    { bg:'#DDD6FE', hover:'#C4B5FD', text:'#0B1324' },
-    { bg:'#BAE6FD', hover:'#7DD3FC', text:'#0B1324' },
-    { bg:'#FBCFE8', hover:'#F9A8D4', text:'#0B1324' },
-    { bg:'#F59E0B', hover:'#FBBF24', text:'#0B1324' },
   ];
 
-  const $ = s => document.querySelector(s);
+  const $all = (sel, root=document) => Array.from(root.querySelectorAll(sel));
   const hash = s => { let h=0; for (let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i)|0; return Math.abs(h); };
 
-  function buildCategoryCards() {
-    const track = $('#categoryTrack');
-    if (!track) return null;
-
-    track.innerHTML = '';
+  // Lee y agrupa categorías -> [{name,count}]
+  function getCategories() {
     const items = loadJSON(ITEMS_KEY, loadJSON(LEGACY_KEY, []));
     const map = new Map();
     items.forEach(it => {
-      const cat = (it.categoria || 'Sin categoría').trim();
-      if (cat) map.set(cat, (map.get(cat) || 0) + 1);
+      const c = (it.categoria || 'Sin categoría').trim();
+      if (!c) return;
+      map.set(c, (map.get(c) || 0) + 1);
     });
+    return [...map.entries()]
+      .sort((a,b)=> a[0].localeCompare(b[0],'es'))
+      .map(([name,count])=>({name,count}));
+  }
 
-    if (map.size === 0) {
-      track.innerHTML = '<p style="padding:8px 0">No hay elementos aún. Agrega recursos en el inventario.</p>';
-      return track;
-    }
-
-    // Colores persistidos
+  // Colores persistidos (mismos para ambas filas)
+  function getColorMap(cats) {
     let colorMap = loadJSON(COLORS_KEY, {});
     const usados = new Set(Object.values(colorMap).map(c => `${c.bg},${c.hover},${c.text}`));
-    const pickColor = (cat) => {
-      if (!colorMap[cat]) {
-        let p = PALETA.find(p => !usados.has(`${p.bg},${p.hover},${p.text}`));
-        if (!p) p = PALETA[hash(cat) % PALETA.length];
-        colorMap[cat] = p;
-        usados.add(`${p.bg},${p.hover},${p.text}`);
+
+    cats.forEach(({name})=>{
+      if (!colorMap[name]) {
+        let pick = PALETA.find(p => !usados.has(`${p.bg},${p.hover},${p.text}`));
+        if (!pick) pick = PALETA[ hash(name) % PALETA.length ];
+        colorMap[name] = pick;
+        usados.add(`${pick.bg},${pick.hover},${pick.text}`);
       }
-      return colorMap[cat];
-    };
-
-    [...map.entries()]
-      .sort((a,b)=> a[0].localeCompare(b[0],'es'))
-      .forEach(([cat, count]) => {
-        const col = pickColor(cat);
-        const card = document.createElement('div');
-        card.className = 'category-card';
-        card.style.setProperty('--card-bg', col.bg);
-        card.style.setProperty('--card-hover', col.hover);
-        card.style.setProperty('--card-text', col.text);
-        card.style.backgroundColor = col.bg;
-        card.style.color = col.text;
-        card.innerHTML = `
-          <div class="category-card__body">
-            <div class="category-card__icon">📦</div>
-            <h4 class="category-card__title">${cat}</h4>
-            <p class="category-card__hint">${count} recurso(s)</p>
-          </div>`;
-        card.addEventListener('click', () => {
-          localStorage.setItem('presetCategoria', cat);
-          location.href = 'index.html';
-        });
-        track.appendChild(card);
-      });
-
+    });
     saveJSON(COLORS_KEY, colorMap);
-    return track;
+    return colorMap;
   }
 
-  // --- NUEVO: bind de flechas robusto (usa scrollBy y paso real por tarjeta) ---
-  function bindArrows(track, prev, next) {
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  // Construye tarjetas en un track; puedes rotar el inicio para la fila de abajo
+  function buildCards(track, cats, colorMap, rotateBy=0) {
+    track.innerHTML = '';
+    if (!cats.length) {
+      track.innerHTML = '<p style="padding:8px 0">No hay elementos aún. Agrega recursos en el inventario.</p>';
+      return;
+    }
 
-  const getGap = () => {
-    const cs = getComputedStyle(track);
-    return parseInt(cs.gap || cs.columnGap || '20', 10);
-  };
-  const getCardWidth = () => {
-    const card = track.querySelector('.category-card');
-    return card ? card.offsetWidth : Math.round(track.clientWidth / 3); // fallback
-  };
-  const oneStep = () => getCardWidth() + getGap();
+    const rotated = cats.slice(); // copia
+    if (rotateBy) {
+      const k = ((rotateBy % cats.length) + cats.length) % cats.length;
+      rotated.push(...rotated.splice(0, k));
+    }
 
-  function updateButtons() {
-    const atStart = track.scrollLeft <= 2;
-    const atEnd   = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
-    prev.disabled = atStart;
-    next.disabled = atEnd;
-    prev.style.opacity = atStart ? .35 : 1;
-    next.style.opacity = atEnd   ? .35 : 1;
+    rotated.forEach(({name,count})=>{
+      const col = colorMap[name];
+      const card = document.createElement('div');
+      card.className = 'category-card';
+      card.style.setProperty('--card-bg', col.bg);
+      card.style.setProperty('--card-hover', col.hover);
+      card.style.setProperty('--card-text', col.text);
+      card.style.backgroundColor = col.bg;
+      card.style.color = col.text;
+      card.innerHTML = `
+        <div class="category-card__body">
+          <div class="category-card__icon">📦</div>
+          <h4 class="category-card__title">${name}</h4>
+          <p class="category-card__hint">${count} recurso(s)</p>
+        </div>`;
+      card.addEventListener('click', ()=>{
+        localStorage.setItem('presetCategoria', name);
+        location.href = 'index.html';
+      });
+      track.appendChild(card);
+    });
   }
 
-  prev.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const left = clamp(track.scrollLeft - oneStep(), 0, track.scrollWidth);
-    track.scrollTo({ left, behavior: 'smooth' });
-  }, { capture: true });
+  function makeInfinite(track) {
+  const CARD_SEL = '.category-card';
+  const getStep = () => {
+    const c = track.querySelector(CARD_SEL);
+    if (!c) return 0;
+    const gap = parseInt(getComputedStyle(track).gap || '20', 10);
+    return c.offsetWidth + gap;
+  };
 
-  next.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const left = clamp(track.scrollLeft + oneStep(), 0, track.scrollWidth);
-    track.scrollTo({ left, behavior: 'smooth' });
-  }, { capture: true });
+  let animating = false;
+  const DURATION = 280; // ms, ponlo a tu gusto (250–350)
 
-  track.addEventListener('scroll', updateButtons, { passive: true });
-  window.addEventListener('resize', updateButtons);
-  updateButtons();
+  function lock() {
+    animating = true;
+    setTimeout(() => { animating = false; }, DURATION);
+  }
+
+  function stepOne(dir) {
+    if (animating) return;
+    const step = getStep();
+    if (!step) return;
+
+    // Adelantamos/retrocedemos el DOM y compensamos scroll ANTES de animar
+    if (dir > 0) {
+      // → siguiente
+      const first = track.querySelector(CARD_SEL);
+      if (first) {
+        track.appendChild(first);     // 1) la primera pasa al final
+        track.scrollLeft += step;     // 2) compensación instantánea (no se ve cambio)
+      }
+      lock();
+      track.scrollBy({ left: step, behavior: 'smooth' }); // 3) animación hacia la derecha
+    } else {
+      // ← anterior
+      const cards = track.querySelectorAll(CARD_SEL);
+      const last = cards[cards.length - 1];
+      if (last) {
+        track.insertBefore(last, track.firstChild); // 1) la última pasa al inicio
+        track.scrollLeft -= step;                   // 2) compensación instantánea
+      }
+      lock();
+      track.scrollBy({ left: -step, behavior: 'smooth' }); // 3) animación hacia la izquierda
+    }
+  }
+
+  return { stepOne };
 }
 
 
-  function initCarousel() {
+
+
+
+  function bindArrows(container, stepper) {
+    const prev = container.querySelector('.cat-nav.prev');
+    const next = container.querySelector('.cat-nav.next');
+    // no deshabilitamos nunca, porque es infinito
+    prev.addEventListener('click', e => { e.stopPropagation(); stepper.stepOne(-1); }, { capture:true });
+    next.addEventListener('click', e => { e.stopPropagation(); stepper.stepOne(+1); }, { capture:true });
+  }
+
+  function initAllCarousels() {
     // Tamaño por defecto (5 por vista)
     if (!document.body.hasAttribute('data-cards')) {
       document.body.setAttribute('data-cards', 'expanded');
     }
 
-    const track = buildCategoryCards();
-    if (!track) return;
+    const cats = getCategories();
+    const colors = getColorMap(cats);
 
-    const prev = $('#catPrev');
-    const next = $('#catNext');
-    if (prev && next) bindArrows(track, prev, next);
+    const carousels = $all('.category-carousel');
+    carousels.forEach((car, idx) => {
+      const track = car.querySelector('.category-track');
+      if (!track) return;
 
-    // Switch compacto/extendido
-    const sw  = $('#cardsSwitch');
-    const lbl = $('#cardsLabel');
+      // Fila de abajo empieza desplazada (mitad de la lista)
+      const rotateBy = (car.dataset.row === 'bottom') ? Math.floor(cats.length/2) : 0;
+
+      buildCards(track, cats, colors, rotateBy);
+      const stepper = makeInfinite(track);
+      bindArrows(car, stepper);
+    });
+
+    // Switch tamaño (si existe)
+    const sw  = document.getElementById('cardsSwitch');
+    const lbl = document.getElementById('cardsLabel');
     const saved = localStorage.getItem('cardsMode');
     if (saved) {
       document.body.setAttribute('data-cards', saved);
@@ -823,26 +861,21 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem('cardsMode', mode);
       if (lbl) lbl.textContent = sw.checked ? 'Compacto' : 'Extendido';
     });
-
-    // Si cambia el inventario en otra pestaña, reconstruimos
-    window.addEventListener('storage', (e) => {
-      if (e.key === ITEMS_KEY || e.key === LEGACY_KEY) {
-        const t = buildCategoryCards();
-        if (t && prev && next) bindArrows(t, prev, next);
-      }
-    });
   }
 
-  document.addEventListener('DOMContentLoaded', initCarousel);
-
-  // Helpers de depuración (opcional)
-  window.__cat = {
-    track: () => document.getElementById('categoryTrack'),
-    count: () => document.querySelectorAll('#categoryTrack .category-card').length
-  };
+  document.addEventListener('DOMContentLoaded', initAllCarousels);
 })();
 
 
 
 
+//BOTON LETRA MÁS GRANDE / MÁS PEQUEÑA //
 
+// Añade al final de interaction.js
+(function(){
+  const root = document.documentElement;
+  const get = () => parseFloat(getComputedStyle(root).getPropertyValue('--ui-scale')) || 1;
+  const set = v => root.style.setProperty('--ui-scale', Math.max(.9, Math.min(1.25, v)));
+  document.getElementById('aMas')  ?.addEventListener('click', ()=> set(get()+0.05));
+  document.getElementById('aMenos')?.addEventListener('click', ()=> set(get()-0.05));
+})();
