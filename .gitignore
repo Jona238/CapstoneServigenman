@@ -1,0 +1,20 @@
+# Python / Django
+FASE 2/Evidencias de Proyecto/backend/.venv/
+FASE 2/Evidencias de Proyecto/backend/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+
+# Node / Next.js
+FASE 2/Evidencias de Proyecto/frontend/node_modules/
+FASE 2/Evidencias de Proyecto/frontend/.next/
+FASE 2/Evidencias de Proyecto/frontend/.turbo/
+
+# Entornos / secretos
+FASE 2/Evidencias de Proyecto/backend/.env
+FASE 2/Evidencias de Proyecto/frontend/.env.local
+
+# Sistema
+.DS_Store
+Thumbs.db
