@@ -1,4 +1,4 @@
-# Setup rápido (local)
+# Setup rápido (local)  DESDE EL VISUAL STUDIE CODE
 
 ## 1) Clonar y ubicarse
 ```bash
