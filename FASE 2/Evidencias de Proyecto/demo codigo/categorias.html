@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Categorías - Inventario</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+  <div class="header-bar">
+    <h1>Gestión de Inventario - Recursos Internos</h1>
+
+    <div class="header-actions">
+      <!-- Toggle tema en el header -->
+      <input type="checkbox" id="themeSwitch" hidden>
+      <label for="themeSwitch" class="switch" aria-label="Cambiar tema claro/oscuro"></label>
+      <span id="themeLabel" class="theme-label">Claro</span>
+    </div>
+  </div>
+
+  <nav>
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="index.html">Inventario</a></li>
+      <li><a href="categorias.html">Categorías</a></li>
+      <li><a href="#">Acerca de</a></li>
+    </ul>
+  </nav>
+</header>
+
+
+  <main>
+    <h2>Categorías</h2>
+    <p>Haz clic en una tarjeta para ver solo los recursos de esa categoría.</p>
+<!-- En el header, al lado del switch de tema -->
+<!-- <button id="aMenos" title="Reducir tamaño">A-</button>
+<button id="aMas"   title="Aumentar tamaño">A+</button> -->
+
+   
+
+    <!-- Toggle tarjetas compacto/extendido
+    <div class="theme-toggle" style="margin-left:16px">
+      <input type="checkbox" id="cardsSwitch" hidden>
+      <label for="cardsSwitch" class="switch" aria-label="Tamaño de tarjetas"></label>
+      <span id="cardsLabel" class="theme-label">Extendido</span>
+    </div>  -->
+
+<!-- Fila 1 -->
+<div class="category-carousel" data-row="top">
+  <button class="cat-nav prev" aria-label="Anterior">‹</button>
+  <div class="category-track"></div>
+  <button class="cat-nav next" aria-label="Siguiente">›</button>
+</div>
+
+<!-- Fila 2 -->
+<div class="category-carousel" data-row="bottom">
+  <button class="cat-nav prev" aria-label="Anterior">‹</button>
+  <div class="category-track"></div>
+  <button class="cat-nav next" aria-label="Siguiente">›</button>
+</div>
+
+
+
+
+
+
+  </main>
+
+  <footer>
+    <p>Versión 1.1 - Proyecto Personal para Portafolio</p>
+  </footer>
+
+  <!-- Reutilizamos helpers del mismo JS -->
+  <script src="js/interaction.js"></script>
+
+
+
+</body>
+</html>
