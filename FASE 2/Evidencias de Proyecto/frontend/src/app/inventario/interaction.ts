@@ -30,6 +30,78 @@ type FilterOptions = {
 const INVENTORY_KEY = "inventarioData";
 const CATS_KEY = "categoriasInventario";
 
+// Backend base URL (override at build time with NEXT_PUBLIC_BACKEND_URL)
+const BACKEND_URL =
+  (typeof process !== "undefined" &&
+    (process as any).env &&
+    ((process as any).env.NEXT_PUBLIC_API_URL ||
+      (process as any).env.NEXT_PUBLIC_BACKEND_URL)) ||
+  "http://localhost:8000";
+
+async function backendFetch(path: string, options?: RequestInit): Promise<Response> {
+  const url = `${BACKEND_URL.replace(/\/$/, "")}${path}`;
+  return fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers || {}),
+    },
+    ...options,
+  });
+}
+
+async function apiListItems(): Promise<InventoryItem[] | null> {
+  try {
+    const res = await backendFetch(`/api/inventory/items/`, { method: "GET" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { results?: InventoryItem[] };
+    return Array.isArray(data?.results) ? data.results : null;
+  } catch {
+    return null;
+  }
+}
+
+async function apiCreateItem(
+  payload: Omit<InventoryItem, "id">
+): Promise<InventoryItem | null> {
+  try {
+    const res = await backendFetch(`/api/inventory/items/`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as InventoryItem;
+  } catch {
+    return null;
+  }
+}
+
+async function apiUpdateItem(
+  id: number,
+  payload: Partial<InventoryItem>
+): Promise<InventoryItem | null> {
+  try {
+    const res = await backendFetch(`/api/inventory/items/${id}/`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as InventoryItem;
+  } catch {
+    return null;
+  }
+}
+
+async function apiDeleteItem(id: number): Promise<boolean> {
+  try {
+    const res = await backendFetch(`/api/inventory/items/${id}/`, {
+      method: "DELETE",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 const filasPorPagina = 10;
 let paginaActual = 1;
 
@@ -40,7 +112,8 @@ export function initializeInventoryPage(): CleanupFn {
 
   const cleanupFns: CleanupFn[] = [];
 
-  bootstrapInventario();
+  // Try backend first; fallback to local storage / DOM
+  void bootstrapInventario();
   ordenarTabla();
   filtrarTabla({ resetPage: true });
   paginaActual = 1;
@@ -325,14 +398,22 @@ function persistInventario() {
   saveJSON(INVENTORY_KEY, items);
 }
 
-function bootstrapInventario() {
-  let data = loadJSON<InventoryItem[] | null>(INVENTORY_KEY, null);
-  if (Array.isArray(data) && data.length) {
-    renderInventarioToDOM(data);
-  } else {
-    data = snapshotInventarioDesdeTabla();
+async function bootstrapInventario() {
+  const fromApi = await apiListItems();
+  let data: InventoryItem[] | null = null;
+
+  if (Array.isArray(fromApi)) {
+    data = fromApi;
     saveJSON(INVENTORY_KEY, data);
+  } else {
+    data = loadJSON<InventoryItem[] | null>(INVENTORY_KEY, null);
+    if (!Array.isArray(data) || !data.length) {
+      data = snapshotInventarioDesdeTabla();
+      saveJSON(INVENTORY_KEY, data);
+    }
   }
+
+  renderInventarioToDOM(data);
 
   const cats = loadJSON<string[] | null>(CATS_KEY, null);
   if (!Array.isArray(cats) || !cats.length) {
@@ -614,10 +695,22 @@ async function guardarFila(button: HTMLButtonElement) {
   celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL || ""}" alt="" />`;
   celdas[6].innerText = nuevaInfo;
   celdas[7].innerHTML = `
-    <div class="tabla-acciones">
-      <button type="button" class="boton-editar" data-action="edit">Editar</button>
-      <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
-    </div>`;
+      <div class="tabla-acciones">
+        <button type="button" class="boton-editar" data-action="edit">Editar</button>
+        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
+      </div>`;
+
+  const id = Number.parseInt(celdas[0]?.innerText ?? "0", 10);
+  // Best-effort sync with backend
+  void apiUpdateItem(id, {
+    id,
+    recurso: nuevoRecurso,
+    categoria: nuevaCategoria,
+    cantidad: Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad,
+    precio: Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio,
+    foto: fotoDataURL,
+    info: nuevaInfo,
+  });
 
   fila.dataset.original = "";
   persistInventario();
@@ -670,6 +763,11 @@ function eliminarFila(button: HTMLButtonElement) {
   }
 
   const fila = button.closest("tr");
+  const idText = fila?.cells?.[0]?.innerText ?? "0";
+  const id = Number.parseInt(idText, 10) || 0;
+  if (id) {
+    void apiDeleteItem(id);
+  }
   fila?.remove();
   persistInventario();
   const arr = loadJSON<InventoryItem[]>(
@@ -715,15 +813,17 @@ async function agregarRecurso(event: SubmitEvent) {
     fotoDataURL = await readFileAsDataURL(file);
   }
 
-  const nuevo: InventoryItem = {
-    id: nextIdFromStorage(),
+  const payload = {
     recurso,
     categoria,
     cantidad: Number.isNaN(cantidad) ? 0 : cantidad,
     precio: Number.isNaN(precio) ? 0 : precio,
     foto: fotoDataURL,
     info,
-  };
+  } as Omit<InventoryItem, "id">;
+
+  const created = await apiCreateItem(payload);
+  const nuevo: InventoryItem = created ?? { id: nextIdFromStorage(), ...payload };
 
   arr.push(nuevo);
   saveJSON(INVENTORY_KEY, arr);

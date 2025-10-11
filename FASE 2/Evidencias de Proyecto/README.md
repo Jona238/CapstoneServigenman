@@ -1,137 +1,44 @@
-# Setup rápido (local)  DESDE EL VISUAL STUDIE CODE
+﻿# Servigenman (Monorepo)
 
-## 1) Clonar y ubicarse
-```bash
-git clone https://github.com/Jona238/CapstoneServigenman.git
-cd "CapstoneServigenman/FASE 2/Evidencias de Proyecto"
+## Estructura
+- backend/ (Django)
+- frontend/ (Next.js)
+
+## Dev local
+### Backend
 ```
-
----
-
-## 2) Backend (Django + DRF)
-
-> Requisitos: Python 3.10/3.11/3.12
-
-```bash
 cd backend
-# Crear/activar venv
-# Windows (PowerShell):
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-# macOS/Linux:
-# python -m venv .venv
-# source .venv/bin/activate
-
-# Instalar dependencias (dev usa SQLite, no necesitas Postgres local)
-pip install django djangorestframework psycopg2-binary python-dotenv django-cors-headers djangorestframework-simplejwt
-
-# Migraciones y superusuario
-python manage.py makemigrations
+.\.venv\Scripts\activate  # o `source .venv/bin/activate` en Linux/macOS
+pip install -r requirements.txt
+copy .env.example .env     # o `cp .env.example .env`
 python manage.py migrate
-python manage.py createsuperuser
-
-# Levantar API
-python manage.py runserver 8000
+python manage.py runserver 0.0.0.0:8000
 ```
 
-URLs:
-- API: `http://127.0.0.1:8000/api/`
-- Admin: `http://127.0.0.1:8000/admin/`
-- JWT: `POST http://127.0.0.1:8000/api/auth/token/` (JSON: `{"username":"...","password":"..."}`)
+Las variables definidas en `.env` permiten configurar la clave secreta, el debug, los hosts permitidos y los orígenes CORS/CSRF. Los valores de ejemplo ya contemplan tanto `http://localhost:3000` como `http://127.0.0.1:3000` para que el frontend pueda comunicarse con la API sin problemas de CORS/CSRF durante el desarrollo local.
 
-> Si PowerShell bloquea el venv:  
-> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-
----
-
-## 3) Frontend (Next.js)
-
-> Requisitos: Node 18+
-
-```bash
-cd "../frontend"
+### Frontend
+```
+cd frontend
 npm install
+cp .env.example .env
+npm run dev  # http://localhost:3000 (o http://127.0.0.1:3000)
 ```
 
-Crear `frontend/.env.local`:
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-```
+### Autenticación
+- **Endpoint**: `POST /api/login/`
+- **Body**: `{ "username": "usuario", "password": "secreto" }`
+- Devuelve un mensaje de éxito, los datos básicos del usuario y (si Auth0 está habilitado) los tokens obtenidos.
 
-Correr dev:
-```bash
-npm run dev
-```
+#### Configuración de Auth0
+1. Crea una aplicación **Regular Web Application** en Auth0 y habilita el flujo "Resource Owner Password".
+2. Completa las siguientes variables en `backend/.env`:
+   - `AUTH0_DOMAIN`
+   - `AUTH0_CLIENT_ID`
+   - `AUTH0_CLIENT_SECRET`
+   - Opcionales: `AUTH0_AUDIENCE`, `AUTH0_SCOPE`, `AUTH0_REALM`, `AUTH0_TIMEOUT`
+3. Asegúrate de exponer el endpoint `https://<AUTH0_DOMAIN>/oauth/token` en tus reglas de firewall.
+4. En el frontend (`frontend/.env`) define `NEXT_PUBLIC_ENABLE_LOGIN_API=true` para activar la llamada al backend.
 
-Abrir: `http://localhost:3000`
-
----
-
-## 4) Flujo de ramas (no push a master)
-
-Ver ramas:
-```bash
-git branch -a
-```
-
-Cambiar a tu rama (ejemplos):
-```bash
-# si ya existe en remoto
-git checkout DiegoSantis      # o JonathanMorales / NicolasVergara
-# sincronizar con master antes de trabajar
-git pull --rebase origin master
-```
-
-Ciclo de trabajo:
-```bash
-git status
-git add .
-git commit -m "feat: mensaje claro del cambio"
-git pull --rebase origin master
-git push origin <tu-rama>
-```
-
-Abrir **Pull Request** desde tu rama → **master** (no hacer push directo a master).
-
----
-
-## 5) Cosas que NO deben subirse (ya ignoradas)
-
-- `backend/.venv/`, `backend/__pycache__/`, `backend/db.sqlite3`
-- `frontend/node_modules/`, `frontend/.next/`, `frontend/.turbo/`
-- `backend/.env`, `frontend/.env.local`
-
-Si algo de eso se subió por error:
-```bash
-git rm -r --cached "FASE 2/Evidencias de Proyecto/backend/.venv"
-git rm -r --cached "FASE 2/Evidencias de Proyecto/frontend/node_modules"
-git commit -m "chore: remove ignored folders"
-git push
-```
-
----
-
-## 6) Pruebas rápidas
-
-- Backend levantado: `http://127.0.0.1:8000/api/`
-- Login JWT (Postman):
-  - `POST /api/auth/token/` → guarda `access`
-- Frontend:
-  - `/login` → valida vacíos y hace POST a `/api/auth/token/`
-  - `/inventario` (si está creado) → GET `/materials/`
-
----
-
-## 7) Puertos ocupados (opcional)
-
-```bash
-# Backend en otro puerto
-python manage.py runserver 8001
-
-# Frontend en otro puerto
-npm run dev -- -p 3001
-```
-
---- 
-
-Eso es todo. Con estos comandos cualquier compañero clona, corre y trabaja en su rama sin romper `master`.
+El backend sincroniza los nombres y correo entregados por Auth0 con el modelo de usuario de Django y almacena los tokens (`access_token`, `id_token`, etc.) en la respuesta para que el frontend pueda reutilizarlos.
