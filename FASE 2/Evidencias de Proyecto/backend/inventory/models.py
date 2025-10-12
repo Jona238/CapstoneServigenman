@@ -1,20 +1,35 @@
-# Create your models here.
+from __future__ import annotations
+
 from django.db import models
 
-class Material(models.Model):
-    # id (Django ya lo agrega automáticamente, pero aquí lo ponemos explícito)
-    id = models.AutoField(primary_key=True)
 
-    name = models.CharField(max_length=120)                 # nombre
-    category = models.CharField(max_length=80, blank=True)  # categoría (opcional)
-    quantity = models.PositiveIntegerField(default=0)       # cantidad ≥ 0
-    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # costo ≥ 0
-    entry_date = models.DateField(null=True, blank=True)    # fecha de entrada
-    location = models.CharField(max_length=120, blank=True) # ubicación (opcional)
+class Item(models.Model):
+    recurso = models.CharField(max_length=200)
+    categoria = models.CharField(max_length=100)
+    cantidad = models.IntegerField(default=0)
+    precio = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Foto puede ser una URL o un data URL (base64). Para simplificar, se guarda como texto.
+    foto = models.TextField(blank=True, default="")
+    info = models.CharField(max_length=255, blank=True, default="")
 
-    # nuevos campos
-    photo = models.ImageField(upload_to="materials/", null=True, blank=True)  
-    info = models.TextField(blank=True)   # comentarios o información adicional
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.name} ({self.id})"
+    class Meta:
+        ordering = ["-id"]
+
+    def __str__(self) -> str:  # pragma: no cover - representational only
+        return f"{self.recurso} ({self.categoria})"
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "recurso": self.recurso,
+            "categoria": self.categoria,
+            "cantidad": self.cantidad,
+            # Convertir Decimal a float para JSON simple
+            "precio": float(self.precio),
+            "foto": self.foto or "",
+            "info": self.info or "",
+        }
+
