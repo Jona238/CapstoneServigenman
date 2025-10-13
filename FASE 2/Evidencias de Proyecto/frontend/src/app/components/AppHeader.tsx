@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function AppHeader() {
   const apiBaseUrl = useMemo(() => {
@@ -26,6 +26,41 @@ export default function AppHeader() {
       window.location.href = "/login";
     }
   };
+
+  // Theme switch (shared across pages)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const body = document.body;
+    const toggle = document.getElementById("themeSwitch") as HTMLInputElement | null;
+    const label = document.getElementById("themeLabel");
+
+    const apply = (dark: boolean) => {
+      if (dark) {
+        body.setAttribute("data-theme", "dark");
+        try { localStorage.setItem("theme", "dark"); } catch {}
+        if (toggle) toggle.checked = true;
+        if (label) label.textContent = "Oscuro";
+      } else {
+        body.removeAttribute("data-theme");
+        try { localStorage.setItem("theme", "light"); } catch {}
+        if (toggle) toggle.checked = false;
+        if (label) label.textContent = "Claro";
+      }
+    };
+
+    // default to dark if not set
+    const saved = ((): string | null => {
+      try { return localStorage.getItem("theme"); } catch { return null; }
+    })();
+    apply(!saved || saved === "dark");
+
+    if (toggle) {
+      const onChange = () => apply(toggle.checked);
+      toggle.addEventListener("change", onChange);
+      return () => toggle.removeEventListener("change", onChange);
+    }
+    return () => {};
+  }, []);
 
   return (
     <header className="inventory-header">
@@ -68,4 +103,3 @@ export default function AppHeader() {
     </header>
   );
 }
-

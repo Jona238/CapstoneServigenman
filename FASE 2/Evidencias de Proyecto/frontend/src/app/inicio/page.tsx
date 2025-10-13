@@ -205,6 +205,22 @@ export default function InicioPage() {
 
         <main className="home-main">
           <section className="home-hero">
+            <aside className="home-leftbar" aria-label="Accesos rápidos">
+              <h3 className="leftbar-title">Accesos rápidos</h3>
+              <ul className="leftbar-nav">
+                <li><Link href="/inventario">Ir al Inventario</Link></li>
+                <li><Link href="/categorias">Explorar Categorías</Link></li>
+                <li><Link href="/presupuesto">Ver Presupuesto</Link></li>
+                <li><Link href="/inventario#formAgregar">Agregar Recurso</Link></li>
+              </ul>
+
+              <h4 className="leftbar-sub">Atajos</h4>
+              <div className="leftbar-chips" role="list">
+                <Link href="/inventario" role="listitem" className="chip">Bajas existencias</Link>
+                <Link href="/inventario" role="listitem" className="chip">Últimos añadidos</Link>
+                <Link href="/presupuesto" role="listitem" className="chip">Top gasto</Link>
+              </div>
+            </aside>
             <div className="home-hero__content">
               <p className="home-badge">Portal interno v1.1</p>
               <h2>Seguimiento integral de recursos en terreno</h2>
