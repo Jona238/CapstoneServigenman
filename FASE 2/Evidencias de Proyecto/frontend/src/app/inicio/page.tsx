@@ -1,4 +1,6 @@
 "use client";
+import AppHeader from "../components/AppHeader";
+import AppFooter from "../components/AppFooter";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -7,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
 import "../(auth)/login/styles.css";
+import "../inventario/styles.css";
 import "./styles.css";
 
 type ResourcePreview = {
@@ -137,7 +140,10 @@ export default function InicioPage() {
     }
 
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-    const shouldUseDark = savedTheme === "dark";
+    const shouldUseDark = savedTheme ? savedTheme === "dark" : true;
+    if (!savedTheme) {
+      try { window.localStorage.setItem(THEME_STORAGE_KEY, "dark"); } catch {}
+    }
     setIsDarkTheme(shouldUseDark);
     applyTheme(shouldUseDark);
   }, []);
@@ -194,66 +200,8 @@ export default function InicioPage() {
     <>
       <AnimatedBackground />
       <div className="home-page">
-        <header className="home-header">
-          <div className="home-header__inner">
-            <div className="header-bar">
-              <h1>Servigenman — Portal operativo</h1>
-              <div className="header-actions">
-                <input
-                  type="checkbox"
-                  id="themeSwitch"
-                  hidden
-                  checked={isDarkTheme}
-                  onChange={toggleTheme}
-                />
-                <label
-                  htmlFor="themeSwitch"
-                  className="switch"
-                  aria-label="Cambiar tema claro/oscuro"
-                />
-                <span id="themeLabel" className="theme-label">
-                  {isDarkTheme ? "Oscuro" : "Claro"}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  style={{
-                    marginLeft: 12,
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
-                    color: "#fff",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                  aria-label="Cerrar sesión"
-                  title="Cerrar sesión"
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            </div>
-            <nav className="home-nav">
-              <ul>
-                <li>
-                  <Link href="/inicio" aria-current="page">
-                    Inicio
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/inventario">Inventario</Link>
-                </li>
-                <li>
-                  <Link href="/categorias">Categorías</Link>
-                </li>
-                <li>
-                  <Link href="/presupuesto">Presupuesto</Link>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </header>
+        <AppHeader />
+        
 
         <main className="home-main">
           <section className="home-hero">
@@ -396,12 +344,7 @@ export default function InicioPage() {
           </section>
         </main>
 
-        <footer className="home-footer">
-          <small>
-            © {new Date().getFullYear()} Servigenman. Plataforma interna para el
-            seguimiento operativo.
-          </small>
-        </footer>
+        <AppFooter />
       </div>
     </>
   );
@@ -423,3 +366,6 @@ function applyTheme(useDark: boolean) {
     body.removeAttribute("data-theme");
   }
 }
+
+
+

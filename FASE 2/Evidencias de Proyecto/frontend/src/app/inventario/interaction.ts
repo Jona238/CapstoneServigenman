@@ -357,11 +357,7 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
       <td>${item.cantidad ?? 0}</td>
       <td>${Number(item.precio ?? 0).toFixed(2)}</td>
       <td data-foto="${item.foto ? "1" : ""}">
-        ${
-          item.foto
-            ? `<img class="thumb" src="${item.foto}" alt="" />`
-            : '<img class="thumb" src="" alt="" />'
-        }
+        ${item.foto ? `<img class=\"thumb\" src=\"${item.foto}\" alt=\"\" />` : ""}
       </td>
       <td>${item.info ? item.info : ""}</td>
       <td>
@@ -697,7 +693,13 @@ async function guardarFila(button: HTMLButtonElement) {
   celdas[4].innerText = Number.isNaN(nuevoPrecio)
     ? "0.00"
     : nuevoPrecio.toFixed(2);
-  celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL || ""}" alt="" />`;
+  if (fotoDataURL) {
+    celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL}" alt="" />`;
+    celdas[5].setAttribute("data-foto", "1");
+  } else {
+    celdas[5].innerHTML = "";
+    celdas[5].setAttribute("data-foto", "");
+  }
   celdas[6].innerText = nuevaInfo;
   celdas[7].innerHTML = `
       <div class="tabla-acciones">
@@ -749,7 +751,13 @@ function cancelarEdicion(button: HTMLButtonElement) {
   celdas[2].innerText = original.categoria;
   celdas[3].innerText = original.cantidad;
   celdas[4].innerText = Number(original.precio || 0).toFixed(2);
-  celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc || ""}" alt="" />`;
+  if (original.imgSrc) {
+    celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
+    celdas[5].setAttribute("data-foto", "1");
+  } else {
+    celdas[5].innerHTML = "";
+    celdas[5].setAttribute("data-foto", "");
+  }
   celdas[6].innerText = original.info;
   celdas[7].innerHTML = `
     <div class="tabla-acciones">
@@ -1057,7 +1065,9 @@ function applyStoredTheme() {
   const body = document.body;
   const toggle = document.getElementById("themeSwitch") as HTMLInputElement | null;
   const label = document.getElementById("themeLabel");
-  if (saved === "dark") {
+  // Default to dark theme if not set
+  if (!saved || saved === "dark") {
+    if (!saved) localStorage.setItem("theme", "dark");
     body.setAttribute("data-theme", "dark");
     if (toggle) toggle.checked = true;
     if (label) label.textContent = "Oscuro";
@@ -1107,3 +1117,5 @@ function aplicarPresetCategoria() {
   }
   localStorage.removeItem("presetCategoria");
 }
+
+

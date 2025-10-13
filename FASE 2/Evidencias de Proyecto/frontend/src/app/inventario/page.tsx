@@ -1,4 +1,6 @@
 "use client";
+import AppHeader from "../components/AppHeader";
+import AppFooter from "../components/AppFooter";
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -67,58 +69,8 @@ export default function InventoryPage() {
       <AnimatedBackground />
 
       <div className="inventory-page">
-        <header className="inventory-header">
-          <div className="inventory-header__inner">
-            <div className="header-bar">
-              <h1>Gestión de Inventario - Recursos Internos</h1>
-              <div className="header-actions">
-                <input type="checkbox" id="themeSwitch" hidden />
-                <label
-                  htmlFor="themeSwitch"
-                  className="switch"
-                  aria-label="Cambiar tema claro/oscuro"
-                />
-                <span id="themeLabel" className="theme-label">
-                  Claro
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  style={{
-                    marginLeft: 12,
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
-                    color: "#fff",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            </div>
-            <nav>
-              <ul>
-                <li>
-                  <a href="/inicio">Inicio</a>
-                </li>
-                <li>
-                  <a href="/inventario" aria-current="page">
-                    Inventario
-                  </a>
-                </li>
-                <li>
-                  <a href="/categorias">Categorías</a>
-                </li>
-                <li>
-                  <a href="/presupuesto">Presupuesto</a>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </header>
+        <AppHeader />
+        
 
         <div className="inventory-shell">
           <main className="inventory-main">
@@ -337,7 +289,7 @@ export default function InventoryPage() {
                       <td>Bombas de agua</td>
                       <td>5</td>
                       <td>120.00</td>
-                      <td data-foto=""><img className="thumb" src="" alt="" /></td>
+                      <td data-foto=""></td>
                       <td>Equipo básico</td>
                       <td>
                         <div className="tabla-acciones">
@@ -352,7 +304,7 @@ export default function InventoryPage() {
                       <td>Repuestos</td>
                       <td>2</td>
                       <td>45.50</td>
-                      <td data-foto=""><img className="thumb" src="" alt="" /></td>
+                      <td data-foto=""></td>
                       <td>Incluye grasa</td>
                       <td>
                         <div className="tabla-acciones">
@@ -373,11 +325,12 @@ export default function InventoryPage() {
             </section>
           </main>
 
-          <footer className="inventory-footer">
-            <p>Versión 1.1 - Proyecto Personal para Portafolio</p>
-          </footer>
+          <AppFooter />
         </div>
       </div>
     </>
   );
 }
+
+
+

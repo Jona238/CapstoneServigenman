@@ -1,4 +1,6 @@
 "use client";
+import AppHeader from "../components/AppHeader";
+import AppFooter from "../components/AppFooter";
 
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -60,58 +62,8 @@ export default function CategoriesPage() {
     <>
       <AnimatedBackground />
       <div className="categories-page">
-        <header className="inventory-header">
-          <div className="inventory-header__inner">
-            <div className="header-bar">
-              <h1>Gestión de Inventario - Recursos Internos</h1>
-              <div className="header-actions">
-                <input type="checkbox" id="themeSwitch" hidden />
-                <label
-                  htmlFor="themeSwitch"
-                  className="switch"
-                  aria-label="Cambiar tema claro/oscuro"
-                />
-                <span id="themeLabel" className="theme-label">
-                  Claro
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  style={{
-                    marginLeft: 12,
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
-                    color: "#fff",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            </div>
-            <nav>
-              <ul>
-                <li>
-                  <Link href="/inicio">Inicio</Link>
-                </li>
-                <li>
-                  <Link href="/inventario">Inventario</Link>
-                </li>
-                <li>
-                  <Link href="/categorias" aria-current="page">
-                    Categorías
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/presupuesto">Presupuesto</Link>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </header>
+        <AppHeader />
+        
 
         <div className="categories-shell">
           <main className="categories-main">
@@ -174,3 +126,7 @@ export default function CategoriesPage() {
     </>
   );
 }
+
+
+
+
