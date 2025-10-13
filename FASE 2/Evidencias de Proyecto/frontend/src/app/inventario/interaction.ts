@@ -372,6 +372,7 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
       </td>`;
     tbody.appendChild(tr);
   });
+  toggleEmptyState(arr.length === 0);
 }
 
 function snapshotInventarioDesdeTabla(): InventoryItem[] {
@@ -488,6 +489,10 @@ function filtrarTabla({ resetPage = true }: FilterOptions = {}) {
   if (resetPage) paginaActual = 1;
   actualizarPaginacion();
   persistInventario();
+  const visibles = document.querySelectorAll(
+    "#tablaRecursos tbody tr[data-match='1']"
+  ).length;
+  toggleEmptyState(visibles === 0);
 }
 
 function ordenarTabla() {
@@ -1061,6 +1066,13 @@ function applyStoredTheme() {
     if (toggle) toggle.checked = false;
     if (label) label.textContent = "Claro";
   }
+}
+
+function toggleEmptyState(show: boolean) {
+  const el = document.getElementById("emptyState");
+  const tableWrap = document.querySelector<HTMLElement>(".tabla-scroll");
+  if (el) el.style.display = show ? "block" : "none";
+  if (tableWrap) tableWrap.style.display = show ? "none" : "";
 }
 
 function initCategoriasDesdeTablaYListas() {

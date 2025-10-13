@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
@@ -12,6 +12,28 @@ import "./styles.css";
 
 export default function CategoriesPage() {
   useBodyClass();
+  const apiBaseUrl = useMemo(() => {
+    const sanitize = (u: string) => u.replace(/\/+$/, "");
+    const env = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (env) return sanitize(env);
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitize("http://localhost:8000");
+      }
+      return sanitize(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBaseUrl}/api/logout/`, { method: "POST", credentials: "include" });
+    } catch {
+      // ignore
+    } finally {
+      window.location.href = "/login";
+    }
+  };
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -52,6 +74,22 @@ export default function CategoriesPage() {
                 <span id="themeLabel" className="theme-label">
                   Claro
                 </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: 12,
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,.12)",
+                    background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cerrar sesión
+                </button>
               </div>
             </div>
             <nav>

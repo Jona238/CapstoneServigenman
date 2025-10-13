@@ -100,6 +100,9 @@ svg.waves-svg{ position:absolute; inset:0; width:100%; height:100%; }
   text-align:center; border-top:1px solid rgba(255,255,255,.06);
 }
 .footnote a{ color:#cfe0ff; text-decoration:none; } .footnote a:hover{ text-decoration:underline; }
+.integration-note{
+  font-size:12px; color:var(--muted); text-align:center; margin-top:12px;
+}
 @media (max-width:520px){ .card{ padding:20px 18px 12px } }
 
 .feedback{
@@ -386,3 +389,4 @@ svg.waves-svg{ position:absolute; inset:0; width:100%; height:100%; }
 #splash.split .sfx-lines{ opacity:.09; }
 
 .waterfx.gone{ opacity:0; transition: opacity .28s ease; }
+
