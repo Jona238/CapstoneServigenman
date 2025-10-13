@@ -43,7 +43,7 @@ body[data-theme="dark"] {
   flex-direction: column;
   gap: 40px;
   width: 100%;
-  max-width: 1180px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 120px 32px 72px;
   box-sizing: border-box;
@@ -224,3 +224,4 @@ canvas#chartBar {
     padding: 22px;
   }
 }
+
