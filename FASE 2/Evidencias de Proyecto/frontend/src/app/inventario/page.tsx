@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Script from "next/script";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
@@ -13,6 +13,28 @@ import "./styles.css";
 
 export default function InventoryPage() {
   useBodyClass();
+  const apiBaseUrl = useMemo(() => {
+    const sanitize = (u: string) => u.replace(/\/+$/, "");
+    const env = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (env) return sanitize(env);
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitize("http://localhost:8000");
+      }
+      return sanitize(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBaseUrl}/api/logout/`, { method: "POST", credentials: "include" });
+    } catch {
+      // ignore
+    } finally {
+      window.location.href = "/login";
+    }
+  };
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -59,6 +81,22 @@ export default function InventoryPage() {
                 <span id="themeLabel" className="theme-label">
                   Claro
                 </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: 12,
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,.12)",
+                    background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cerrar sesión
+                </button>
               </div>
             </div>
             <nav>
@@ -255,6 +293,28 @@ export default function InventoryPage() {
                   </div>
                 </div>
               </section>
+
+              {/* Empty state placeholder for no results */}
+              <div id="emptyState" className="empty-state" aria-live="polite" style={{ display: "none" }}>
+                <div className="empty-state__box">
+                  <div className="empty-state__icon" aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="12" fill="url(#g)" />
+                      <path d="M8 7h5l3 3v7a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm6 3h2l-2-2v2z" fill="#fff"/>
+                      <defs>
+                        <linearGradient id="g" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#2ad1ff" />
+                          <stop offset="1" stopColor="#6d78ff" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                  <h4 className="empty-state__title">No hay datos en la tabla</h4>
+                  <p className="empty-state__subtitle">
+                    Agrega recursos o ajusta los filtros para visualizar resultados.
+                  </p>
+                </div>
+              </div>
 
               <div className="tabla-scroll">
                 <table id="tablaRecursos">

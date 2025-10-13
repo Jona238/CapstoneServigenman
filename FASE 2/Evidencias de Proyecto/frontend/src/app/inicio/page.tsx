@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -103,6 +104,7 @@ const THEME_STORAGE_KEY = "theme";
 
 export default function InicioPage() {
   useBodyClass();
+  const router = useRouter();
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -161,6 +163,33 @@ export default function InicioPage() {
     });
   };
 
+  const apiBaseUrl = useMemo(() => {
+    const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, "");
+    const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (envUrl) return sanitizeBaseUrl(envUrl);
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitizeBaseUrl("http://localhost:8000");
+      }
+      return sanitizeBaseUrl(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBaseUrl}/api/logout/`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // best-effort
+    } finally {
+      // Forzar navegación completa para limpiar estado
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <>
       <AnimatedBackground />
@@ -185,6 +214,24 @@ export default function InicioPage() {
                 <span id="themeLabel" className="theme-label">
                   {isDarkTheme ? "Oscuro" : "Claro"}
                 </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: 12,
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,.12)",
+                    background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                  aria-label="Cerrar sesión"
+                  title="Cerrar sesión"
+                >
+                  Cerrar sesión
+                </button>
               </div>
             </div>
             <nav className="home-nav">

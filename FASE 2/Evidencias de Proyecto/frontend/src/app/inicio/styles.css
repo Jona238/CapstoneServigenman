@@ -157,9 +157,9 @@ body.servigenman-login.home-layout[data-theme="dark"] {
 .home-header__inner {
   position: relative;
   z-index: 1;
-  margin: 0 auto;
+  margin: 0;
   width: 100%;
-  max-width: 1180px;
+  max-width: none;
   padding: 26px 32px;
   display: flex;
   flex-direction: column;
