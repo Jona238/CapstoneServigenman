@@ -155,9 +155,9 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
 .inventory-header__inner {
   position: relative;
   z-index: 1;
-  margin: 0 auto;
+  margin: 0;
   width: 100%;
-  max-width: 1180px;
+  max-width: none;
   padding: 24px 32px;
   display: flex;
   flex-direction: column;
@@ -582,6 +582,53 @@ select.filtro-input {
   color: var(--inventory-footer-color);
   font-size: 13px;
   padding-bottom: 16px;
+}
+
+/* Empty state (no rows) */
+.empty-state {
+  display: none;
+  margin: 16px 0 8px;
+}
+
+.empty-state__box {
+  background: var(--inventory-panel);
+  border: 1px solid var(--inventory-border);
+  border-radius: 16px;
+  box-shadow: var(--inventory-shadow);
+  padding: 28px 22px;
+  text-align: center;
+  position: relative;
+}
+
+.empty-state__box::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1.5px dashed var(--inventory-table-border);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.empty-state__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  filter: drop-shadow(0 10px 22px rgba(42,209,255,.18));
+}
+
+.empty-state__title {
+  margin: 4px 0 2px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--inventory-text);
+}
+
+.empty-state__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--inventory-muted);
 }
 
 .visually-hidden {
