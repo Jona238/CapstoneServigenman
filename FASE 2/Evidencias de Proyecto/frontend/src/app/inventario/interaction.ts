@@ -33,9 +33,8 @@ const CATS_KEY = "categoriasInventario";
 // Backend base URL (override at build time with NEXT_PUBLIC_BACKEND_URL)
 const BACKEND_URL =
   (typeof process !== "undefined" &&
-    (process as any).env &&
-    ((process as any).env.NEXT_PUBLIC_API_URL ||
-      (process as any).env.NEXT_PUBLIC_BACKEND_URL)) ||
+    (process.env.NEXT_PUBLIC_API_URL ??
+      process.env.NEXT_PUBLIC_BACKEND_URL)) ||
   "http://localhost:8000";
 
 async function backendFetch(path: string, options?: RequestInit): Promise<Response> {
