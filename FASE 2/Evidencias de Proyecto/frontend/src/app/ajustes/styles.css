@@ -1,0 +1,74 @@
+/* Hereda colores del sistema de Inventario para que concuerde con ambos temas */
+:root {
+  --settings-surface: var(--inventory-panel);
+  --settings-border: var(--inventory-border);
+  --settings-text: var(--inventory-text);
+  --settings-muted: var(--inventory-muted);
+  --settings-card: var(--inventory-panel);
+  --settings-shadow: var(--inventory-shadow);
+}
+
+.settings-page { min-height: 100vh; display: flex; flex-direction: column; }
+.settings-shell { flex: 1; width: 100%; max-width: 1400px; margin: 0 auto; padding: 120px 32px 64px; box-sizing: border-box; }
+
+.settings-grid { display: block; color: var(--settings-text); }
+.settings-hero-card { background: var(--settings-surface); border: 1px solid var(--settings-border); border-radius: 22px; padding: 24px 28px; margin-bottom: 20px; box-shadow: var(--settings-shadow); }
+.settings-breadcrumb { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--settings-muted); }
+.settings-breadcrumb a { color: var(--settings-muted); text-decoration: none; }
+.settings-breadcrumb span { opacity: .8; }
+.settings-hero-title { margin: 8px 0 4px; font-size: clamp(22px, 3vw, 30px); }
+.settings-hero-desc { margin: 0; color: var(--settings-muted); }
+.settings-section-card { background: var(--settings-surface); border: 1px solid var(--settings-border); border-radius: 22px; padding: 16px; box-shadow: var(--settings-shadow); }
+.settings-tabs { display: flex; gap: 10px; padding: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--settings-border); border-radius: 14px; margin-bottom: 16px; }
+.settings-tabs .tab { padding: 8px 14px; border-radius: 10px; text-decoration: none; color: var(--settings-text); background: var(--inventory-secondary-bg); border: 1px solid var(--settings-border); font-weight: 700; }
+.settings-tabs .tab.active { background: var(--inventory-accent); color: #041325; border-color: transparent; }
+.settings-panel { background: var(--settings-card); border: 1px solid var(--settings-border); border-radius: 18px; padding: 22px; }
+
+.settings-sidebar { background: var(--settings-surface); border: 1px solid var(--settings-border); border-radius: 16px; padding: 18px; box-shadow: var(--settings-shadow); height: fit-content; backdrop-filter: blur(10px); }
+.settings-sidebar__title { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--settings-muted); }
+.settings-sidebar nav ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.settings-sidebar nav a { display: block; padding: 10px 12px; border-radius: 10px; text-decoration: none; border: 1px solid var(--settings-border); background: var(--inventory-secondary-bg); color: var(--settings-text); font-weight: 600; }
+.settings-sidebar nav a.active { background: var(--inventory-accent); color: #041325; border-color: transparent; }
+
+.settings-card { background: var(--settings-card); border: 1px solid var(--settings-border); border-radius: 18px; padding: 28px; box-shadow: var(--settings-shadow); display: grid; gap: 16px; backdrop-filter: blur(10px); }
+.settings-title { margin: 0; font-size: clamp(22px, 3vw, 32px); }
+.settings-desc { margin: 0 0 6px; color: var(--settings-muted); }
+
+.settings-form { display: grid; gap: 12px; max-width: 760px; }
+.settings-label { font-size: 14px; color: var(--settings-muted); }
+.settings-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--inventory-input-border); background: var(--inventory-input-bg); color: var(--inventory-text); }
+.settings-actions { display: flex; gap: 10px; margin-top: 6px; }
+.btn-primary { background: var(--inventory-accent); color: #041325; border: none; border-radius: 12px; padding: 12px 16px; font-weight: 800; cursor: pointer; }
+.btn-secondary { background: var(--inventory-neutral-button-bg); border: 1px solid var(--inventory-neutral-button-border); color: var(--inventory-text); border-radius: 12px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
+.settings-note { color: var(--inventory-success); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .settings-shell { padding: 100px 20px 56px; }
+  .settings-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 28px; background: var(--settings-surface); border: 1px solid var(--settings-border); border-radius: 22px; padding: 32px; box-shadow: var(--settings-shadow); color: var(--settings-text); }
+}
+
+/* Font scale helpers */
+html[data-font-scale="sm"] { font-size: 14px; }
+html[data-font-scale="md"] { font-size: 16px; }
+html[data-font-scale="lg"] { font-size: 18px; }
+
+/* Ensure dark theme surfaces when body has data-theme="dark" */
+body[data-theme="dark"] .settings-card {
+  background: rgba(6, 22, 40, 0.9);
+  border-color: rgba(90, 140, 200, 0.35);
+}
+body[data-theme="dark"] .settings-sidebar {
+  background: rgba(10, 35, 60, 0.92);
+  border-color: rgba(90, 140, 200, 0.35);
+}
+
+/* Heredar colores de títulos y textos como el resto */
+.settings-card, .settings-sidebar, .settings-title { color: var(--settings-text); }
+.settings-desc, .settings-label { color: var(--settings-muted); }
+
+
+body[data-theme='dark'] .settings-grid { background: rgba(6,22,40,0.9); border-color: rgba(90,140,200,0.35); }
+body[data-theme='dark'] .settings-hero-card { background: rgba(6,22,40,0.9); border-color: rgba(90,140,200,0.35); }
+body[data-theme='dark'] .settings-section-card { background: rgba(6,22,40,0.9); border-color: rgba(90,140,200,0.35); }
+body[data-theme='dark'] .settings-tabs { background: rgba(255,255,255,0.04); border-color: rgba(90,140,200,0.35); }
+body[data-theme='dark'] .settings-panel { background: rgba(8,26,45,0.85); border-color: rgba(90,140,200,0.35); }
