@@ -1,19 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { SettingsHero } from "../components/Hero";
 import { SettingsTabs } from "../components/Tabs";
 
 export default function AccesibilidadPage() {
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [highContrast, setHighContrast] = useState(false);
+  const [highContrastLevel, setHighContrastLevel] = useState(100);
+  const [uiScale, setUiScale] = useState(100);
+  const contrastMin = 0;
+  const contrastMax = 100;
+  const scaleMin = 95;
+  const scaleMax = 105;
+  const highContrastStorageKey = "accesibilidad_high_contrast";
+  const uiScaleStorageKey = "accesibilidad_ui_scale";
+
+  useEffect(() => {
+    try {
+      const storedContrast = localStorage.getItem(highContrastStorageKey);
+      if (storedContrast !== null) {
+        const parsed = Number.parseInt(storedContrast, 10);
+        if (!Number.isNaN(parsed)) {
+          setHighContrastLevel(Math.min(contrastMax, Math.max(contrastMin, parsed)));
+        }
+      }
+      const storedScale = localStorage.getItem(uiScaleStorageKey);
+      if (storedScale !== null) {
+        const parsedScale = Number.parseInt(storedScale, 10);
+        if (!Number.isNaN(parsedScale)) {
+          setUiScale(Math.min(scaleMax, Math.max(scaleMin, parsedScale)));
+        }
+      }
+    } catch {
+      // Ignore storage access issues silently.
+    }
+  }, []);
+
+  const applyHighContrast = (value: number) => {
+    const sanitized = Math.min(contrastMax, Math.max(contrastMin, value));
+    setHighContrastLevel(sanitized);
+    try {
+      localStorage.setItem(highContrastStorageKey, sanitized.toString());
+    } catch {
+      // Ignore storage access issues silently.
+    }
+  };
+
+  const applyUiScale = (value: number) => {
+    const sanitized = Math.min(scaleMax, Math.max(scaleMin, value));
+    setUiScale(sanitized);
+    try {
+      localStorage.setItem(uiScaleStorageKey, sanitized.toString());
+    } catch {
+      // Ignore storage access issues silently.
+    }
+  };
+
+  const scaleFactor = uiScale / 100;
+  const contrastFactor = highContrastLevel / 100;
+  const formStyle: CSSProperties = {
+    fontSize: `${uiScale}%`,
+    filter: `contrast(${contrastFactor.toFixed(2)})`,
+    transform: `scale(${scaleFactor})`,
+    transformOrigin: "top left",
+    width: `${(100 / scaleFactor).toFixed(3)}%`,
+    maxWidth: `${(760 / scaleFactor).toFixed(2)}px`,
+  };
 
   return (
     <>
       <SettingsHero />
       <div className="settings-grid">
         <SettingsTabs>
-          <div className="settings-form">
+          <div className="settings-form" style={formStyle}>
             <label className="settings-label" htmlFor="reduceMotion">
               <input
                 id="reduceMotion"
@@ -25,16 +84,41 @@ export default function AccesibilidadPage() {
               Reducir animaciones
             </label>
 
-          <label className="settings-label" htmlFor="highContrast">
-            <input
-              id="highContrast"
-              type="checkbox"
-              checked={highContrast}
-              onChange={(e) => setHighContrast(e.target.checked)}
-              style={{ accentColor: "#4b8ef7", marginRight: 8 }}
-            />
-            Alto contraste
-          </label>
+            <label className="settings-label" htmlFor="highContrast">
+              Alto contraste
+              <br />
+              <input
+                id="highContrast"
+                type="range"
+                min={contrastMin}
+                max={contrastMax}
+                step={10}
+                value={highContrastLevel}
+                onChange={(e) => applyHighContrast(Number(e.target.value))}
+                className="settings-slider"
+              />
+              <span style={{ display: "block", marginTop: 4 }}>
+                Nivel de contraste: {highContrastLevel}%
+              </span>
+            </label>
+
+            <label className="settings-label" htmlFor="uiScale">
+              Tamano de interfaz
+              <br />
+              <input
+                id="uiScale"
+                type="range"
+                min={scaleMin}
+                max={scaleMax}
+                step={1}
+                value={uiScale}
+                onChange={(e) => applyUiScale(Number(e.target.value))}
+                className="settings-slider"
+              />
+              <span style={{ display: "block", marginTop: 4 }}>
+                Escala UI: {uiScale}%
+              </span>
+            </label>
 
             <div className="settings-actions">
               <button className="btn-primary" type="button" onClick={() => alert("Preferencias guardadas (demo)")}>Guardar</button>
@@ -45,3 +129,4 @@ export default function AccesibilidadPage() {
     </>
   );
 }
+

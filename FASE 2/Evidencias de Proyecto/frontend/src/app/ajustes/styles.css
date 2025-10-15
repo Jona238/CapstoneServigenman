@@ -38,6 +38,7 @@
 .settings-label { font-size: 14px; color: var(--settings-muted); }
 .settings-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--inventory-input-border); background: var(--inventory-input-bg); color: var(--inventory-text); }
 .settings-actions { display: flex; gap: 10px; margin-top: 6px; }
+.settings-slider { width: min(260px, 100%); margin-top: 8px; }
 .btn-primary { background: var(--inventory-accent); color: #041325; border: none; border-radius: 12px; padding: 12px 16px; font-weight: 800; cursor: pointer; }
 .btn-secondary { background: var(--inventory-neutral-button-bg); border: 1px solid var(--inventory-neutral-button-border); color: var(--inventory-text); border-radius: 12px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
 .settings-note { color: var(--inventory-success); font-weight: 600; }
