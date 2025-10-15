@@ -33,6 +33,7 @@ export default function AppHeader() {
     const body = document.body;
     const toggle = document.getElementById("themeSwitch") as HTMLInputElement | null;
     const label = document.getElementById("themeLabel");
+    const root = document.documentElement;
 
     const apply = (dark: boolean) => {
       if (dark) {
@@ -53,6 +54,12 @@ export default function AppHeader() {
       try { return localStorage.getItem("theme"); } catch { return null; }
     })();
     apply(!saved || saved === "dark");
+
+    // Apply font scale if present
+    try {
+      const fs = localStorage.getItem("ajustes_font_scale");
+      if (fs) root.setAttribute("data-font-scale", fs);
+    } catch {}
 
     if (toggle) {
       const onChange = () => apply(toggle.checked);
@@ -97,6 +104,7 @@ export default function AppHeader() {
             <li><Link href="/inventario">Inventario</Link></li>
             <li><Link href="/categorias">Categorías</Link></li>
             <li><Link href="/presupuesto">Presupuesto</Link></li>
+            <li><Link href="/ajustes">Ajustes</Link></li>
           </ul>
         </nav>
       </div>
