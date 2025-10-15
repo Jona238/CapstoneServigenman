@@ -355,7 +355,7 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
       <td>${item.recurso}</td>
       <td>${item.categoria}</td>
       <td>${item.cantidad ?? 0}</td>
-      <td>${Number(item.precio ?? 0).toFixed(2)}</td>
+      <td data-precio="${item.precio ?? 0}">${formatCurrency(item.precio ?? 0)}</td>
       <td data-foto="${item.foto ? "1" : ""}">
         ${item.foto ? `<img class=\"thumb\" src=\"${item.foto}\" alt=\"\" />` : ""}
       </td>
@@ -383,7 +383,7 @@ function snapshotInventarioDesdeTabla(): InventoryItem[] {
       recurso: tds[1]?.innerText.trim() ?? "",
       categoria: tds[2]?.innerText.trim() ?? "",
       cantidad: Number.parseInt(tds[3]?.innerText || "0", 10) || 0,
-      precio: Number.parseFloat(tds[4]?.innerText || "0") || 0,
+      precio: Number.parseFloat(tds[4]?.getAttribute("data-precio") || "0") || 0,
       foto: img?.src ?? "",
       info: tds[6]?.innerText.trim() ?? "",
     };
@@ -692,7 +692,7 @@ async function guardarFila(button: HTMLButtonElement) {
   celdas[3].innerText = Number.isNaN(nuevaCantidad) ? "0" : String(nuevaCantidad);
   celdas[4].innerText = Number.isNaN(nuevoPrecio)
     ? "0.00"
-    : nuevoPrecio.toFixed(2);
+    : formatCurrency(safePrecio);
   if (fotoDataURL) {
     celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL}" alt="" />`;
     celdas[5].setAttribute("data-foto", "1");
@@ -750,7 +750,7 @@ function cancelarEdicion(button: HTMLButtonElement) {
   celdas[1].innerText = original.recurso;
   celdas[2].innerText = original.categoria;
   celdas[3].innerText = original.cantidad;
-  celdas[4].innerText = Number(original.precio || 0).toFixed(2);
+  celdas[4].innerText = formatCurrency(p);
   if (original.imgSrc) {
     celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
     celdas[5].setAttribute("data-foto", "1");
@@ -1116,6 +1116,29 @@ function aplicarPresetCategoria() {
     filtrarTabla({ resetPage: true });
   }
   localStorage.removeItem("presetCategoria");
+}
+
+
+
+
+
+function getCurrencyPrefs(){
+  try{
+    const curr = localStorage.getItem('ajustes_currency') || 'CLP';
+    const decimalsRaw = localStorage.getItem('ajustes_currency_decimals');
+    const decimals = decimalsRaw !== null ? parseInt(decimalsRaw,10) : (curr==='CLP'?0:2);
+    const locale = curr==='CLP' ? 'es-CL' : (curr==='EUR' ? 'es-ES' : 'en-US');
+    return { curr, decimals, locale };
+  }catch{ return { curr:'CLP', decimals:0, locale:'es-CL' }; }
+}
+
+function formatCurrency(value:number){
+  const { curr, decimals, locale } = getCurrencyPrefs();
+  try{
+    return new Intl.NumberFormat(locale,{style:'currency',currency:curr,maximumFractionDigits:decimals}).format(value||0);
+  }catch{
+    return String(value||0);
+  }
 }
 
 

@@ -66,12 +66,8 @@ const DEFAULT_INVENTORY: InventoryItem[] = [
   },
 ];
 
-const numberFormatter = new Intl.NumberFormat("es-CO");
-const currencyFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
-});
+let numberFormatter = getNumberFormatter();
+let currencyFormatter = getCurrencyFormatter();
 
 let pieChart: ChartHandle | null = null;
 let barChart: ChartHandle | null = null;
@@ -435,7 +431,11 @@ function setupThemeToggle(refresh: () => void): CleanupFn {
 
 function setupStorageSync(refresh: () => void): CleanupFn {
   const handler = (event: StorageEvent) => {
-    if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme"].includes(event.key)) {
+    // Refrescar también cuando cambie moneda/decimales configurados
+    if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme", "ajustes_currency", "ajustes_currency_decimals"].includes(event.key)) {
+      // re-instanciar formatters
+      numberFormatter = getNumberFormatter();
+      currencyFormatter = getCurrencyFormatter();
       refresh();
     }
   };
@@ -532,4 +532,23 @@ function updateCurrentYear() {
   if (target) {
     target.textContent = String(new Date().getFullYear());
   }
+}
+
+
+function getCurrencyPrefs(){
+  try{
+    const curr = localStorage.getItem('ajustes_currency') || 'CLP';
+    const decimalsRaw = localStorage.getItem('ajustes_currency_decimals');
+    const decimals = decimalsRaw !== null ? parseInt(decimalsRaw,10) : (curr==='CLP'?0:2);
+    const locale = curr==='CLP' ? 'es-CL' : (curr==='EUR' ? 'es-ES' : 'en-US');
+    return { curr, decimals, locale };
+  }catch{ return { curr:'CLP', decimals:0, locale:'es-CL' }; }
+}
+function getNumberFormatter(){
+  const { locale } = getCurrencyPrefs();
+  try{ return new Intl.NumberFormat(locale); } catch { return new Intl.NumberFormat('es-CL'); }
+}
+function getCurrencyFormatter(){
+  const { curr, decimals, locale } = getCurrencyPrefs();
+  try{ return new Intl.NumberFormat(locale,{ style:'currency', currency: curr, maximumFractionDigits: decimals }); } catch { return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}); }
 }
