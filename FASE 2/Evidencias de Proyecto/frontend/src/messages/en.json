@@ -111,7 +111,11 @@
     "categorySummary": "Summary by category",
     "categorySummaryCaption": "Consolidated quantities and estimated value according to the category division synchronized with inventory.",
     "distinctResources": "Distinct resources",
-    "totalValue": "Total value"
+    "totalValue": "Total value",
+    "currencyLegend": "Active currency",
+    "currencyExample": "Format example: {value}",
+    "currencyNoDecimals": "No decimals",
+    "currencyDecimals": "{decimals} decimals"
   },
   "settings": {
     "title": "Settings",
