@@ -1,10 +1,11 @@
 "use client";
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
+import AppHeader from "@/components/AppHeader";
+import AppFooter from "@/components/AppFooter";
 
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import Script from "next/script";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -15,6 +16,7 @@ import "./styles.css";
 
 export default function BudgetPage() {
   useBodyClass();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -78,10 +80,9 @@ export default function BudgetPage() {
           <main className="budget-main">
             <section className="budget-wrap">
               <header className="budget-header">
-                <h2>Presupuesto</h2>
+                <h2>{t.budget.budgetTitle}</h2>
                 <p>
-                  Resumen financiero a partir de los recursos del inventario
-                  (precio × cantidad).
+                  {t.budget.financialSummary}
                 </p>
               </header>
 
@@ -89,36 +90,35 @@ export default function BudgetPage() {
 
               <section className="chart-grid">
                 <article className="panel" data-panel="pie">
-                  <h3>Distribución del valor por categoría</h3>
-                  <canvas id="chartPie" aria-label="Distribución del valor por categoría" />
+                  <h3>{t.budget.valueDistribution}</h3>
+                  <canvas id="chartPie" aria-label={t.budget.valueDistribution} />
                 </article>
                 <article className="panel" data-panel="bar">
-                  <h3>Top 10 recursos por valor</h3>
-                  <canvas id="chartBar" aria-label="Top 10 recursos por valor" />
+                  <h3>{t.budget.topResources}</h3>
+                  <canvas id="chartBar" aria-label={t.budget.topResources} />
                 </article>
               </section>
 
               <section className="panel">
                 <header className="panel-header">
-                  <h3>Resumen por categoría</h3>
+                  <h3>{t.budget.categorySummary}</h3>
                   <p className="panel-caption">
-                    Cantidades y valor estimado consolidados según la división de
-                    categorías sincronizada con el inventario.
+                    {t.budget.categorySummaryCaption}
                   </p>
                 </header>
                 <div className="table-wrapper">
                   <table className="table-sm" id="tablaResumenCat">
                     <thead>
                       <tr>
-                        <th scope="col">Categoría</th>
+                        <th scope="col">{t.inventory.category}</th>
                         <th scope="col" className="text-right">
-                          Recursos distintos
+                          {t.budget.distinctResources}
                         </th>
                         <th scope="col" className="text-right">
-                          Unidades
+                          {t.inventory.units}
                         </th>
                         <th scope="col" className="text-right">
-                          Valor total
+                          {t.budget.totalValue}
                         </th>
                       </tr>
                     </thead>
