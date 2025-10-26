@@ -111,7 +111,11 @@
     "categorySummary": "Resumen por categoría",
     "categorySummaryCaption": "Cantidades y valor estimado consolidados según la división de categorías sincronizada con el inventario.",
     "distinctResources": "Recursos distintos",
-    "totalValue": "Valor total"
+    "totalValue": "Valor total",
+    "currencyLegend": "Moneda activa",
+    "currencyExample": "Ejemplo de formato: {value}",
+    "currencyNoDecimals": "Sin decimales",
+    "currencyDecimals": "{decimals} decimales"
   },
   "settings": {
     "title": "Configuración",

@@ -3,9 +3,9 @@ import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 
 import { useEffect, useMemo } from "react";
-import Link from "next/link";
 import Script from "next/script";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/hooks/useCurrency";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -17,6 +17,17 @@ import "./styles.css";
 export default function BudgetPage() {
   useBodyClass();
   const { t } = useLanguage();
+  const { currency, decimals, formatCurrency } = useCurrency();
+  const currencyLabel = {
+    CLP: t.settings.chileanPeso,
+    USD: t.settings.dollar,
+    EUR: t.settings.euro,
+  }[currency];
+  const sampleValue = formatCurrency(1250000);
+  const decimalsLegend =
+    decimals === 0
+      ? t.budget.currencyNoDecimals
+      : t.budget.currencyDecimals.replace("{decimals}", String(decimals));
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -84,6 +95,17 @@ export default function BudgetPage() {
                 <p>
                   {t.budget.financialSummary}
                 </p>
+                <div className="budget-meta" aria-live="polite">
+                  <span className="budget-chip">
+                    {t.budget.currencyLegend}: {currencyLabel}
+                  </span>
+                  <span className="budget-chip budget-chip--ghost">
+                    {t.budget.currencyExample.replace("{value}", sampleValue)}
+                  </span>
+                  <span className="budget-chip budget-chip--ghost">
+                    {decimalsLegend}
+                  </span>
+                </div>
               </header>
 
               <section className="kpi-grid" id="budgetKpis" aria-live="polite" />

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/hooks/useCurrency";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -110,18 +111,9 @@ export default function InicioPage() {
   useBodyClass();
   const router = useRouter();
   const { t } = useLanguage();
+  const { formatCurrency } = useCurrency();
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("es-CL", {
-        style: "currency",
-        currency: "CLP",
-        maximumFractionDigits: 0,
-      }),
-    []
-  );
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -288,7 +280,7 @@ export default function InicioPage() {
                       <td>{resource.name}</td>
                       <td>{resource.category}</td>
                       <td>{resource.quantity}</td>
-                      <td>{currencyFormatter.format(resource.price)}</td>
+                      <td>{formatCurrency(resource.price)}</td>
                       <td>{resource.info}</td>
                     </tr>
                   ))}
@@ -314,7 +306,7 @@ export default function InicioPage() {
                         </p>
                       </div>
                       <p className="category-preview__value">
-                        {currencyFormatter.format(category.value)}
+                        {formatCurrency(category.value)}
                       </p>
                     </li>
                   ))}
@@ -344,7 +336,7 @@ export default function InicioPage() {
                       </div>
                       <p className="budget-preview__value">
                         {typeof item.value === "number"
-                          ? currencyFormatter.format(item.value)
+                          ? formatCurrency(item.value)
                           : item.value}
                       </p>
                       <p className="budget-preview__detail">{item.detail}</p>
