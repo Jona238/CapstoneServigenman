@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "title": "SERVIGENMAN — Internal Portal",
+    "description": "Internal portal of SERVIGENMAN for authorized company personnel."
+  },
+  "common": {
+    "language": "Language",
+    "spanish": "Spanish",
+    "english": "English",
+    "welcome": "Welcome",
+    "home": "Home",
+    "inventory": "Inventory",
+    "categories": "Categories",
+    "budget": "Budget",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "actions": "Actions"
+  },
+  "auth": {
+    "username": "Username",
+    "password": "Password",
+    "email": "Email",
+    "forgotPassword": "Forgot your password?",
+    "rememberMe": "Remember me",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out"
+  },
+  "inventory": {
+    "title": "Inventory Management",
+    "items": "Items",
+    "addItem": "Add Item",
+    "editItem": "Edit Item",
+    "deleteItem": "Delete Item",
+    "itemName": "Item Name",
+    "quantity": "Quantity",
+    "price": "Price",
+    "category": "Category",
+    "description": "Description"
+  },
+  "budget": {
+    "title": "Budget Management",
+    "createBudget": "Create Budget",
+    "viewBudget": "View Budget",
+    "total": "Total",
+    "approved": "Approved",
+    "pending": "Pending",
+    "rejected": "Rejected"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "preferences": "Preferences",
+    "security": "Security",
+    "notifications": "Notifications",
+    "appearance": "Appearance",
+    "language": "Language"
+  }
+}

@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
+import LanguageSelector from "./LanguageSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function AppHeader() {
+  const { t } = useLanguage();
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
     const env = process.env.NEXT_PUBLIC_API_URL?.trim() || process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
@@ -40,12 +43,12 @@ export default function AppHeader() {
         body.setAttribute("data-theme", "dark");
         try { localStorage.setItem("theme", "dark"); } catch {}
         if (toggle) toggle.checked = true;
-        if (label) label.textContent = "Oscuro";
+        if (label) label.textContent = t.common.dark;
       } else {
         body.removeAttribute("data-theme");
         try { localStorage.setItem("theme", "light"); } catch {}
         if (toggle) toggle.checked = false;
-        if (label) label.textContent = "Claro";
+        if (label) label.textContent = t.common.light;
       }
     };
 
@@ -73,16 +76,16 @@ export default function AppHeader() {
     <header className="inventory-header">
       <div className="inventory-header__inner">
         <div className="header-bar">
-          <h1>Gestión de Inventario - Recursos Internos</h1>
-          <div className="header-actions">
+          <h1>{t.header.title}</h1>
+          <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSelector />
             <input type="checkbox" id="themeSwitch" hidden />
-            <label htmlFor="themeSwitch" className="switch" aria-label="Cambiar tema claro/oscuro" />
-            <span id="themeLabel" className="theme-label">Claro</span>
+            <label htmlFor="themeSwitch" className="switch" aria-label={t.common.theme} />
+            <span id="themeLabel" className="theme-label">{t.common.light}</span>
             <button
               type="button"
               onClick={handleLogout}
               style={{
-                marginLeft: 12,
                 padding: "8px 12px",
                 borderRadius: 10,
                 border: "1px solid rgba(255,255,255,.12)",
@@ -91,20 +94,20 @@ export default function AppHeader() {
                 fontWeight: 700,
                 cursor: "pointer",
               }}
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
+              aria-label={t.common.logout}
+              title={t.common.logout}
             >
-              Cerrar sesión
+              {t.common.logout}
             </button>
           </div>
         </div>
         <nav>
           <ul>
-            <li><Link href="/inicio">Inicio</Link></li>
-            <li><Link href="/inventario">Inventario</Link></li>
-            <li><Link href="/categorias">Categorías</Link></li>
-            <li><Link href="/presupuesto">Presupuesto</Link></li>
-            <li><Link href="/ajustes">Ajustes</Link></li>
+            <li><Link href="/inicio">{t.common.home}</Link></li>
+            <li><Link href="/inventario">{t.common.inventory}</Link></li>
+            <li><Link href="/categorias">{t.common.categories}</Link></li>
+            <li><Link href="/presupuesto">{t.common.budget}</Link></li>
+            <li><Link href="/ajustes">{t.common.settings}</Link></li>
           </ul>
         </nav>
       </div>

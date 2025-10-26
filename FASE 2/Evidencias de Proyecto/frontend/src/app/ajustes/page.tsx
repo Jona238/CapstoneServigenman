@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
 export default function AjustesIndex() {
-  redirect("/ajustes/perfil");
+  redirect(`/ajustes/perfil`);
 }
 

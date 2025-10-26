@@ -1,20 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function SettingsHero() {
+  const { t } = useLanguage();
+
   return (
     <section className="settings-hero-card">
       <div className="settings-breadcrumb">
-        <Link href="/inicio">INICIO</Link>
+        <Link href="/inicio">{t.common.home.toUpperCase()}</Link>
         <span>›</span>
-        <span>CUENTA</span>
+        <span>{t.settings.account}</span>
         <span>›</span>
-        <span>AJUSTES</span>
+        <span>{t.common.settings.toUpperCase()}</span>
       </div>
-      <h1 className="settings-hero-title">Centro de ajustes</h1>
+      <h1 className="settings-hero-title">{t.settings.settingsCenter}</h1>
       <p className="settings-hero-desc">
-        Administra tu perfil como responsable de Servigenman y ajusta la apariencia y accesibilidad de la plataforma.
+        {t.settings.settingsDescription}
       </p>
     </section>
   );
