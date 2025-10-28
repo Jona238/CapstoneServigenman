@@ -79,6 +79,32 @@ body[data-theme="dark"] {
   max-width: 720px;
 }
 
+.budget-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.budget-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--budget-panel-border);
+  background: var(--budget-chip);
+  color: var(--budget-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.budget-chip--ghost {
+  background: transparent;
+  color: var(--budget-muted);
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

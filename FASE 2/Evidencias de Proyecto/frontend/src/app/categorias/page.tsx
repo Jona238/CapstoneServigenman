@@ -1,9 +1,10 @@
 "use client";
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
+import AppHeader from "@/components/AppHeader";
+import AppFooter from "@/components/AppFooter";
 
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -14,6 +15,7 @@ import "./styles.css";
 
 export default function CategoriesPage() {
   useBodyClass();
+  const { t } = useLanguage();
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
     const env = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -69,57 +71,52 @@ export default function CategoriesPage() {
           <main className="categories-main">
             <section className="categories-hero">
               <div>
-                <h2>Categorías</h2>
+                <h2>{t.categories.title}</h2>
                 <p>
-                  Haz clic en una tarjeta para ver únicamente los recursos de esa
-                  categoría dentro del inventario.
+                  {t.categories.description}
                 </p>
               </div>
               <p className="categories-hero__hint">
-                Actualiza las categorías desde el inventario. Los cambios se
-                sincronizan automáticamente.
+                {t.categories.hint}
               </p>
             </section>
 
             <section className="categories-section">
               <header className="categories-section__header">
-                <h3>Explora los recursos por categoría</h3>
+                <h3>{t.categories.exploreTitle}</h3>
                 <p>
-                  Navega entre los carruseles superiores e inferiores para
-                  identificar tendencias, cantidades disponibles y valor
-                  acumulado por cada segmento.
+                  {t.categories.exploreDescription}
                 </p>
               </header>
 
               <div className="category-carousel" data-row="top">
-                <button className="cat-nav prev" aria-label="Anterior">
+                <button className="cat-nav prev" aria-label={t.categories.previous}>
                   ‹
                 </button>
                 <div className="category-track" />
-                <button className="cat-nav next" aria-label="Siguiente">
+                <button className="cat-nav next" aria-label={t.categories.next}>
                   ›
                 </button>
               </div>
 
               <div className="category-carousel" data-row="bottom">
-                <button className="cat-nav prev" aria-label="Anterior">
+                <button className="cat-nav prev" aria-label={t.categories.previous}>
                   ‹
                 </button>
                 <div className="category-track" />
-                <button className="cat-nav next" aria-label="Siguiente">
+                <button className="cat-nav next" aria-label={t.categories.next}>
                   ›
                 </button>
               </div>
 
               <p id="categoriesEmptyState" className="categories-empty" hidden>
-                No hay categorías registradas todavía. Agrega recursos en el
-                inventario para construir este resumen visual.
+                {t.categories.emptyState}
               </p>
             </section>
           </main>
 
           <footer className="categories-footer">
-            <p>Versión 1.1 - Proyecto Personal para Portafolio</p>
+            <p>{t.categories.footer}</p>
           </footer>
         </div>
       </div>

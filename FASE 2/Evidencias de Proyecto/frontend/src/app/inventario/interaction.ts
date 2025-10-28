@@ -295,6 +295,16 @@ export function initializeInventoryPage(): CleanupFn {
     cleanupFns.push(() => tabla.removeEventListener("click", handler));
   }
 
+  // Listen for currency changes
+  const currencyChangeHandler = (event: StorageEvent) => {
+    if (event.key === 'ajustes_currency') {
+      // Refresh table to update currency formatting
+      actualizarPaginacion();
+    }
+  };
+  window.addEventListener('storage', currencyChangeHandler);
+  cleanupFns.push(() => window.removeEventListener('storage', currencyChangeHandler));
+
   return () => {
     cleanupFns.forEach((fn) => fn());
   };
