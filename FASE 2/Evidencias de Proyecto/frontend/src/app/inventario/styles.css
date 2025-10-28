@@ -1,18 +1,20 @@
 :root {
-  --inventory-bg: rgba(255, 255, 255, 0.92);
-  --inventory-panel: rgba(255, 255, 255, 0.95);
-  --inventory-border: rgba(32, 110, 190, 0.18);
-  --inventory-text: #10263f;
-  --inventory-muted: #556784;
+  /* Light mode tuned to a cleaner, neutral look */
+  --inventory-bg: #f1f3f5;
+  --inventory-panel: #ffffff;
+  --inventory-border: rgba(0, 0, 0, 0.15);
+  --inventory-text: #1f2d3d;
+  --inventory-muted: #6b7a90;
   --inventory-accent: linear-gradient(120deg, #2e78ff, #1ac6ff);
   --inventory-danger: #d65c5c;
   --inventory-success: #1f9d77;
   --inventory-shadow: 0 18px 42px rgba(18, 43, 72, 0.16);
-  --inventory-surface: rgba(247, 251, 255, 0.94);
-  --inventory-input-bg: rgba(255, 255, 255, 0.95);
-  --inventory-input-border: rgba(32, 110, 190, 0.24);
+  --inventory-surface: #f8f9fa;
+  --inventory-input-bg: #ffffff;
+  --inventory-input-border: rgba(0, 0, 0, 0.2);
   --inventory-chip: rgba(46, 120, 255, 0.14);
-  --inventory-header-bg: rgba(255, 255, 255, 0.9);
+  /* Header light mode stays dark like screenshot */
+  --inventory-header-bg: #324a5e;
   --inventory-header-shadow: 0 12px 28px rgba(18, 43, 72, 0.15);
   --inventory-header-sheen: linear-gradient(
     120deg,
@@ -35,8 +37,9 @@
   --inventory-popover-border: rgba(30, 110, 190, 0.2);
   --inventory-popover-shadow: 0 18px 36px rgba(18, 43, 72, 0.16);
   --inventory-popover-hover: rgba(30, 110, 190, 0.16);
-  --inventory-table-border: rgba(30, 110, 190, 0.18);
-  --inventory-table-stripe: rgba(30, 110, 190, 0.08);
+  --inventory-table-border: rgba(0, 0, 0, 0.18);
+  --inventory-table-stripe: rgba(0, 0, 0, 0.06);
+  --inventory-thead-bg: #2f4052;
   --inventory-secondary-bg: rgba(247, 251, 255, 0.95);
   --inventory-highlight-bg: rgba(30, 110, 190, 0.12);
   --inventory-danger-bg: rgba(214, 92, 92, 0.14);
@@ -110,6 +113,39 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
   color-scheme: dark;
 }
 
+/* Light mode background override (so it contrasts clearly vs dark) */
+body.servigenman-login.inventory-layout:not([data-theme="dark"]) {
+  background:
+    radial-gradient(1400px 800px at 70% 90%, rgba(110, 160, 220, 0.15), transparent 60%),
+    radial-gradient(1200px 600px at 20% 10%, rgba(160, 200, 255, 0.12), transparent 60%),
+    linear-gradient(160deg, #e8eff7 0%, #eaf3ff 60%, #f1f5fb 100%);
+}
+body.servigenman-login.inventory-layout:not([data-theme="dark"])::after {
+  /* soften the dark vignette from login styles in light mode */
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1000px 500px at 50% -10%, rgba(255, 255, 255, 0.20), transparent 60%);
+}
+
+/* Apply similar light background to home pages using the shared header */
+body.servigenman-login.home-layout:not([data-theme="dark"]) {
+  background:
+    radial-gradient(1400px 800px at 70% 90%, rgba(110, 160, 220, 0.15), transparent 60%),
+    radial-gradient(1200px 600px at 20% 10%, rgba(160, 200, 255, 0.12), transparent 60%),
+    linear-gradient(160deg, #e9f1f9 0%, #eef6ff 60%, #f6f9fd 100%);
+}
+body.servigenman-login.home-layout:not([data-theme="dark"])::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1000px 500px at 50% -10%, rgba(255, 255, 255, 0.20), transparent 60%);
+}
+
 .inventory-page {
   position: relative;
   z-index: 1;
@@ -127,7 +163,7 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
   gap: 32px;
   color: var(--inventory-text);
   width: 100%;
-  max-width: 1180px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 120px 32px 72px;
   box-sizing: border-box;
@@ -141,6 +177,11 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
   border-bottom: 1px solid var(--inventory-border);
   box-shadow: var(--inventory-header-shadow);
   backdrop-filter: blur(18px);
+  /* Force full-viewport width regardless of parent layout */
+  width: 100vw;
+  left: 0;
+  right: 0;
+  margin: 0;
 }
 
 .inventory-header::before {
@@ -155,13 +196,25 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
 .inventory-header__inner {
   position: relative;
   z-index: 1;
-  margin: 0 auto;
+  margin: 0;
   width: 100%;
-  max-width: 1180px;
+  max-width: 100%;
   padding: 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/* Title and nav colors over dark header in light mode */
+.inventory-header .header-bar h1 { color: #eaf2ff; }
+.inventory-header nav a { color: rgba(255,255,255,0.92); }
+
+/* Make sure login layout styles don't center pages that use inventory header */
+body.servigenman-login.inventory-layout,
+body.servigenman-login.home-layout {
+  display: block !important;
+  padding: 0 !important;
+  min-height: 100vh;
 }
 
 .header-bar {
@@ -209,10 +262,16 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
   box-shadow: var(--inventory-switch-shadow);
   transform: translateX(0px);
   transition: transform 0.2s ease;
+  /* icon (sun by default) */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="%23fff"/><g stroke="%23fff" stroke-width="2"><line x1="12" y1="1" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="1" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.8" y2="6.8"/><line x1="17.2" y1="17.2" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.8" y2="17.2"/><line x1="17.2" y1="6.8" x2="19.8" y2="4.2"/></g></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 #themeSwitch:checked + .switch::after {
   transform: translateX(20px);
+  /* moon icon in dark mode */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="%23fff"/></svg>');
 }
 
 nav ul {
@@ -486,7 +545,8 @@ select.filtro-input {
 }
 
 #tablaRecursos thead {
-  background: var(--inventory-highlight-bg);
+  background: var(--inventory-thead-bg);
+  color: #fff;
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 0.6px;
@@ -584,6 +644,53 @@ select.filtro-input {
   padding-bottom: 16px;
 }
 
+/* Empty state (no rows) */
+.empty-state {
+  display: none;
+  margin: 16px 0 8px;
+}
+
+.empty-state__box {
+  background: var(--inventory-panel);
+  border: 1px solid var(--inventory-border);
+  border-radius: 16px;
+  box-shadow: var(--inventory-shadow);
+  padding: 28px 22px;
+  text-align: center;
+  position: relative;
+}
+
+.empty-state__box::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1.5px dashed var(--inventory-table-border);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.empty-state__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  filter: drop-shadow(0 10px 22px rgba(42,209,255,.18));
+}
+
+.empty-state__title {
+  margin: 4px 0 2px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--inventory-text);
+}
+
+.empty-state__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--inventory-muted);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -626,3 +733,4 @@ select.filtro-input {
     min-width: 100%;
   }
 }
+

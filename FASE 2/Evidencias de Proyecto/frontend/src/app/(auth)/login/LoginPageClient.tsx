@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AnimatedBackground } from "./components/AnimatedBackground";
@@ -52,7 +52,23 @@ export default function LoginPageClient() {
     );
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const apiBaseUrl = useMemo(() => {
+    const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, "");
+    const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (envUrl) return sanitizeBaseUrl(envUrl);
+    if (typeof window !== "undefined") {
+      // En local, el backend por defecto suele estar en 8000
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitizeBaseUrl("http://localhost:8000");
+      }
+      return sanitizeBaseUrl(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const loginUrl = apiBaseUrl ? `${apiBaseUrl}/api/login/` : "/api/login/";
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const sanitizedUsername = username.trim();
@@ -67,46 +83,49 @@ export default function LoginPageClient() {
     }
 
     setLoading(true);
+    setErrorMessage(null);
+    setSuccess(null);
 
-    dispatchIntegrationEvent({
-      status: "pending",
-      payload: { username: sanitizedUsername },
-    });
+    try {
+      const res = await fetch(loginUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username: sanitizedUsername, password: sanitizedPassword }),
+      });
 
-    if (simulationTimerRef.current !== null) {
-      window.clearTimeout(simulationTimerRef.current);
-    }
+      let payload: any = null;
+      try { payload = await res.json(); } catch { payload = null; }
 
-    simulationTimerRef.current = window.setTimeout(() => {
-      const isSuccessful = sanitizedPassword.length >= 6;
-
-      if (isSuccessful) {
-        const mockSuccess: LoginSuccess = {
-          message: "Inicio de sesion simulado correctamente.",
-          user: {
-            username: sanitizedUsername,
-            first_name: "",
-            last_name: "",
-            email: "",
-          },
-        };
-        setSuccess(mockSuccess);
-        dispatchIntegrationEvent({
-          status: "success",
-          payload: mockSuccess,
-        });
-      } else {
-        const mockError = "Validacion local: la contrasena debe tener al menos 6 caracteres.";
-        setErrorMessage(mockError);
-        dispatchIntegrationEvent({
-          status: "error",
-          payload: { message: mockError },
-        });
+      if (!res.ok) {
+        const message = (payload && payload.error) || "No pudimos validar tus credenciales.";
+        setErrorMessage(message);
+        dispatchIntegrationEvent({ status: "error", payload: { message } });
+        return;
       }
 
+      const successPayload: LoginSuccess = payload?.message
+        ? payload
+        : {
+            message: "Login successful.",
+            user: {
+              username: sanitizedUsername,
+              first_name: "",
+              last_name: "",
+              email: "",
+            },
+          };
+
+      setSuccess(successPayload);
+      dispatchIntegrationEvent({ status: "success", payload: successPayload });
+      router.push("/inicio");
+    } catch {
+      const message = "Error de red o servidor. Intenta nuevamente.";
+      setErrorMessage(message);
+      dispatchIntegrationEvent({ status: "error", payload: { message } });
+    } finally {
       setLoading(false);
-      simulationTimerRef.current = null;
-    }, 400);
+    }
   };
 
   useEffect(() => {

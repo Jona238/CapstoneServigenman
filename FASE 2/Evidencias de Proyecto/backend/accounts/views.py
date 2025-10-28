@@ -5,6 +5,8 @@ from django.contrib.auth import authenticate, get_user_model, login
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.contrib.auth import logout as django_logout
+from django.views.decorators.http import require_GET
 
 from .auth0 import (
     Auth0AuthenticationError,
@@ -148,3 +150,31 @@ def login_view(request):
             },
         }
     )
+
+
+@require_GET
+def me_view(request):
+    """Return the current user if authenticated, otherwise 401."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Not authenticated"}, status=401)
+
+    user = request.user
+    return JsonResponse(
+        {
+            "user": {
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+            }
+        },
+        status=200,
+    )
+
+
+@csrf_exempt
+@require_POST
+def logout_view(request):
+    """Log out the current session."""
+    django_logout(request)
+    return JsonResponse({"ok": True})

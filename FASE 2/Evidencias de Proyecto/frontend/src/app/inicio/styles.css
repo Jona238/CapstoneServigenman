@@ -157,9 +157,9 @@ body.servigenman-login.home-layout[data-theme="dark"] {
 .home-header__inner {
   position: relative;
   z-index: 1;
-  margin: 0 auto;
+  margin: 0;
   width: 100%;
-  max-width: 1180px;
+  max-width: none;
   padding: 26px 32px;
   display: flex;
   flex-direction: column;
@@ -256,7 +256,7 @@ input[type="checkbox"]:checked + .switch::after {
 .home-main {
   flex: 1;
   width: 100%;
-  max-width: 1180px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 120px 32px 80px;
   display: flex;
@@ -267,7 +267,7 @@ input[type="checkbox"]:checked + .switch::after {
 
 .home-hero {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 2fr) minmax(0, 1fr);
   gap: 32px;
   background: var(--home-surface);
   border: 1px solid var(--home-border);
@@ -337,10 +337,27 @@ input[type="checkbox"]:checked + .switch::after {
   filter: brightness(1.05);
 }
 
-.home-hero__aside {
-  display: grid;
-  gap: 16px;
+.home-hero__aside { display: grid; gap: 16px; }
+
+/* Left sidebar */
+.home-leftbar {
+  align-self: start;
+  position: sticky;
+  top: 96px;
+  background: var(--home-surface);
+  border: 1px solid var(--home-panel-border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--home-shadow);
 }
+
+.leftbar-title { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--home-muted); }
+.leftbar-nav { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+.leftbar-nav a { display: block; padding: 10px 12px; border-radius: 10px; background: var(--home-secondary-bg); border: 1px solid var(--home-secondary-border); color: var(--home-text); text-decoration: none; font-weight: 600; }
+.leftbar-nav a:hover { filter: brightness(1.05); }
+.leftbar-sub { margin: 8px 0 10px; font-size: 13px; color: var(--home-muted); }
+.leftbar-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-block; padding: 8px 12px; border-radius: 999px; background: var(--home-secondary-bg); border: 1px solid var(--home-secondary-border); color: var(--home-text); text-decoration: none; font-size: 13px; }
 
 .home-summary {
   background: var(--home-summary-bg);
@@ -594,9 +611,8 @@ input[type="checkbox"]:checked + .switch::after {
     grid-template-columns: 1fr;
   }
 
-  .home-hero__aside {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
+  .home-hero__aside { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .home-leftbar { position: static; }
 }
 
 @media (max-width: 720px) {

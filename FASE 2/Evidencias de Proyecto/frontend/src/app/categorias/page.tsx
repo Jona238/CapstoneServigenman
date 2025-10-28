@@ -1,6 +1,8 @@
 "use client";
+import AppHeader from "../components/AppHeader";
+import AppFooter from "../components/AppFooter";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
@@ -12,6 +14,28 @@ import "./styles.css";
 
 export default function CategoriesPage() {
   useBodyClass();
+  const apiBaseUrl = useMemo(() => {
+    const sanitize = (u: string) => u.replace(/\/+$/, "");
+    const env = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (env) return sanitize(env);
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitize("http://localhost:8000");
+      }
+      return sanitize(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBaseUrl}/api/logout/`, { method: "POST", credentials: "include" });
+    } catch {
+      // ignore
+    } finally {
+      window.location.href = "/login";
+    }
+  };
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -38,42 +62,8 @@ export default function CategoriesPage() {
     <>
       <AnimatedBackground />
       <div className="categories-page">
-        <header className="inventory-header">
-          <div className="inventory-header__inner">
-            <div className="header-bar">
-              <h1>Gestión de Inventario - Recursos Internos</h1>
-              <div className="header-actions">
-                <input type="checkbox" id="themeSwitch" hidden />
-                <label
-                  htmlFor="themeSwitch"
-                  className="switch"
-                  aria-label="Cambiar tema claro/oscuro"
-                />
-                <span id="themeLabel" className="theme-label">
-                  Claro
-                </span>
-              </div>
-            </div>
-            <nav>
-              <ul>
-                <li>
-                  <Link href="/inicio">Inicio</Link>
-                </li>
-                <li>
-                  <Link href="/inventario">Inventario</Link>
-                </li>
-                <li>
-                  <Link href="/categorias" aria-current="page">
-                    Categorías
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/presupuesto">Presupuesto</Link>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </header>
+        <AppHeader />
+        
 
         <div className="categories-shell">
           <main className="categories-main">
@@ -136,3 +126,7 @@ export default function CategoriesPage() {
     </>
   );
 }
+
+
+
+

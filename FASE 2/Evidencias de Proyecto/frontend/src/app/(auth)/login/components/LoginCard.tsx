@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FormEvent, RefObject } from "react";
+import { FormEvent, RefObject, useState } from "react";
 
 import type { LoginSuccess } from "../types";
 
@@ -28,6 +28,7 @@ export function LoginCard({
   usernameInputRef,
   feedbackRef,
 }: LoginCardProps) {
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <main className="card" role="main" aria-label="Formulario de inicio de sesion">
       <div className="brand">
@@ -66,18 +67,32 @@ export function LoginCard({
           <label className="label" htmlFor="password">
             Contrasena
           </label>
-          <input
-            className="field"
-            type="password"
-            id="password"
-            name="password"
-            placeholder="********"
-            autoComplete="current-password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(event) => onPasswordChange(event.target.value)}
-          />
+          <div>
+            <input
+              className="field"
+              type={showPassword ? "text" : "password"}
+              id="password"
+              name="password"
+              placeholder="********"
+              autoComplete="current-password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(event) => onPasswordChange(event.target.value)}
+            />
+            <div className="row" style={{ marginTop: 6 }}>
+              <label htmlFor="togglePassword" style={{ cursor: "pointer" }}>
+                <input
+                  id="togglePassword"
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={() => setShowPassword((v) => !v)}
+                  style={{ accentColor: "#4b8ef7", marginRight: 6 }}
+                />
+                {showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+              </label>
+            </div>
+          </div>
         </div>
         <div className="row">
           <label htmlFor="remember">

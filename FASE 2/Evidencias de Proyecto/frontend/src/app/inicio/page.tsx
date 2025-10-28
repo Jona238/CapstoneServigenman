@@ -1,11 +1,15 @@
 "use client";
+import AppHeader from "../components/AppHeader";
+import AppFooter from "../components/AppFooter";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
 import "../(auth)/login/styles.css";
+import "../inventario/styles.css";
 import "./styles.css";
 
 type ResourcePreview = {
@@ -103,6 +107,7 @@ const THEME_STORAGE_KEY = "theme";
 
 export default function InicioPage() {
   useBodyClass();
+  const router = useRouter();
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -135,7 +140,10 @@ export default function InicioPage() {
     }
 
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-    const shouldUseDark = savedTheme === "dark";
+    const shouldUseDark = savedTheme ? savedTheme === "dark" : true;
+    if (!savedTheme) {
+      try { window.localStorage.setItem(THEME_STORAGE_KEY, "dark"); } catch {}
+    }
     setIsDarkTheme(shouldUseDark);
     applyTheme(shouldUseDark);
   }, []);
@@ -161,55 +169,58 @@ export default function InicioPage() {
     });
   };
 
+  const apiBaseUrl = useMemo(() => {
+    const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, "");
+    const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (envUrl) return sanitizeBaseUrl(envUrl);
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitizeBaseUrl("http://localhost:8000");
+      }
+      return sanitizeBaseUrl(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBaseUrl}/api/logout/`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // best-effort
+    } finally {
+      // Forzar navegación completa para limpiar estado
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <>
       <AnimatedBackground />
       <div className="home-page">
-        <header className="home-header">
-          <div className="home-header__inner">
-            <div className="header-bar">
-              <h1>Servigenman — Portal operativo</h1>
-              <div className="header-actions">
-                <input
-                  type="checkbox"
-                  id="themeSwitch"
-                  hidden
-                  checked={isDarkTheme}
-                  onChange={toggleTheme}
-                />
-                <label
-                  htmlFor="themeSwitch"
-                  className="switch"
-                  aria-label="Cambiar tema claro/oscuro"
-                />
-                <span id="themeLabel" className="theme-label">
-                  {isDarkTheme ? "Oscuro" : "Claro"}
-                </span>
-              </div>
-            </div>
-            <nav className="home-nav">
-              <ul>
-                <li>
-                  <Link href="/inicio" aria-current="page">
-                    Inicio
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/inventario">Inventario</Link>
-                </li>
-                <li>
-                  <Link href="/categorias">Categorías</Link>
-                </li>
-                <li>
-                  <Link href="/presupuesto">Presupuesto</Link>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </header>
+        <AppHeader />
+        
 
         <main className="home-main">
           <section className="home-hero">
+            <aside className="home-leftbar" aria-label="Accesos rápidos">
+              <h3 className="leftbar-title">Accesos rápidos</h3>
+              <ul className="leftbar-nav">
+                <li><Link href="/inventario">Ir al Inventario</Link></li>
+                <li><Link href="/categorias">Explorar Categorías</Link></li>
+                <li><Link href="/presupuesto">Ver Presupuesto</Link></li>
+                <li><Link href="/inventario#formAgregar">Agregar Recurso</Link></li>
+              </ul>
+
+              <h4 className="leftbar-sub">Atajos</h4>
+              <div className="leftbar-chips" role="list">
+                <Link href="/inventario" role="listitem" className="chip">Bajas existencias</Link>
+                <Link href="/inventario" role="listitem" className="chip">Últimos añadidos</Link>
+                <Link href="/presupuesto" role="listitem" className="chip">Top gasto</Link>
+              </div>
+            </aside>
             <div className="home-hero__content">
               <p className="home-badge">Portal interno v1.1</p>
               <h2>Seguimiento integral de recursos en terreno</h2>
@@ -349,12 +360,7 @@ export default function InicioPage() {
           </section>
         </main>
 
-        <footer className="home-footer">
-          <small>
-            © {new Date().getFullYear()} Servigenman. Plataforma interna para el
-            seguimiento operativo.
-          </small>
-        </footer>
+        <AppFooter />
       </div>
     </>
   );
@@ -376,3 +382,6 @@ function applyTheme(useDark: boolean) {
     body.removeAttribute("data-theme");
   }
 }
+
+
+
