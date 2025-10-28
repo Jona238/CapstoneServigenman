@@ -1,4 +1,9 @@
-import { isLowStock } from "@/lib/stockAlerts";
+import {
+  LOW_STOCK_THRESHOLD_EVENT,
+  LOW_STOCK_THRESHOLD_KEY,
+  getStoredLowStockThreshold,
+  isLowStock,
+} from "@/lib/stockAlerts";
 
 type InventoryItem = {
   id: number;
@@ -43,7 +48,8 @@ export function initializeCategoriesPage(): CleanupFn {
     ...carouselControls.map((control) => control.cleanup),
     setupThemeToggle(),
     setupStorageSync(() => renderCategories(carouselControls)),
-    setupFocusSync(() => renderCategories(carouselControls))
+    setupFocusSync(() => renderCategories(carouselControls)),
+    setupThresholdSync(() => renderCategories(carouselControls))
   );
 
   renderCategories(carouselControls);
@@ -65,7 +71,7 @@ function setupThemeToggle(): CleanupFn {
 
 function setupStorageSync(refresh: () => void): CleanupFn {
   const handler = (event: StorageEvent) => {
-    if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme", "ajustes_currency", "ajustes_currency_decimals"].includes(event.key)) {
+    if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme", "ajustes_currency", "ajustes_currency_decimals", LOW_STOCK_THRESHOLD_KEY].includes(event.key)) {
       refresh();
       if (!event.key || event.key === "theme") {
         applyStoredTheme();
@@ -82,10 +88,28 @@ function setupFocusSync(refresh: () => void): CleanupFn {
   return () => window.removeEventListener("focus", handler);
 }
 
+function setupThresholdSync(refresh: () => void): CleanupFn {
+  const handler = () => refresh();
+  window.addEventListener(LOW_STOCK_THRESHOLD_EVENT, handler as EventListener);
+  return () => window.removeEventListener(LOW_STOCK_THRESHOLD_EVENT, handler as EventListener);
+}
+
 function renderCategories(controls: CarouselControl[]) {
   const inventory = loadJSON<InventoryItem[]>(INVENTORY_KEY, []);
   const storedCategories = loadJSON<string[]>(CATS_KEY, []);
-  const categories = buildCategorySummaries(inventory, storedCategories);
+
+  const container = document.querySelector<HTMLElement>(".categories-shell");
+  const lowStockLabel = container?.dataset.lowStockLabel?.trim() ?? "Low stock";
+  const thresholdAttr = container?.dataset.lowStockThreshold;
+  const thresholdParsed = thresholdAttr ? Number.parseInt(thresholdAttr, 10) : Number.NaN;
+  const lowStockThreshold = Number.isNaN(thresholdParsed)
+    ? getStoredLowStockThreshold()
+    : thresholdParsed;
+  if (container) {
+    container.dataset.lowStockThreshold = String(lowStockThreshold);
+  }
+
+  const categories = buildCategorySummaries(inventory, storedCategories, lowStockThreshold);
   persistCategoryNames(categories.map((category) => category.name));
 
   const topRow = categories.slice(0, Math.ceil(categories.length / 2));
@@ -97,9 +121,6 @@ function renderCategories(controls: CarouselControl[]) {
   const bottomTrack = document.querySelector<HTMLElement>(
     '.category-carousel[data-row="bottom"] .category-track'
   );
-
-  const container = document.querySelector<HTMLElement>(".categories-shell");
-  const lowStockLabel = container?.dataset.lowStockLabel?.trim() ?? "Low stock";
 
   if (topTrack) {
     fillTrack(topTrack, topRow, lowStockLabel);
@@ -266,7 +287,8 @@ function setupCarousel(carousel: HTMLElement): CarouselControl {
 
 function buildCategorySummaries(
   inventory: InventoryItem[],
-  storedCategories: string[]
+  storedCategories: string[],
+  threshold: number
 ): CategorySummary[] {
   const normalizedCategories = new Map<string, string>();
 
@@ -286,10 +308,14 @@ function buildCategorySummaries(
     a.localeCompare(b, "es", { sensitivity: "base" })
   );
 
-  return categories.map((name) => summarizeCategory(name, inventory));
+  return categories.map((name) => summarizeCategory(name, inventory, threshold));
 }
 
-function summarizeCategory(name: string, inventory: InventoryItem[]): CategorySummary {
+function summarizeCategory(
+  name: string,
+  inventory: InventoryItem[],
+  threshold: number
+): CategorySummary {
   const normalized = name.trim().toLowerCase();
   const items = inventory.filter((item) => {
     const categoryName = item.categoria?.trim().toLowerCase();
@@ -306,7 +332,7 @@ function summarizeCategory(name: string, inventory: InventoryItem[]): CategorySu
   const topResource = items
     .slice()
     .sort((a, b) => (b.cantidad ?? 0) - (a.cantidad ?? 0))[0]?.recurso;
-  const hasLowStock = items.some((item) => isLowStock(item.cantidad ?? 0));
+  const hasLowStock = items.some((item) => isLowStock(item.cantidad ?? 0, threshold));
 
   return {
     name,

@@ -1,4 +1,11 @@
-import { DEFAULT_LOW_STOCK_THRESHOLD, isLowStock } from "@/lib/stockAlerts";
+import {
+  DEFAULT_LOW_STOCK_THRESHOLD,
+  LOW_STOCK_THRESHOLD_EVENT,
+  LOW_STOCK_THRESHOLD_KEY,
+  getStoredLowStockThreshold,
+  isLowStock,
+  sanitizeLowStockThreshold,
+} from "@/lib/stockAlerts";
 
 type XLSXNamespace = {
   utils: {
@@ -297,14 +304,37 @@ export function initializeInventoryPage(): CleanupFn {
   }
 
   // Listen for currency changes
-  const currencyChangeHandler = (event: StorageEvent) => {
-    if (event.key === 'ajustes_currency') {
+  const storageHandler = (event: StorageEvent) => {
+    if (event.key === "ajustes_currency") {
       // Refresh table to update currency formatting
       actualizarPaginacion();
     }
+    if (event.key === LOW_STOCK_THRESHOLD_KEY) {
+      const sanitized = getStoredLowStockThreshold(DEFAULT_LOW_STOCK_THRESHOLD);
+      const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
+      if (table) {
+        table.dataset.lowStockThreshold = String(sanitized);
+      }
+      applyLowStockAlerts();
+    }
   };
-  window.addEventListener('storage', currencyChangeHandler);
-  cleanupFns.push(() => window.removeEventListener('storage', currencyChangeHandler));
+  window.addEventListener("storage", storageHandler);
+  cleanupFns.push(() => window.removeEventListener("storage", storageHandler));
+
+  const thresholdChangeHandler = (event: Event) => {
+    const custom = event as CustomEvent<number>;
+    const value =
+      typeof custom.detail === "number"
+        ? sanitizeLowStockThreshold(custom.detail)
+        : getStoredLowStockThreshold(DEFAULT_LOW_STOCK_THRESHOLD);
+    const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
+    if (table) {
+      table.dataset.lowStockThreshold = String(value);
+    }
+    applyLowStockAlerts();
+  };
+  window.addEventListener(LOW_STOCK_THRESHOLD_EVENT, thresholdChangeHandler as EventListener);
+  cleanupFns.push(() => window.removeEventListener(LOW_STOCK_THRESHOLD_EVENT, thresholdChangeHandler as EventListener));
 
   return () => {
     cleanupFns.forEach((fn) => fn());
@@ -373,7 +403,7 @@ function resolveLowStockMeta(table: HTMLTableElement | null) {
   const thresholdAttr = table?.dataset.lowStockThreshold;
   const thresholdParsed = thresholdAttr ? Number.parseInt(thresholdAttr, 10) : Number.NaN;
   const threshold = Number.isNaN(thresholdParsed)
-    ? DEFAULT_LOW_STOCK_THRESHOLD
+    ? getStoredLowStockThreshold(DEFAULT_LOW_STOCK_THRESHOLD)
     : thresholdParsed;
   return { label, threshold };
 }
@@ -383,6 +413,7 @@ function applyLowStockAlerts() {
   const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
   if (!table) return;
   const { label, threshold } = resolveLowStockMeta(table);
+  table.dataset.lowStockThreshold = String(threshold);
 
   const rows = table.querySelectorAll<HTMLTableRowElement>("tbody tr");
   rows.forEach((row) => {

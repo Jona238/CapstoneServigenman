@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
 import "./styles.css";
 
 export default function AjustesCuentaPanel() {
@@ -10,6 +11,10 @@ export default function AjustesCuentaPanel() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
+  const { threshold: storedLowStockThreshold, setThreshold: persistLowStockThreshold } =
+    useLowStockThreshold();
+  const [lowStockThreshold, setLowStockThreshold] = useState(storedLowStockThreshold);
+  const [mensajePreferencias, setMensajePreferencias] = useState<string | null>(null);
 
   useEffect(() => {
     // Simular carga inicial
@@ -20,9 +25,30 @@ export default function AjustesCuentaPanel() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    setLowStockThreshold(storedLowStockThreshold);
+  }, [storedLowStockThreshold]);
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMensaje("Cambios guardados correctamente.");
+  };
+
+  const handleLowStockChange = (value: number) => {
+    const sanitized = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    setLowStockThreshold(sanitized);
+    setMensajePreferencias(null);
+  };
+
+  const handleLowStockInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const parsed = Number.parseInt(event.target.value, 10);
+    handleLowStockChange(Number.isNaN(parsed) ? 0 : parsed);
+  };
+
+  const handlePreferenciasSave = () => {
+    const sanitized = persistLowStockThreshold(lowStockThreshold);
+    setLowStockThreshold(sanitized);
+    setMensajePreferencias("Stock mínimo actualizado.");
   };
 
   return (
@@ -51,6 +77,7 @@ export default function AjustesCuentaPanel() {
             onClick={() => {
               setActiveTab(tab);
               setMensaje(null);
+              setMensajePreferencias(null);
             }}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -130,8 +157,39 @@ export default function AjustesCuentaPanel() {
                   <option>Inglés</option>
                 </select>
 
+                <label htmlFor="stockMinimo">Stock mínimo para alertas</label>
+                <div className="ajustes-slider-group">
+                  <input
+                    id="stockMinimo"
+                    type="range"
+                    min={0}
+                    max={50}
+                    step={1}
+                    value={Math.min(lowStockThreshold, 50)}
+                    onChange={handleLowStockInput}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={999999}
+                    step={1}
+                    value={lowStockThreshold}
+                    onChange={handleLowStockInput}
+                    className="ajustes-slider-value"
+                    aria-label="Stock mínimo numérico"
+                  />
+                </div>
+                <p className="ajustes-hint">
+                  Ajusta el umbral para resaltar en rojo los recursos con existencias bajas en el
+                  inventario y en los resúmenes.
+                </p>
+
+                {mensajePreferencias && <div className="mensaje-exito">{mensajePreferencias}</div>}
+
                 <div className="ajustes-actions">
-                  <button className="btn-guardar">Guardar</button>
+                  <button type="button" className="btn-guardar" onClick={handlePreferenciasSave}>
+                    Guardar
+                  </button>
                 </div>
               </div>
             )}

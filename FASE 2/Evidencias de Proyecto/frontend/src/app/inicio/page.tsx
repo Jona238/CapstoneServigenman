@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
 import { isLowStock } from "@/lib/stockAlerts";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
@@ -113,6 +114,7 @@ export default function InicioPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -276,7 +278,7 @@ export default function InicioPage() {
                 </thead>
                 <tbody>
                   {FEATURED_RESOURCES.map((resource) => {
-                    const lowStock = isLowStock(resource.quantity);
+                    const lowStock = isLowStock(resource.quantity, lowStockThreshold);
                     return (
                       <tr
                         key={resource.id}
