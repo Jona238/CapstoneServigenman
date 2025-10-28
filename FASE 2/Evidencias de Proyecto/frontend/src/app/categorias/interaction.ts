@@ -1,3 +1,5 @@
+import { isLowStock } from "@/lib/stockAlerts";
+
 type InventoryItem = {
   id: number;
   recurso: string;
@@ -16,6 +18,7 @@ type CategorySummary = {
   totalQuantity: number;
   totalValue: number;
   topResource?: string;
+  hasLowStock: boolean;
 };
 
 type CarouselControl = {
@@ -95,11 +98,14 @@ function renderCategories(controls: CarouselControl[]) {
     '.category-carousel[data-row="bottom"] .category-track'
   );
 
+  const container = document.querySelector<HTMLElement>(".categories-shell");
+  const lowStockLabel = container?.dataset.lowStockLabel?.trim() ?? "Low stock";
+
   if (topTrack) {
-    fillTrack(topTrack, topRow);
+    fillTrack(topTrack, topRow, lowStockLabel);
   }
   if (bottomTrack) {
-    fillTrack(bottomTrack, bottomRow);
+    fillTrack(bottomTrack, bottomRow, lowStockLabel);
   }
 
   const emptyState = document.getElementById("categoriesEmptyState");
@@ -122,7 +128,7 @@ function renderCategories(controls: CarouselControl[]) {
   });
 }
 
-function fillTrack(track: HTMLElement, categories: CategorySummary[]) {
+function fillTrack(track: HTMLElement, categories: CategorySummary[], lowStockLabel: string) {
   track.innerHTML = "";
   if (!categories.length) {
     const placeholder = document.createElement("div");
@@ -133,15 +139,18 @@ function fillTrack(track: HTMLElement, categories: CategorySummary[]) {
   }
 
   categories.forEach((category) => {
-    track.appendChild(createCategoryCard(category));
+    track.appendChild(createCategoryCard(category, lowStockLabel));
   });
 }
 
-function createCategoryCard(category: CategorySummary) {
+function createCategoryCard(category: CategorySummary, lowStockLabel: string) {
   const card = document.createElement("article");
   card.className = "category-card";
   card.tabIndex = 0;
   card.dataset.category = category.name;
+  if (category.hasLowStock) {
+    card.classList.add("category-card--low");
+  }
 
   // Get currency preferences from localStorage
   const curr = localStorage.getItem('ajustes_currency') || 'CLP';
@@ -160,7 +169,10 @@ function createCategoryCard(category: CategorySummary) {
   card.innerHTML = `
     <header class="category-card__header">
       <h4>${category.name}</h4>
-      <span class="category-card__chip">${category.resourceCount} recursos</span>
+      <div class="category-card__meta">
+        <span class="category-card__chip">${category.resourceCount} recursos</span>
+        ${category.hasLowStock ? `<span class="low-stock-badge" role="status">${lowStockLabel}</span>` : ""}
+      </div>
     </header>
     <dl class="category-card__stats">
       <div>
@@ -294,6 +306,7 @@ function summarizeCategory(name: string, inventory: InventoryItem[]): CategorySu
   const topResource = items
     .slice()
     .sort((a, b) => (b.cantidad ?? 0) - (a.cantidad ?? 0))[0]?.recurso;
+  const hasLowStock = items.some((item) => isLowStock(item.cantidad ?? 0));
 
   return {
     name,
@@ -301,6 +314,7 @@ function summarizeCategory(name: string, inventory: InventoryItem[]): CategorySu
     totalQuantity,
     totalValue,
     topResource,
+    hasLowStock,
   };
 }
 

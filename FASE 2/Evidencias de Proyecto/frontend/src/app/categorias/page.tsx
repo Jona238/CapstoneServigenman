@@ -67,7 +67,7 @@ export default function CategoriesPage() {
         <AppHeader />
         
 
-        <div className="categories-shell">
+        <div className="categories-shell" data-low-stock-label={t.inventory.lowStock}>
           <main className="categories-main">
             <section className="categories-hero">
               <div>

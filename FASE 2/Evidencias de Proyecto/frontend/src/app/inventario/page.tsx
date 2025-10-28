@@ -271,7 +271,10 @@ export default function InventoryPage() {
               </div>
 
               <div className="tabla-scroll">
-                <table id="tablaRecursos">
+                <table
+                  id="tablaRecursos"
+                  data-low-stock-label={t.inventory.lowStock}
+                >
                   <thead>
                     <tr>
                       <th>ID</th>
@@ -289,7 +292,9 @@ export default function InventoryPage() {
                       <td>1</td>
                       <td>Bombas sumergibles 1HP</td>
                       <td>Bombas de agua</td>
-                      <td>5</td>
+                      <td data-quantity="5">
+                        <span className="quantity-value">5</span>
+                      </td>
                       <td>120.00</td>
                       <td data-foto=""></td>
                       <td>Equipo básico</td>
@@ -301,7 +306,9 @@ export default function InventoryPage() {
                       </td>
                     </tr>
                     <tr data-match="1">
-                      <td>2</td>
+                      <td data-quantity="2">
+                        <span className="quantity-value">2</span>
+                      </td>
                       <td>Kit reparación rodamientos</td>
                       <td>Repuestos</td>
                       <td>2</td>

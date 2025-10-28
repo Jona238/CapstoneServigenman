@@ -1,3 +1,5 @@
+import { DEFAULT_LOW_STOCK_THRESHOLD, isLowStock } from "@/lib/stockAlerts";
+
 type XLSXNamespace = {
   utils: {
     aoa_to_sheet: (data: unknown[][]) => unknown;
@@ -349,6 +351,83 @@ function nextIdFromStorage(): number {
   return arr.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
 }
 
+function setQuantityCell(
+  cell: HTMLTableCellElement | null | undefined,
+  value: number | string | null | undefined
+) {
+  if (!cell) return;
+  const parsed = Number.parseInt(String(value ?? "0"), 10);
+  const quantity = Number.isNaN(parsed) ? 0 : parsed;
+  cell.setAttribute("data-quantity", String(quantity));
+  cell.innerHTML = "";
+  const span = document.createElement("span");
+  span.className = "quantity-value";
+  span.textContent = String(quantity);
+  cell.appendChild(span);
+}
+
+function resolveLowStockMeta(table: HTMLTableElement | null) {
+  const label =
+    table?.dataset.lowStockLabel?.trim() ??
+    "Low stock";
+  const thresholdAttr = table?.dataset.lowStockThreshold;
+  const thresholdParsed = thresholdAttr ? Number.parseInt(thresholdAttr, 10) : Number.NaN;
+  const threshold = Number.isNaN(thresholdParsed)
+    ? DEFAULT_LOW_STOCK_THRESHOLD
+    : thresholdParsed;
+  return { label, threshold };
+}
+
+function applyLowStockAlerts() {
+  if (typeof document === "undefined") return;
+  const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
+  if (!table) return;
+  const { label, threshold } = resolveLowStockMeta(table);
+
+  const rows = table.querySelectorAll<HTMLTableRowElement>("tbody tr");
+  rows.forEach((row) => {
+    const quantityCell = row.cells[3];
+    if (!quantityCell) return;
+    if (quantityCell.querySelector("input")) return;
+
+    const dataQuantity = quantityCell.getAttribute("data-quantity");
+    const parsed = dataQuantity
+      ? Number.parseInt(dataQuantity, 10)
+      : Number.parseInt(quantityCell.textContent ?? "0", 10);
+    const quantity = Number.isNaN(parsed) ? 0 : parsed;
+
+    if (!quantityCell.querySelector(".quantity-value")) {
+      setQuantityCell(quantityCell, quantity);
+    } else {
+      quantityCell.setAttribute("data-quantity", String(quantity));
+      const valueSpan = quantityCell.querySelector<HTMLSpanElement>(".quantity-value");
+      if (valueSpan) valueSpan.textContent = String(quantity);
+    }
+
+    const isLow = isLowStock(quantity, threshold);
+    row.classList.toggle("inventory-row--low", isLow);
+    quantityCell.classList.toggle("inventory-quantity--low", isLow);
+    if (isLow) {
+      quantityCell.setAttribute("aria-label", `${quantity} - ${label}`);
+    } else {
+      quantityCell.removeAttribute("aria-label");
+    }
+
+    let badge = quantityCell.querySelector<HTMLSpanElement>(".low-stock-badge");
+    if (isLow) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "low-stock-badge";
+        badge.setAttribute("role", "status");
+        quantityCell.appendChild(badge);
+      }
+      badge.textContent = label;
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
 function renderInventarioToDOM(arr: InventoryItem[]) {
   const tbody = document.querySelector<HTMLTableSectionElement>(
     "#tablaRecursos tbody"
@@ -363,7 +442,7 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
       <td>${item.id}</td>
       <td>${item.recurso}</td>
       <td>${item.categoria}</td>
-      <td>${item.cantidad ?? 0}</td>
+      <td data-quantity="${item.cantidad ?? 0}">${item.cantidad ?? 0}</td>
       <td data-precio="${item.precio ?? 0}">${formatCurrency(item.precio ?? 0)}</td>
       <td data-foto="${item.foto ? "1" : ""}">
         ${item.foto ? `<img class=\"thumb\" src=\"${item.foto}\" alt=\"\" />` : ""}
@@ -375,8 +454,10 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
           <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
         </div>
       </td>`;
+    setQuantityCell(tr.cells[3] ?? null, item.cantidad ?? 0);
     tbody.appendChild(tr);
   });
+  applyLowStockAlerts();
   toggleEmptyState(arr.length === 0);
 }
 
@@ -387,11 +468,15 @@ function snapshotInventarioDesdeTabla(): InventoryItem[] {
   return rows.map((tr) => {
     const tds = tr.querySelectorAll<HTMLTableCellElement>("td");
     const img = tds[5]?.querySelector<HTMLImageElement>("img");
+    const quantityAttr = tds[3]?.getAttribute("data-quantity");
+    const parsedQuantity = quantityAttr
+      ? Number.parseInt(quantityAttr, 10)
+      : Number.parseInt(tds[3]?.innerText || "0", 10);
     return {
       id: Number.parseInt(tds[0]?.innerText ?? "0", 10),
       recurso: tds[1]?.innerText.trim() ?? "",
       categoria: tds[2]?.innerText.trim() ?? "",
-      cantidad: Number.parseInt(tds[3]?.innerText || "0", 10) || 0,
+      cantidad: Number.isNaN(parsedQuantity) ? 0 : parsedQuantity || 0,
       precio: Number.parseFloat(tds[4]?.getAttribute("data-precio") || "0") || 0,
       foto: img?.src ?? "",
       info: tds[6]?.innerText.trim() ?? "",
@@ -642,8 +727,8 @@ function editarFila(button: HTMLButtonElement) {
   const original = {
     recurso: celdas[1]?.innerText ?? "",
     categoria: celdas[2]?.innerText ?? "",
-    cantidad: celdas[3]?.innerText ?? "0",
-    precio: celdas[4]?.innerText ?? "0",
+    cantidad: celdas[3]?.getAttribute("data-quantity") ?? celdas[3]?.innerText ?? "0",
+    precio: celdas[4]?.getAttribute("data-precio") ?? celdas[4]?.innerText ?? "0",
     imgSrc: celdas[5]?.querySelector("img")?.src ?? "",
     info: celdas[6]?.innerText ?? "",
   };
@@ -686,6 +771,8 @@ async function guardarFila(button: HTMLButtonElement) {
   const nuevoPrecio = Number.parseFloat(
     celdas[4]?.querySelector<HTMLInputElement>("input")?.value || "0"
   );
+  const safeCantidad = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
+  const safePrecio = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
 
   const fileInput = celdas[5]?.querySelector<HTMLInputElement>("input[type='file']");
   const imgElement = celdas[5]?.querySelector<HTMLImageElement>("img");
@@ -698,10 +785,9 @@ async function guardarFila(button: HTMLButtonElement) {
 
   celdas[1].innerText = nuevoRecurso;
   celdas[2].innerText = nuevaCategoria;
-  celdas[3].innerText = Number.isNaN(nuevaCantidad) ? "0" : String(nuevaCantidad);
-  celdas[4].innerText = Number.isNaN(nuevoPrecio)
-    ? "0.00"
-    : formatCurrency(safePrecio);
+  setQuantityCell(celdas[3], safeCantidad);
+  celdas[4].setAttribute("data-precio", String(safePrecio));
+  celdas[4].innerText = formatCurrency(safePrecio);
   if (fotoDataURL) {
     celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL}" alt="" />`;
     celdas[5].setAttribute("data-foto", "1");
@@ -722,8 +808,8 @@ async function guardarFila(button: HTMLButtonElement) {
     id,
     recurso: nuevoRecurso,
     categoria: nuevaCategoria,
-    cantidad: Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad,
-    precio: Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio,
+    cantidad: safeCantidad,
+    precio: safePrecio,
     foto: fotoDataURL,
     info: nuevaInfo,
   });
@@ -758,8 +844,13 @@ function cancelarEdicion(button: HTMLButtonElement) {
   const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
   celdas[1].innerText = original.recurso;
   celdas[2].innerText = original.categoria;
-  celdas[3].innerText = original.cantidad;
-  celdas[4].innerText = formatCurrency(p);
+  const cantidadOriginal = Number.parseInt(original.cantidad ?? "0", 10);
+  const safeCantidad = Number.isNaN(cantidadOriginal) ? 0 : cantidadOriginal;
+  setQuantityCell(celdas[3], safeCantidad);
+  const precioOriginal = Number.parseFloat(original.precio ?? "0");
+  const safePrecio = Number.isNaN(precioOriginal) ? 0 : precioOriginal;
+  celdas[4].setAttribute("data-precio", String(safePrecio));
+  celdas[4].innerText = formatCurrency(safePrecio);
   if (original.imgSrc) {
     celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
     celdas[5].setAttribute("data-foto", "1");
@@ -1047,6 +1138,7 @@ function actualizarPaginacion() {
   if (btnAnterior) btnAnterior.disabled = paginaActual <= 1;
   if (btnSiguiente) btnSiguiente.disabled = paginaActual >= totalPaginas;
 
+  applyLowStockAlerts();
   persistInventario();
 }
 
