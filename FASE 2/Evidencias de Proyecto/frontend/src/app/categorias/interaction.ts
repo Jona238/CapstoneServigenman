@@ -62,7 +62,7 @@ function setupThemeToggle(): CleanupFn {
 
 function setupStorageSync(refresh: () => void): CleanupFn {
   const handler = (event: StorageEvent) => {
-    if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme"].includes(event.key)) {
+    if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme", "ajustes_currency", "ajustes_currency_decimals"].includes(event.key)) {
       refresh();
       if (!event.key || event.key === "theme") {
         applyStoredTheme();
@@ -143,11 +143,18 @@ function createCategoryCard(category: CategorySummary) {
   card.tabIndex = 0;
   card.dataset.category = category.name;
 
-  const quantityFormatter = new Intl.NumberFormat("es-CO");
-  const currencyFormatter = new Intl.NumberFormat("es-CO", {
+  // Get currency preferences from localStorage
+  const curr = localStorage.getItem('ajustes_currency') || 'CLP';
+  const decimalsRaw = localStorage.getItem('ajustes_currency_decimals');
+  const decimals = decimalsRaw !== null ? parseInt(decimalsRaw, 10) : (curr === 'CLP' ? 0 : 2);
+  const locale = curr === 'CLP' ? 'es-CL' : (curr === 'EUR' ? 'de-DE' : 'en-US');
+
+  const quantityFormatter = new Intl.NumberFormat(locale);
+  const currencyFormatter = new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
+    currency: curr,
+    maximumFractionDigits: decimals,
+    minimumFractionDigits: decimals,
   });
 
   card.innerHTML = `

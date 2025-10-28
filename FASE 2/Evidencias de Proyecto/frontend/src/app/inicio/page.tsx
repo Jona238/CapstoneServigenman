@@ -1,10 +1,12 @@
 "use client";
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
+import AppHeader from "@/components/AppHeader";
+import AppFooter from "@/components/AppFooter";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useCurrency } from "@/hooks/useCurrency";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -108,18 +110,10 @@ const THEME_STORAGE_KEY = "theme";
 export default function InicioPage() {
   useBodyClass();
   const router = useRouter();
+  const { t } = useLanguage();
+  const { formatCurrency } = useCurrency();
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("es-CL", {
-        style: "currency",
-        currency: "CLP",
-        maximumFractionDigits: 0,
-      }),
-    []
-  );
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -205,52 +199,50 @@ export default function InicioPage() {
 
         <main className="home-main">
           <section className="home-hero">
-            <aside className="home-leftbar" aria-label="Accesos rápidos">
-              <h3 className="leftbar-title">Accesos rápidos</h3>
+            <aside className="home-leftbar" aria-label={t.home.quickAccess}>
+              <h3 className="leftbar-title">{t.home.quickAccess}</h3>
               <ul className="leftbar-nav">
-                <li><Link href="/inventario">Ir al Inventario</Link></li>
-                <li><Link href="/categorias">Explorar Categorías</Link></li>
-                <li><Link href="/presupuesto">Ver Presupuesto</Link></li>
-                <li><Link href="/inventario#formAgregar">Agregar Recurso</Link></li>
+                <li><Link href="/inventario">{t.home.goToInventory}</Link></li>
+                <li><Link href="/categorias">{t.home.exploreCategories}</Link></li>
+                <li><Link href="/presupuesto">{t.home.viewBudget}</Link></li>
+                <li><Link href="/inventario#formAgregar">{t.home.addResource}</Link></li>
               </ul>
 
-              <h4 className="leftbar-sub">Atajos</h4>
+              <h4 className="leftbar-sub">{t.home.shortcuts}</h4>
               <div className="leftbar-chips" role="list">
-                <Link href="/inventario" role="listitem" className="chip">Bajas existencias</Link>
-                <Link href="/inventario" role="listitem" className="chip">Últimos añadidos</Link>
-                <Link href="/presupuesto" role="listitem" className="chip">Top gasto</Link>
+                <Link href="/inventario" role="listitem" className="chip">{t.home.lowStock}</Link>
+                <Link href="/inventario" role="listitem" className="chip">{t.home.lastAdded}</Link>
+                <Link href="/presupuesto" role="listitem" className="chip">{t.home.topExpense}</Link>
               </div>
             </aside>
             <div className="home-hero__content">
-              <p className="home-badge">Portal interno v1.1</p>
-              <h2>Seguimiento integral de recursos en terreno</h2>
+              <p className="home-badge">{t.home.badge}</p>
+              <h2>{t.home.heroTitle}</h2>
               <p>
-                Centraliza el estado de tus activos críticos, recibe alertas de
-                reposición y coordina los equipos técnicos con la visibilidad
-                que proporciona el inventario interactivo.
+                {t.home.heroDescription}
               </p>
               <div className="home-actions">
                 <Link className="home-cta" href="/inventario">
-                  Ir al inventario
+                  {t.home.goToInventoryCta}
                 </Link>
                 <Link className="home-secondary" href="/presupuesto">
-                  Ver resumen financiero
+                  {t.home.viewFinancialSummary}
                 </Link>
               </div>
             </div>
             <div className="home-hero__aside">
               <div className="home-summary">
-                <p className="summary-label">Recursos gestionados</p>
+                <p className="summary-label">{t.home.managedResources}</p>
                 <p className="summary-value">+180</p>
                 <p className="summary-caption">
-                  Información sincronizada desde bodegas y cuadrillas móviles.
+                  {t.home.managedResourcesCaption}
                 </p>
               </div>
               <div className="home-summary">
-                <p className="summary-label">Órdenes activas</p>
+                <p className="summary-label">{t.home.activeOrders}</p>
                 <p className="summary-value">12</p>
                 <p className="summary-caption">
-                  Coordinación en línea entre técnicos y supervisores regionales.
+                  {t.home.activeOrdersCaption}
                 </p>
               </div>
             </div>
@@ -259,14 +251,13 @@ export default function InicioPage() {
           <section className="home-preview">
             <div className="home-preview__header">
               <div>
-                <h3>Recursos destacados del inventario</h3>
+                <h3>{t.home.featuredResourcesTitle}</h3>
                 <p>
-                  Una muestra rápida de los equipos priorizados para la próxima
-                  mantención preventiva.
+                  {t.home.featuredResourcesDescription}
                 </p>
               </div>
               <Link className="home-preview__link" href="/inventario">
-                Ver inventario completo
+                {t.home.viewFullInventory}
               </Link>
             </div>
 
@@ -275,11 +266,11 @@ export default function InicioPage() {
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Recurso</th>
-                    <th>Categoría</th>
-                    <th>Cantidad</th>
-                    <th>Valor unitario</th>
-                    <th>Notas</th>
+                    <th>{t.home.resource}</th>
+                    <th>{t.inventory.category}</th>
+                    <th>{t.inventory.quantity}</th>
+                    <th>{t.home.unitValue}</th>
+                    <th>{t.home.notes}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -289,7 +280,7 @@ export default function InicioPage() {
                       <td>{resource.name}</td>
                       <td>{resource.category}</td>
                       <td>{resource.quantity}</td>
-                      <td>{currencyFormatter.format(resource.price)}</td>
+                      <td>{formatCurrency(resource.price)}</td>
                       <td>{resource.info}</td>
                     </tr>
                   ))}
@@ -300,37 +291,35 @@ export default function InicioPage() {
 
           <section className="home-panels">
             <article className="home-panel">
-              <h4>Planificación de categorías</h4>
+              <h4>{t.home.categoryPlanningTitle}</h4>
               <p>
-                Explora el carrusel de categorías para segmentar recursos, asignar
-                responsables y activar filtros preconfigurados según cada área.
+                {t.home.categoryPlanningDescription}
               </p>
-              <div className="home-panel__preview" aria-label="Resumen rápido de categorías">
+              <div className="home-panel__preview" aria-label={t.home.categoryOverview}>
                 <ul className="category-preview">
                   {CATEGORY_PREVIEW.map((category) => (
                     <li key={category.name} className="category-preview__item">
                       <div>
                         <p className="category-preview__name">{category.name}</p>
                         <p className="category-preview__meta">
-                          {category.resources} recursos · {category.units} unidades
+                          {category.resources} {t.home.resources} · {category.units} {t.inventory.units}
                         </p>
                       </div>
                       <p className="category-preview__value">
-                        {currencyFormatter.format(category.value)}
+                        {formatCurrency(category.value)}
                       </p>
                     </li>
                   ))}
                 </ul>
               </div>
-              <Link href="/categorias">Explorar categorías</Link>
+              <Link href="/categorias">{t.home.exploreCategories}</Link>
             </article>
             <article className="home-panel">
-              <h4>Monitoreo presupuestario</h4>
+              <h4>{t.home.budgetMonitoringTitle}</h4>
               <p>
-                Visualiza el impacto financiero de los insumos mediante gráficas
-                y KPI en la sección de presupuesto.
+                {t.home.budgetMonitoringDescription}
               </p>
-              <div className="home-panel__preview" aria-label="Indicadores financieros destacados">
+              <div className="home-panel__preview" aria-label={t.home.quickStats}>
                 <ul className="budget-preview">
                   {BUDGET_SNAPSHOT.map((item) => (
                     <li key={item.label} className="budget-preview__item">
@@ -347,7 +336,7 @@ export default function InicioPage() {
                       </div>
                       <p className="budget-preview__value">
                         {typeof item.value === "number"
-                          ? currencyFormatter.format(item.value)
+                          ? formatCurrency(item.value)
                           : item.value}
                       </p>
                       <p className="budget-preview__detail">{item.detail}</p>
@@ -355,7 +344,7 @@ export default function InicioPage() {
                   ))}
                 </ul>
               </div>
-              <Link href="/presupuesto">Abrir presupuesto</Link>
+              <Link href="/presupuesto">{t.home.openBudget}</Link>
             </article>
           </section>
         </main>

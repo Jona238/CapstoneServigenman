@@ -1,6 +1,5 @@
-import LoginPageClient from "./(auth)/login/LoginPageClient";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return <LoginPageClient />;
+export default function HomePage() {
+  redirect("/login");
 }
-

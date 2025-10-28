@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
+import AppHeader from "@/components/AppHeader";
+import AppFooter from "@/components/AppFooter";
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import "../(auth)/login/styles.css";
 import "../inventario/styles.css";
