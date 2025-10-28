@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+
+
+
+
 type InventoryItem = {
   id: number;
   recurso: string;
@@ -30,7 +34,7 @@ type ChartHandle = {
 };
 
 type ChartLibrary = {
-  new (
+  new(
     context: CanvasRenderingContext2D | HTMLCanvasElement,
     config: ChartConfiguration
   ): ChartHandle;
@@ -69,13 +73,18 @@ const DEFAULT_INVENTORY: InventoryItem[] = [
 let numberFormatter = getNumberFormatter();
 let currencyFormatter = getCurrencyFormatter();
 
+function syncFormatters() {
+  numberFormatter = getNumberFormatter();
+  currencyFormatter = getCurrencyFormatter();
+}
+
 let pieChart: ChartHandle | null = null;
 let barChart: ChartHandle | null = null;
 let chartWaitTimeout: number | null = null;
 
 export function initializeBudgetPage(): CleanupFn {
   if (typeof document === "undefined") {
-    return () => {};
+    return () => { };
   }
 
   const cleanupFns: CleanupFn[] = [];
@@ -108,6 +117,7 @@ export function initializeBudgetPage(): CleanupFn {
 }
 
 function renderBudget() {
+  syncFormatters();
   const inventory = loadInventory();
   const storedCategories = loadJSON<string[]>(CATS_KEY, []);
   const summaries = buildCategorySummaries(inventory, storedCategories);
@@ -365,37 +375,37 @@ function buildSharedChartOptions({
     scales: doughnut
       ? undefined
       : {
-          x: {
-            ticks: {
-              color: axisColor,
-              callback(
-                value: string | number,
-                index: number,
-                ticks: Array<{ label?: string }>
-              ) {
-                const label = ticks[index]?.label ?? String(value);
-                return label.length > 16 ? `${label.slice(0, 16)}…` : label;
-              },
-            },
-            grid: {
-              color: gridColor,
+        x: {
+          ticks: {
+            color: axisColor,
+            callback(
+              value: string | number,
+              index: number,
+              ticks: Array<{ label?: string }>
+            ) {
+              const label = ticks[index]?.label ?? String(value);
+              return label.length > 16 ? `${label.slice(0, 16)}…` : label;
             },
           },
-          y: {
-            ticks: {
-              color: axisColor,
-              callback(value: number | string) {
-                if (typeof value === "string") {
-                  return value;
-                }
-                return currencyFormatter.format(value as number);
-              },
-            },
-            grid: {
-              color: gridColor,
-            },
+          grid: {
+            color: gridColor,
           },
         },
+        y: {
+          ticks: {
+            color: axisColor,
+            callback(value: number | string) {
+              if (typeof value === "string") {
+                return value;
+              }
+              return currencyFormatter.format(value as number);
+            },
+          },
+          grid: {
+            color: gridColor,
+          },
+        },
+      },
   };
 }
 
@@ -434,8 +444,7 @@ function setupStorageSync(refresh: () => void): CleanupFn {
     // Refrescar también cuando cambie moneda/decimales configurados
     if (!event.key || [INVENTORY_KEY, CATS_KEY, "theme", "ajustes_currency", "ajustes_currency_decimals"].includes(event.key)) {
       // re-instanciar formatters
-      numberFormatter = getNumberFormatter();
-      currencyFormatter = getCurrencyFormatter();
+      syncFormatters();
       refresh();
     }
   };
@@ -444,7 +453,10 @@ function setupStorageSync(refresh: () => void): CleanupFn {
 }
 
 function setupFocusSync(refresh: () => void): CleanupFn {
-  const handler = () => refresh();
+  const handler = () => {
+    syncFormatters();
+    refresh();
+  };
   window.addEventListener("focus", handler);
   return () => window.removeEventListener("focus", handler);
 }
@@ -535,20 +547,20 @@ function updateCurrentYear() {
 }
 
 
-function getCurrencyPrefs(){
-  try{
+function getCurrencyPrefs() {
+  try {
     const curr = localStorage.getItem('ajustes_currency') || 'CLP';
     const decimalsRaw = localStorage.getItem('ajustes_currency_decimals');
-    const decimals = decimalsRaw !== null ? parseInt(decimalsRaw,10) : (curr==='CLP'?0:2);
-    const locale = curr==='CLP' ? 'es-CL' : (curr==='EUR' ? 'es-ES' : 'en-US');
+    const decimals = decimalsRaw !== null ? parseInt(decimalsRaw, 10) : (curr === 'CLP' ? 0 : 2);
+    const locale = curr === 'CLP' ? 'es-CL' : (curr === 'EUR' ? 'es-ES' : 'en-US');
     return { curr, decimals, locale };
-  }catch{ return { curr:'CLP', decimals:0, locale:'es-CL' }; }
+  } catch { return { curr: 'CLP', decimals: 0, locale: 'es-CL' }; }
 }
-function getNumberFormatter(){
+function getNumberFormatter() {
   const { locale } = getCurrencyPrefs();
-  try{ return new Intl.NumberFormat(locale); } catch { return new Intl.NumberFormat('es-CL'); }
+  try { return new Intl.NumberFormat(locale); } catch { return new Intl.NumberFormat('es-CL'); }
 }
-function getCurrencyFormatter(){
+function getCurrencyFormatter() {
   const { curr, decimals, locale } = getCurrencyPrefs();
-  try{ return new Intl.NumberFormat(locale,{ style:'currency', currency: curr, maximumFractionDigits: decimals }); } catch { return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}); }
+  try { return new Intl.NumberFormat(locale, { style: 'currency', currency: curr, maximumFractionDigits: decimals }); } catch { return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }); }
 }

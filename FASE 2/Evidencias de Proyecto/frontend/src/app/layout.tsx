@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,8 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "SERVIGENMAN — Portal Interno",
-  description:
-    "Portal interno de SERVIGENMAN para el personal autorizado de la compañía.",
+  description: "Portal interno de SERVIGENMAN para el personal autorizado de la compañía.",
 };
 
 export default function RootLayout({
@@ -21,8 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.variable} antialiased`}>
-        {children}
+      <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

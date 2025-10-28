@@ -1,11 +1,12 @@
 "use client";
-import AppHeader from "../components/AppHeader";
-import AppFooter from "../components/AppFooter";
+import AppHeader from "@/components/AppHeader";
+import AppFooter from "@/components/AppFooter";
 
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo } from "react";
 import Script from "next/script";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -15,6 +16,7 @@ import "./styles.css";
 
 export default function InventoryPage() {
   useBodyClass();
+  const { t } = useLanguage();
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
     const env = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -76,32 +78,32 @@ export default function InventoryPage() {
           <main className="inventory-main">
             <section className="inventory-card">
               <div className="inventory-card__heading">
-                <h2>Listado de Recursos</h2>
-                <p>Administra, filtra y exporta el inventario corporativo.</p>
+                <h2>{t.inventory.listTitle}</h2>
+                <p>{t.inventory.listDescription}</p>
               </div>
 
               <section className="inventory-section">
-                <h3>Agregar nuevo recurso</h3>
+                <h3>{t.inventory.addNewResource}</h3>
                 <form id="formAgregar" className="inventory-form">
                   <div className="form-grid">
                     <label className="visually-hidden" htmlFor="nuevoRecurso">
-                      Nombre del recurso
+                      {t.inventory.resourceName}
                     </label>
                     <input
                       type="text"
                       id="nuevoRecurso"
-                      placeholder="Nombre del recurso"
+                      placeholder={t.inventory.resourceName}
                       required
                     />
 
                     <label className="visually-hidden" htmlFor="nuevaCategoria">
-                      Categoría
+                      {t.inventory.category}
                     </label>
                     <input
                       type="text"
                       id="nuevaCategoria"
                       list="categoriasFormulario"
-                      placeholder="Categoría"
+                      placeholder={t.inventory.category}
                       required
                     />
                     <datalist id="categoriasFormulario">
@@ -113,58 +115,58 @@ export default function InventoryPage() {
                     </datalist>
 
                     <label className="visually-hidden" htmlFor="nuevaCantidad">
-                      Cantidad
+                      {t.inventory.quantity}
                     </label>
                     <input
                       type="number"
                       id="nuevaCantidad"
-                      placeholder="Cantidad"
+                      placeholder={t.inventory.quantity}
                       min="0"
                       step="1"
                       required
                     />
 
                     <label className="visually-hidden" htmlFor="nuevoPrecio">
-                      Precio
+                      {t.inventory.price}
                     </label>
                     <input
                       type="number"
                       id="nuevoPrecio"
-                      placeholder="Precio"
+                      placeholder={t.inventory.price}
                       min="0"
                       step="0.01"
                       required
                     />
 
                     <label className="visualmente-hidden" htmlFor="nuevaFoto">
-                      Foto
+                      {t.inventory.photo}
                     </label>
                     <input type="file" id="nuevaFoto" accept="image/*" />
 
                     <label className="visually-hidden" htmlFor="nuevaInfo">
-                      Información adicional
+                      {t.inventory.additionalInfo}
                     </label>
                     <input
                       type="text"
                       id="nuevaInfo"
-                      placeholder="Información (comentario)"
+                      placeholder={t.inventory.additionalInfo}
                     />
                   </div>
 
                   <button type="submit" className="boton-agregar">
-                    Agregar
+                    {t.inventory.add}
                   </button>
                 </form>
               </section>
 
               <section className="inventory-section">
-                <h3>Filtrar y ordenar</h3>
+                <h3>{t.inventory.filterAndSort}</h3>
                 <div id="filtros" className="filters-panel">
                   <input
                     type="text"
                     id="filtroIdRango"
                     className="filtro-input"
-                    placeholder="ID exacto o rango (ej: 2, 3-6, -10, 5-)"
+                    placeholder={t.inventory.idOrRange}
                   />
 
                   <div className="autocomplete-container">
@@ -172,7 +174,7 @@ export default function InventoryPage() {
                       type="text"
                       id="filtroRecurso"
                       className="filtro-input"
-                      placeholder="Filtrar por Recurso"
+                      placeholder={t.inventory.filterByResource}
                       autoComplete="off"
                     />
                     <div id="sugerenciasRecurso" className="autocomplete-box" />
@@ -183,7 +185,7 @@ export default function InventoryPage() {
                     id="filtroCategoria"
                     className="filtro-input"
                     list="categorias"
-                    placeholder="Filtrar por Categoría"
+                    placeholder={t.inventory.filterByCategory}
                   />
                   <datalist id="categorias">
                     <option value="Bombas de agua" />
@@ -197,30 +199,30 @@ export default function InventoryPage() {
                     type="text"
                     id="filtroInfo"
                     className="filtro-input"
-                    placeholder="Filtrar por Información"
+                    placeholder={t.inventory.filterByInfo}
                   />
 
                   <select id="ordenarPor" className="filtro-input" defaultValue="id-desc">
-                    <option value="">Ordenar por...</option>
+                    <option value="">{t.inventory.sortBy}</option>
                     <option value="id-asc">ID ↑</option>
                     <option value="id-desc">ID ↓</option>
-                    <option value="recurso-asc">Recurso A-Z</option>
-                    <option value="recurso-desc">Recurso Z-A</option>
-                    <option value="categoria-asc">Categoría A-Z</option>
-                    <option value="categoria-desc">Categoría Z-A</option>
-                    <option value="cantidad-asc">Cantidad ↑</option>
-                    <option value="cantidad-desc">Cantidad ↓</option>
-                    <option value="precio-asc">Precio ↑</option>
-                    <option value="precio-desc">Precio ↓</option>
+                    <option value="recurso-asc">{t.home.resource} A-Z</option>
+                    <option value="recurso-desc">{t.home.resource} Z-A</option>
+                    <option value="categoria-asc">{t.inventory.category} A-Z</option>
+                    <option value="categoria-desc">{t.inventory.category} Z-A</option>
+                    <option value="cantidad-asc">{t.inventory.quantity} ↑</option>
+                    <option value="cantidad-desc">{t.inventory.quantity} ↓</option>
+                    <option value="precio-asc">{t.inventory.price} ↑</option>
+                    <option value="precio-desc">{t.inventory.price} ↓</option>
                   </select>
 
                   <button type="button" className="boton-limpiar">
-                    Limpiar filtros
+                    {t.inventory.clearFilters}
                   </button>
 
                   <div className="exportar-dropdown">
                     <button type="button" className="boton-exportar">
-                      Exportar ▼
+                      {t.inventory.export} ▼
                     </button>
                     <div id="exportMenu" className="dropdown-content">
                       <div className="submenu">
@@ -228,8 +230,8 @@ export default function InventoryPage() {
                           Excel ▸
                         </button>
                         <div id="excelSub" className="submenu-content">
-                          <a href="#" data-export="excel-visible">Visible</a>
-                          <a href="#" data-export="excel-todo">Todo</a>
+                          <a href="#" data-export="excel-visible">{t.inventory.visible}</a>
+                          <a href="#" data-export="excel-todo">{t.inventory.all}</a>
                         </div>
                       </div>
                       <div className="submenu">
@@ -237,8 +239,8 @@ export default function InventoryPage() {
                           CSV ▸
                         </button>
                         <div id="csvSub" className="submenu-content">
-                          <a href="#" data-export="csv-visible">Visible</a>
-                          <a href="#" data-export="csv-todo">Todo</a>
+                          <a href="#" data-export="csv-visible">{t.inventory.visible}</a>
+                          <a href="#" data-export="csv-todo">{t.inventory.all}</a>
                         </div>
                       </div>
                     </div>
@@ -261,9 +263,9 @@ export default function InventoryPage() {
                       </defs>
                     </svg>
                   </div>
-                  <h4 className="empty-state__title">No hay datos en la tabla</h4>
+                  <h4 className="empty-state__title">{t.inventory.emptyStateTitle}</h4>
                   <p className="empty-state__subtitle">
-                    Agrega recursos o ajusta los filtros para visualizar resultados.
+                    {t.inventory.emptyStateDescription}
                   </p>
                 </div>
               </div>
@@ -273,13 +275,13 @@ export default function InventoryPage() {
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Recurso</th>
-                      <th>Categoría</th>
-                      <th>Cantidad</th>
-                      <th>Precio</th>
-                      <th>Foto</th>
-                      <th>Información</th>
-                      <th>Acciones</th>
+                      <th>{t.home.resource}</th>
+                      <th>{t.inventory.category}</th>
+                      <th>{t.inventory.quantity}</th>
+                      <th>{t.inventory.price}</th>
+                      <th>{t.inventory.photo}</th>
+                      <th>{t.inventory.info}</th>
+                      <th>{t.common.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -293,8 +295,8 @@ export default function InventoryPage() {
                       <td>Equipo básico</td>
                       <td>
                         <div className="tabla-acciones">
-                          <button type="button" className="boton-editar" data-action="edit">Editar</button>
-                          <button type="button" className="boton-eliminar" data-action="delete">Eliminar</button>
+                          <button type="button" className="boton-editar" data-action="edit">{t.inventory.edit}</button>
+                          <button type="button" className="boton-eliminar" data-action="delete">{t.inventory.delete}</button>
                         </div>
                       </td>
                     </tr>
@@ -308,8 +310,8 @@ export default function InventoryPage() {
                       <td>Incluye grasa</td>
                       <td>
                         <div className="tabla-acciones">
-                          <button type="button" className="boton-editar" data-action="edit">Editar</button>
-                          <button type="button" className="boton-eliminar" data-action="delete">Eliminar</button>
+                          <button type="button" className="boton-editar" data-action="edit">{t.inventory.edit}</button>
+                          <button type="button" className="boton-eliminar" data-action="delete">{t.inventory.delete}</button>
                         </div>
                       </td>
                     </tr>
@@ -318,9 +320,9 @@ export default function InventoryPage() {
               </div>
 
               <div className="paginacion">
-                <button type="button" id="btnAnterior">Anterior</button>
-                <span id="infoPagina">Página 1</span>
-                <button type="button" id="btnSiguiente">Siguiente</button>
+                <button type="button" id="btnAnterior">{t.inventory.previous}</button>
+                <span id="infoPagina">{t.inventory.page} 1</span>
+                <button type="button" id="btnSiguiente">{t.inventory.next}</button>
               </div>
             </section>
           </main>

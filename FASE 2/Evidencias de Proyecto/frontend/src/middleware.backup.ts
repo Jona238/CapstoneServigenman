@@ -1,3 +1,4 @@
+import createMiddleware from 'next-intl/middleware'
 import { NextResponse, type NextRequest } from "next/server";
 
 // Protected routes: add here the paths that require authentication
@@ -11,10 +12,23 @@ const PROTECTED = [
   "/ajustes",
 ];
 
+const locales = ['es', 'en']
+const defaultLocale = 'es'
+
+// Crear el middleware de i18n
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localeDetection: true,
+})
+
 function isProtected(pathname: string): boolean {
+  // Remove locale prefix before checking
+  const withoutLocale = pathname.replace(/^\/(es|en)/, '') || '/'
+
   // Exact matches or startsWith for subpaths
   return PROTECTED.some((base) =>
-    pathname === base || pathname.startsWith(`${base}/`)
+    withoutLocale === base || withoutLocale.startsWith(`${base}/`)
   );
 }
 
@@ -27,27 +41,34 @@ function getBackendBase(): string {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip login, recovery, test pages, assets and Next internals
+  // Skip login and recovery pages, assets and Next internals
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/logo") ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/recuperacion") ||
-    pathname.startsWith("/idioma")  // Allow language page
+    pathname.includes("/login") ||
+    pathname.includes("/recuperacion") ||
+    pathname.includes("/test") ||  // Allow test page
+    pathname.includes("/simple") ||  // Allow simple test page
+    pathname.includes("/ajustes/idioma")  // Allow language settings temporarily
   ) {
-    return NextResponse.next();
+    return NextResponse.next();  // Skip all middleware temporarily for debugging
   }
 
-  if (!isProtected(pathname)) {
-    return NextResponse.next();
+  // Remove locale from pathname for protected check
+  const withoutLocale = pathname.replace(/^\/(es|en)/, '') || '/'
+
+  if (!isProtected(withoutLocale)) {
+    // Apply i18n middleware for non-protected routes
+    return intlMiddleware(request);
   }
 
   // If we already have a Django session cookie, allow (fast path in dev)
   const hasSession = request.cookies.get("sessionid");
   if (hasSession) {
-    return NextResponse.next();
+    // Apply i18n middleware after auth check
+    return intlMiddleware(request);
   }
 
   // Verify session against backend /api/me/ by forwarding cookies
@@ -63,19 +84,22 @@ export async function middleware(request: NextRequest) {
     });
 
     if (res.ok) {
-      return NextResponse.next();
+      // Apply i18n middleware after successful auth
+      return intlMiddleware(request);
     }
   } catch {
     // Network error -> treat as unauthenticated
   }
 
-  const loginUrl = new URL("/login", request.url);
+  // Get current locale from pathname
+  const locale = pathname.match(/^\/(es|en)/)?.[1] || defaultLocale
+  const loginUrl = new URL(`/${locale}/login`, request.url);
   loginUrl.searchParams.set("next", pathname);
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
   matcher: [
-    "/((?!_next|api|favicon|logo).*)",
+    "/((?!_next|api|favicon|logo|.*\\..*|_vercel).*)",
   ],
 };
