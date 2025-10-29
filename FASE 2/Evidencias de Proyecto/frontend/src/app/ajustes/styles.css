@@ -49,9 +49,9 @@
 }
 
 /* Font scale helpers */
-html[data-font-scale="sm"] { font-size: 14px; }
-html[data-font-scale="md"] { font-size: 16px; }
-html[data-font-scale="lg"] { font-size: 18px; }
+html[data-font-scale="sm"] { --font-scale-base: 0.875; }
+html[data-font-scale="md"] { --font-scale-base: 1; }
+html[data-font-scale="lg"] { --font-scale-base: 1.125; }
 
 /* Ensure dark theme surfaces when body has data-theme="dark" */
 body[data-theme="dark"] .settings-card {
