@@ -1,0 +1,155 @@
+/* [project]/src/app/not-found.css [app-client] (css) */
+.not-found {
+  color: #eaf2ff;
+  background: radial-gradient(1400px 800px at 80% 120%, rgba(42, 209, 255, .12), rgba(0, 0, 0, 0) 65%), radial-gradient(1200px 700px at 20% -20%, rgba(109, 120, 255, .18), rgba(0, 0, 0, 0) 70%), linear-gradient(160deg, #041321 0%, #0a2946 55%, #0d3b4e 100%);
+  place-items: center;
+  min-height: 100vh;
+  padding: 32px;
+  display: grid;
+  position: relative;
+  overflow: hidden;
+}
+
+.not-found__glow {
+  pointer-events: none;
+  opacity: .5;
+  filter: blur(90px);
+  background: radial-gradient(60% 55% at 50% 0, rgba(42, 209, 255, .25), rgba(0, 0, 0, 0) 70%), radial-gradient(65% 40% at 50% 100%, rgba(109, 120, 255, .22), rgba(0, 0, 0, 0) 75%);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: scale(1.1);
+}
+
+.not-found__card {
+  z-index: 1;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  background: rgba(8, 28, 48, .78);
+  border: 1px solid rgba(80, 160, 220, .3);
+  border-radius: 24px;
+  gap: 18px;
+  width: min(560px, 92vw);
+  max-width: 560px;
+  padding: 40px 36px;
+  display: grid;
+  position: relative;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .65), inset 0 1px rgba(255, 255, 255, .05);
+}
+
+.not-found__tag {
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #7ad8ff;
+  background: rgba(42, 209, 255, .12);
+  border: 1px solid rgba(42, 209, 255, .4);
+  border-radius: 999px;
+  justify-content: center;
+  align-items: center;
+  width: -moz-fit-content;
+  width: fit-content;
+  padding: 6px 12px;
+  font-size: 13px;
+  display: inline-flex;
+}
+
+.not-found__title {
+  text-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  margin: 0;
+  font-size: max(28px, min(5vw, 40px));
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.not-found__description {
+  color: rgba(223, 236, 255, .82);
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.not-found__actions {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  display: flex;
+}
+
+.not-found__button {
+  color: #fff;
+  background: linear-gradient(120deg, #6d78ff 0%, #2ad1ff 100%);
+  border-radius: 14px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform .12s, filter .18s;
+  display: inline-flex;
+  box-shadow: 0 20px 45px rgba(42, 209, 255, .28);
+}
+
+.not-found__button:hover {
+  filter: brightness(1.05);
+}
+
+.not-found__button:active {
+  transform: translateY(1px);
+}
+
+.not-found__secondary {
+  color: #a6c7ff;
+  background: rgba(9, 34, 58, .6);
+  border: 1px solid rgba(166, 199, 255, .35);
+  border-radius: 14px;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color .18s, color .18s, transform .12s;
+  display: inline-flex;
+}
+
+.not-found__secondary:hover {
+  color: #d2e7ff;
+  border-color: rgba(210, 231, 255, .6);
+}
+
+.not-found__secondary:active {
+  transform: translateY(1px);
+}
+
+.not-found__hint {
+  color: rgba(195, 218, 247, .7);
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .not-found {
+    padding: 24px;
+  }
+
+  .not-found__card {
+    border-radius: 20px;
+    padding: 32px 26px;
+  }
+
+  .not-found__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .not-found__secondary, .not-found__button {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/*# sourceMappingURL=src_app_not-found_aac51591.css.map*/
