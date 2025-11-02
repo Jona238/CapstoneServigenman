@@ -820,6 +820,38 @@ async function apiDeleteItem(id) {
 }
 const filasPorPagina = 10;
 let paginaActual = 1;
+let currentEditingRow = null;
+function showEditToolbar(row) {
+    currentEditingRow = row;
+    let bar = document.getElementById("editToolbar");
+    if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "editToolbar";
+        bar.className = "edit-toolbar";
+        bar.innerHTML = '\n      <div class="edit-toolbar__inner">\n        <span class="edit-toolbar__label">Editando recurso</span>\n        <div class="edit-toolbar__actions">\n          <button type="button" id="editToolbarSave" class="edit-toolbar__btn primary">Guardar cambios</button>\n          <button type="button" id="editToolbarCancel" class="edit-toolbar__btn">Cancelar</button>\n        </div>\n      </div>';
+        document.body.appendChild(bar);
+    }
+    const save = document.getElementById("editToolbarSave");
+    const cancel = document.getElementById("editToolbarCancel");
+    if (save) {
+        save.onclick = ()=>{
+            const btn = currentEditingRow === null || currentEditingRow === void 0 ? void 0 : currentEditingRow.querySelector('button[data-action="save"]');
+            if (btn) void guardarFila(btn);
+        };
+    }
+    if (cancel) {
+        cancel.onclick = ()=>{
+            const btn = currentEditingRow === null || currentEditingRow === void 0 ? void 0 : currentEditingRow.querySelector('button[data-action="cancel"]');
+            if (btn) cancelarEdicion(btn);
+        };
+    }
+    bar.style.display = "block";
+}
+function hideEditToolbar() {
+    const bar = document.getElementById("editToolbar");
+    if (bar) bar.style.display = "none";
+    currentEditingRow = null;
+}
 function initializeInventoryPage() {
     if (typeof document === "undefined") {
         return ()=>{};
@@ -1270,27 +1302,29 @@ function actualizarSugerencias() {
     });
 }
 function editarFila(button) {
-    var _celdas_, _celdas_1, _celdas_2, _celdas_3, _celdas__querySelector, _celdas_4, _celdas_5;
+    var _celdas_, _celdas_1, _celdas_2, _celdas_3, _celdas_4, _celdas__querySelector, _celdas_5, _celdas_6;
     const fila = button.closest("tr");
     if (!fila) return;
     const celdas = fila.querySelectorAll("td");
-    var _celdas__innerText, _celdas__innerText1, _celdas__innerText2, _celdas__innerText3, _celdas__querySelector_src, _celdas__innerText4;
+    var _celdas__innerText, _celdas__innerText1, _celdas__innerText2, _celdas__innerText3, _celdas__getAttribute, _celdas__querySelector_src, _celdas__innerText4;
     const original = {
         recurso: (_celdas__innerText = (_celdas_ = celdas[1]) === null || _celdas_ === void 0 ? void 0 : _celdas_.innerText) !== null && _celdas__innerText !== void 0 ? _celdas__innerText : "",
         categoria: (_celdas__innerText1 = (_celdas_1 = celdas[2]) === null || _celdas_1 === void 0 ? void 0 : _celdas_1.innerText) !== null && _celdas__innerText1 !== void 0 ? _celdas__innerText1 : "",
         cantidad: (_celdas__innerText2 = (_celdas_2 = celdas[3]) === null || _celdas_2 === void 0 ? void 0 : _celdas_2.innerText) !== null && _celdas__innerText2 !== void 0 ? _celdas__innerText2 : "0",
-        precio: (_celdas__innerText3 = (_celdas_3 = celdas[4]) === null || _celdas_3 === void 0 ? void 0 : _celdas_3.innerText) !== null && _celdas__innerText3 !== void 0 ? _celdas__innerText3 : "0",
-        imgSrc: (_celdas__querySelector_src = (_celdas_4 = celdas[5]) === null || _celdas_4 === void 0 ? void 0 : (_celdas__querySelector = _celdas_4.querySelector("img")) === null || _celdas__querySelector === void 0 ? void 0 : _celdas__querySelector.src) !== null && _celdas__querySelector_src !== void 0 ? _celdas__querySelector_src : "",
-        info: (_celdas__innerText4 = (_celdas_5 = celdas[6]) === null || _celdas_5 === void 0 ? void 0 : _celdas_5.innerText) !== null && _celdas__innerText4 !== void 0 ? _celdas__innerText4 : ""
+        precioText: (_celdas__innerText3 = (_celdas_3 = celdas[4]) === null || _celdas_3 === void 0 ? void 0 : _celdas_3.innerText) !== null && _celdas__innerText3 !== void 0 ? _celdas__innerText3 : "0",
+        precioRaw: (_celdas__getAttribute = (_celdas_4 = celdas[4]) === null || _celdas_4 === void 0 ? void 0 : _celdas_4.getAttribute("data-precio")) !== null && _celdas__getAttribute !== void 0 ? _celdas__getAttribute : "0",
+        imgSrc: (_celdas__querySelector_src = (_celdas_5 = celdas[5]) === null || _celdas_5 === void 0 ? void 0 : (_celdas__querySelector = _celdas_5.querySelector("img")) === null || _celdas__querySelector === void 0 ? void 0 : _celdas__querySelector.src) !== null && _celdas__querySelector_src !== void 0 ? _celdas__querySelector_src : "",
+        info: (_celdas__innerText4 = (_celdas_6 = celdas[6]) === null || _celdas_6 === void 0 ? void 0 : _celdas_6.innerText) !== null && _celdas__innerText4 !== void 0 ? _celdas__innerText4 : ""
     };
     fila.dataset.original = JSON.stringify(original);
     celdas[1].innerHTML = '<input type="text" value="'.concat(original.recurso, '" class="editar-input" />');
     celdas[2].innerHTML = '<input type="text" value="'.concat(original.categoria, '" class="editar-input" />');
     celdas[3].innerHTML = '<input type="number" value="'.concat(original.cantidad, '" min="0" step="1" class="editar-input" />');
-    celdas[4].innerHTML = '<input type="number" value="'.concat(original.precio, '" min="0" step="0.01" class="editar-input precio" />');
+    celdas[4].innerHTML = '<input type="number" value="'.concat(Number.parseFloat(original.precioRaw) || 0, '" min="0" step="0.01" class="editar-input precio" />');
     celdas[5].innerHTML = "\n    <div>\n      ".concat(original.imgSrc ? '<img class="thumb" src="'.concat(original.imgSrc, '" alt="" />') : '<img class="thumb" src="" alt="" />', '\n      <input type="file" class="editar-foto" accept="image/*" style="display:block; margin-top:6px;" />\n    </div>');
     celdas[6].innerHTML = '<input type="text" value="'.concat(original.info, '" class="editar-input info" />');
     celdas[7].innerHTML = '\n    <div class="tabla-acciones">\n      <button type="button" class="boton-guardar" data-action="save">Guardar</button>\n      <button type="button" class="boton-cancelar" data-action="cancel">Cancelar</button>\n    </div>';
+    showEditToolbar(fila);
 }
 async function guardarFila(button) {
     var _celdas__querySelector, _celdas_, _celdas__querySelector1, _celdas_1, _celdas__querySelector2, _celdas_2, _celdas__querySelector3, _celdas_3, _celdas_4, _celdas_5, _celdas__querySelector4, _celdas_6, _celdas_7;
@@ -1312,10 +1346,65 @@ async function guardarFila(button) {
     if (fileInput && fileInput.files && fileInput.files[0]) {
         fotoDataURL = await readFileAsDataURL(fileInput.files[0]);
     }
+    // Confirmación de cambios antes de aplicar
+    const safeCantidadTry = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
+    const safePrecioTry = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
+    const originalRaw = fila.dataset.original || "";
+    try {
+        if (originalRaw) {
+            var _celdas_8;
+            const original = JSON.parse(originalRaw);
+            const cambios = [];
+            if ((original.recurso || "") !== (nuevoRecurso || "")) {
+                cambios.push('Recurso: "'.concat(original.recurso || "", '" → "').concat(nuevoRecurso || "", '"'));
+            }
+            if ((original.categoria || "") !== (nuevaCategoria || "")) {
+                cambios.push('Categoría: "'.concat(original.categoria || "", '" → "').concat(nuevaCategoria || "", '"'));
+            }
+            if ((original.cantidad || "0") !== String(safeCantidadTry)) {
+                cambios.push("Cantidad: ".concat(original.cantidad || "0", " → ").concat(safeCantidadTry));
+            }
+            if ((Number.parseFloat(original.precioRaw) || 0) !== safePrecioTry) {
+                cambios.push("Precio: ".concat(formatCurrency(Number.parseFloat(original.precioRaw) || 0), " → ").concat(formatCurrency(safePrecioTry)));
+            }
+            if ((original.info || "") !== (nuevaInfo || "")) {
+                cambios.push('Info: "'.concat(original.info || "", '" → "').concat(nuevaInfo || "", '"'));
+            }
+            const fotoCambio = (original.imgSrc || "") !== (fotoDataURL || "");
+            if (fotoCambio) {
+                cambios.push("Foto: (cambiada)");
+            }
+            if (cambios.length === 0) {
+                // No hay cambios; salir del modo edición sin tocar backend
+                celdas[7].innerHTML = '\n      <div class="tabla-acciones">\n        <button type="button" class="boton-editar" data-action="edit">Editar</button>\n        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>\n      </div>';
+                fila.dataset.original = "";
+                filtrarTabla({
+                    resetPage: false
+                });
+                ordenarTabla();
+                actualizarPaginacion();
+                hideEditToolbar();
+                return;
+            }
+            var _celdas__innerText;
+            const idText = (_celdas__innerText = (_celdas_8 = celdas[0]) === null || _celdas_8 === void 0 ? void 0 : _celdas_8.innerText) !== null && _celdas__innerText !== void 0 ? _celdas__innerText : "0";
+            const ok = window.confirm("Confirmar modificación del recurso #".concat(idText, "\n\n") + cambios.join("\n"));
+            if (!ok) {
+                // Permanecer en modo edición si cancela
+                return;
+            }
+        }
+    } catch (e) {
+        const ok = window.confirm("Confirmar modificación de este recurso?");
+        if (!ok) return;
+    }
+    const safeCantidad = safeCantidadTry;
+    const safePrecio = safePrecioTry;
     celdas[1].innerText = nuevoRecurso;
     celdas[2].innerText = nuevaCategoria;
-    celdas[3].innerText = Number.isNaN(nuevaCantidad) ? "0" : String(nuevaCantidad);
-    celdas[4].innerText = Number.isNaN(nuevoPrecio) ? "0.00" : formatCurrency(safePrecio);
+    celdas[3].innerText = String(safeCantidad);
+    celdas[4].setAttribute("data-precio", String(safePrecio));
+    celdas[4].innerText = formatCurrency(safePrecio);
     if (fotoDataURL) {
         celdas[5].innerHTML = '<img class="thumb" src="'.concat(fotoDataURL, '" alt="" />');
         celdas[5].setAttribute("data-foto", "1");
@@ -1325,15 +1414,15 @@ async function guardarFila(button) {
     }
     celdas[6].innerText = nuevaInfo;
     celdas[7].innerHTML = '\n      <div class="tabla-acciones">\n        <button type="button" class="boton-editar" data-action="edit">Editar</button>\n        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>\n      </div>';
-    var _celdas__innerText;
-    const id = Number.parseInt((_celdas__innerText = (_celdas_7 = celdas[0]) === null || _celdas_7 === void 0 ? void 0 : _celdas_7.innerText) !== null && _celdas__innerText !== void 0 ? _celdas__innerText : "0", 10);
+    var _celdas__innerText1;
+    const id = Number.parseInt((_celdas__innerText1 = (_celdas_7 = celdas[0]) === null || _celdas_7 === void 0 ? void 0 : _celdas_7.innerText) !== null && _celdas__innerText1 !== void 0 ? _celdas__innerText1 : "0", 10);
     // Best-effort sync with backend
     void apiUpdateItem(id, {
         id,
         recurso: nuevoRecurso,
         categoria: nuevaCategoria,
-        cantidad: Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad,
-        precio: Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio,
+        cantidad: safeCantidad,
+        precio: safePrecio,
         foto: fotoDataURL,
         info: nuevaInfo
     });
@@ -1346,6 +1435,7 @@ async function guardarFila(button) {
     });
     ordenarTabla();
     actualizarPaginacion();
+    hideEditToolbar();
 }
 function cancelarEdicion(button) {
     const fila = button.closest("tr");
@@ -1357,7 +1447,9 @@ function cancelarEdicion(button) {
     celdas[1].innerText = original.recurso;
     celdas[2].innerText = original.categoria;
     celdas[3].innerText = original.cantidad;
-    celdas[4].innerText = formatCurrency(p);
+    const precioNum = Number.parseFloat(original.precioRaw) || 0;
+    celdas[4].setAttribute("data-precio", String(precioNum));
+    celdas[4].innerText = formatCurrency(precioNum);
     if (original.imgSrc) {
         celdas[5].innerHTML = '<img class="thumb" src="'.concat(original.imgSrc, '" alt="" />');
         celdas[5].setAttribute("data-foto", "1");
@@ -1371,6 +1463,7 @@ function cancelarEdicion(button) {
     filtrarTabla();
     ordenarTabla();
     actualizarPaginacion();
+    hideEditToolbar();
 }
 function eliminarFila(button) {
     var _fila_cells_, _fila_cells;

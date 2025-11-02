@@ -766,6 +766,45 @@ async function apiDeleteItem(id) {
 }
 const filasPorPagina = 10;
 let paginaActual = 1;
+let currentEditingRow = null;
+function showEditToolbar(row) {
+    currentEditingRow = row;
+    let bar = document.getElementById("editToolbar");
+    if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "editToolbar";
+        bar.className = "edit-toolbar";
+        bar.innerHTML = `
+      <div class="edit-toolbar__inner">
+        <span class="edit-toolbar__label">Editando recurso</span>
+        <div class="edit-toolbar__actions">
+          <button type="button" id="editToolbarSave" class="edit-toolbar__btn primary">Guardar cambios</button>
+          <button type="button" id="editToolbarCancel" class="edit-toolbar__btn">Cancelar</button>
+        </div>
+      </div>`;
+        document.body.appendChild(bar);
+    }
+    const save = document.getElementById("editToolbarSave");
+    const cancel = document.getElementById("editToolbarCancel");
+    if (save) {
+        save.onclick = ()=>{
+            const btn = currentEditingRow?.querySelector('button[data-action="save"]');
+            if (btn) void guardarFila(btn);
+        };
+    }
+    if (cancel) {
+        cancel.onclick = ()=>{
+            const btn = currentEditingRow?.querySelector('button[data-action="cancel"]');
+            if (btn) cancelarEdicion(btn);
+        };
+    }
+    bar.style.display = "block";
+}
+function hideEditToolbar() {
+    const bar = document.getElementById("editToolbar");
+    if (bar) bar.style.display = "none";
+    currentEditingRow = null;
+}
 function initializeInventoryPage() {
     if (typeof document === "undefined") {
         return ()=>{};
@@ -1222,7 +1261,8 @@ function editarFila(button) {
         recurso: celdas[1]?.innerText ?? "",
         categoria: celdas[2]?.innerText ?? "",
         cantidad: celdas[3]?.innerText ?? "0",
-        precio: celdas[4]?.innerText ?? "0",
+        precioText: celdas[4]?.innerText ?? "0",
+        precioRaw: celdas[4]?.getAttribute("data-precio") ?? "0",
         imgSrc: celdas[5]?.querySelector("img")?.src ?? "",
         info: celdas[6]?.innerText ?? ""
     };
@@ -1230,7 +1270,7 @@ function editarFila(button) {
     celdas[1].innerHTML = `<input type="text" value="${original.recurso}" class="editar-input" />`;
     celdas[2].innerHTML = `<input type="text" value="${original.categoria}" class="editar-input" />`;
     celdas[3].innerHTML = `<input type="number" value="${original.cantidad}" min="0" step="1" class="editar-input" />`;
-    celdas[4].innerHTML = `<input type="number" value="${original.precio}" min="0" step="0.01" class="editar-input precio" />`;
+    celdas[4].innerHTML = `<input type="number" value="${Number.parseFloat(original.precioRaw) || 0}" min="0" step="0.01" class="editar-input precio" />`;
     celdas[5].innerHTML = `
     <div>
       ${original.imgSrc ? `<img class="thumb" src="${original.imgSrc}" alt="" />` : '<img class="thumb" src="" alt="" />'}
@@ -1242,6 +1282,7 @@ function editarFila(button) {
       <button type="button" class="boton-guardar" data-action="save">Guardar</button>
       <button type="button" class="boton-cancelar" data-action="cancel">Cancelar</button>
     </div>`;
+    showEditToolbar(fila);
 }
 async function guardarFila(button) {
     const fila = button.closest("tr");
@@ -1258,10 +1299,67 @@ async function guardarFila(button) {
     if (fileInput && fileInput.files && fileInput.files[0]) {
         fotoDataURL = await readFileAsDataURL(fileInput.files[0]);
     }
+    // Confirmación de cambios antes de aplicar
+    const safeCantidadTry = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
+    const safePrecioTry = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
+    const originalRaw = fila.dataset.original || "";
+    try {
+        if (originalRaw) {
+            const original = JSON.parse(originalRaw);
+            const cambios = [];
+            if ((original.recurso || "") !== (nuevoRecurso || "")) {
+                cambios.push(`Recurso: "${original.recurso || ""}" → "${nuevoRecurso || ""}"`);
+            }
+            if ((original.categoria || "") !== (nuevaCategoria || "")) {
+                cambios.push(`Categoría: "${original.categoria || ""}" → "${nuevaCategoria || ""}"`);
+            }
+            if ((original.cantidad || "0") !== String(safeCantidadTry)) {
+                cambios.push(`Cantidad: ${original.cantidad || "0"} → ${safeCantidadTry}`);
+            }
+            if ((Number.parseFloat(original.precioRaw) || 0) !== safePrecioTry) {
+                cambios.push(`Precio: ${formatCurrency(Number.parseFloat(original.precioRaw) || 0)} → ${formatCurrency(safePrecioTry)}`);
+            }
+            if ((original.info || "") !== (nuevaInfo || "")) {
+                cambios.push(`Info: "${original.info || ""}" → "${nuevaInfo || ""}"`);
+            }
+            const fotoCambio = (original.imgSrc || "") !== (fotoDataURL || "");
+            if (fotoCambio) {
+                cambios.push("Foto: (cambiada)");
+            }
+            if (cambios.length === 0) {
+                // No hay cambios; salir del modo edición sin tocar backend
+                celdas[7].innerHTML = `
+      <div class="tabla-acciones">
+        <button type="button" class="boton-editar" data-action="edit">Editar</button>
+        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
+      </div>`;
+                fila.dataset.original = "";
+                filtrarTabla({
+                    resetPage: false
+                });
+                ordenarTabla();
+                actualizarPaginacion();
+                hideEditToolbar();
+                return;
+            }
+            const idText = celdas[0]?.innerText ?? "0";
+            const ok = window.confirm(`Confirmar modificación del recurso #${idText}\n\n` + cambios.join("\n"));
+            if (!ok) {
+                // Permanecer en modo edición si cancela
+                return;
+            }
+        }
+    } catch  {
+        const ok = window.confirm("Confirmar modificación de este recurso?");
+        if (!ok) return;
+    }
+    const safeCantidad = safeCantidadTry;
+    const safePrecio = safePrecioTry;
     celdas[1].innerText = nuevoRecurso;
     celdas[2].innerText = nuevaCategoria;
-    celdas[3].innerText = Number.isNaN(nuevaCantidad) ? "0" : String(nuevaCantidad);
-    celdas[4].innerText = Number.isNaN(nuevoPrecio) ? "0.00" : formatCurrency(safePrecio);
+    celdas[3].innerText = String(safeCantidad);
+    celdas[4].setAttribute("data-precio", String(safePrecio));
+    celdas[4].innerText = formatCurrency(safePrecio);
     if (fotoDataURL) {
         celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL}" alt="" />`;
         celdas[5].setAttribute("data-foto", "1");
@@ -1281,8 +1379,8 @@ async function guardarFila(button) {
         id,
         recurso: nuevoRecurso,
         categoria: nuevaCategoria,
-        cantidad: Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad,
-        precio: Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio,
+        cantidad: safeCantidad,
+        precio: safePrecio,
         foto: fotoDataURL,
         info: nuevaInfo
     });
@@ -1295,6 +1393,7 @@ async function guardarFila(button) {
     });
     ordenarTabla();
     actualizarPaginacion();
+    hideEditToolbar();
 }
 function cancelarEdicion(button) {
     const fila = button.closest("tr");
@@ -1306,7 +1405,9 @@ function cancelarEdicion(button) {
     celdas[1].innerText = original.recurso;
     celdas[2].innerText = original.categoria;
     celdas[3].innerText = original.cantidad;
-    celdas[4].innerText = formatCurrency(p);
+    const precioNum = Number.parseFloat(original.precioRaw) || 0;
+    celdas[4].setAttribute("data-precio", String(precioNum));
+    celdas[4].innerText = formatCurrency(precioNum);
     if (original.imgSrc) {
         celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
         celdas[5].setAttribute("data-foto", "1");
@@ -1324,6 +1425,7 @@ function cancelarEdicion(button) {
     filtrarTabla();
     ordenarTabla();
     actualizarPaginacion();
+    hideEditToolbar();
 }
 function eliminarFila(button) {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este recurso?")) {

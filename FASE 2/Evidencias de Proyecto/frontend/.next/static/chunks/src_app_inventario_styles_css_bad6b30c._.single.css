@@ -295,6 +295,50 @@ nav a[aria-current="page"], nav a:hover {
   color: var(--inventory-nav-item-active-color);
 }
 
+.edit-toolbar {
+  z-index: 1000;
+  background: var(--inventory-panel);
+  border: 1px solid var(--inventory-border);
+  box-shadow: var(--inventory-shadow);
+  border-radius: 14px;
+  padding: 10px 12px;
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+}
+
+.edit-toolbar__inner {
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.edit-toolbar__label {
+  color: var(--inventory-muted);
+  font-weight: 600;
+}
+
+.edit-toolbar__actions {
+  gap: 10px;
+  display: flex;
+}
+
+.edit-toolbar__btn {
+  border: 1px solid var(--inventory-neutral-button-border);
+  background: var(--inventory-neutral-button-bg);
+  color: var(--inventory-text);
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-weight: 600;
+}
+
+.edit-toolbar__btn.primary {
+  background: var(--inventory-accent);
+  color: #041325;
+  border: none;
+}
+
 .inventory-main {
   flex-direction: column;
   flex: 1;

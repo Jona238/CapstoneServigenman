@@ -299,7 +299,6 @@ nav a:hover {
   color: var(--inventory-nav-item-active-color);
 }
 
-<<<<<<< HEAD
 /* Floating toolbar while editing a row */
 .edit-toolbar {
   position: fixed;
@@ -336,9 +335,6 @@ nav a:hover {
   border: none;
   color: #041325;
 }
-
-=======
->>>>>>> 9509d44311d44850781e436934a06c8a6f9d7b1e
 .inventory-main {
   flex: 1;
   display: flex;

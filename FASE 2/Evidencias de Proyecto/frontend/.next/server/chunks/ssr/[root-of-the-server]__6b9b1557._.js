@@ -90,7 +90,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$contexts$2f$LanguageC
 ;
 ;
 const metadata = {
-    title: "SERVIGENMAN — Portal Interno",
+    title: "SERVIGENMAN - Portal Interno",
     description: "Portal interno de SERVIGENMAN para el personal autorizado de la compañía."
 };
 function RootLayout({ children }) {
@@ -103,17 +103,17 @@ function RootLayout({ children }) {
                 children: children
             }, void 0, false, {
                 fileName: "[project]/src/app/layout.tsx",
-                lineNumber: 25,
+                lineNumber: 26,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/layout.tsx",
-            lineNumber: 24,
+            lineNumber: 25,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/layout.tsx",
-        lineNumber: 23,
+        lineNumber: 24,
         columnNumber: 5
     }, this);
 }
