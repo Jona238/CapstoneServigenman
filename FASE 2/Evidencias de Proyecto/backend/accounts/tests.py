@@ -11,11 +11,11 @@ from .auth0 import Auth0AuthenticationError
 class LoginViewTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
-
             username="jona",
             password="200328",
             first_name="Jonathan",
             last_name="Morales",
+            email="jon.morales@duocuc.cl",
         )
 
     def test_login_success(self):

@@ -5,6 +5,10 @@ from django.contrib.auth import authenticate, get_user_model, login
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.utils import timezone
+import random
+import string
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth import logout as django_logout
@@ -15,6 +19,7 @@ from .auth0 import (
     Auth0ConfigurationError,
     authenticate_with_auth0,
 )
+from .models import PasswordResetCode
 
 
 def _parse_payload(request):
@@ -210,3 +215,155 @@ def logout_view(request):
     """Log out the current session."""
     django_logout(request)
     return JsonResponse({"ok": True})
+
+
+# Password recovery flow
+
+def _generate_code(length: int = 6) -> str:
+    return "".join(random.choice(string.digits) for _ in range(length))
+
+
+@csrf_exempt
+@require_POST
+def request_password_code_view(request):
+    payload = _parse_payload(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+    email = str(payload.get("email") or "").strip().lower()
+    if not email:
+        return JsonResponse({"error": "Email is required."}, status=400)
+
+    # Create code (valid for 15 minutes)
+    code = _generate_code(6)
+    expires = timezone.now() + timezone.timedelta(minutes=15)
+    PasswordResetCode.objects.create(email=email, code=code, expires_at=expires)
+
+    subject = "recuperacion de contraseña"
+    message = (
+        "Has solicitado recuperar tu contraseña en SERVIGENMAN.\n\n"
+        f"Tu código de verificación es: {code}\n"
+        "Este código expira en 15 minutos.\n\n"
+        "Si no realizaste esta solicitud, ignora este correo."
+    )
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@servigenman.local")
+    try:
+        send_mail(subject, message, from_email, [email], fail_silently=True)
+    except Exception:
+        # In dev we might be using console backend; ignore errors
+        pass
+
+    # Always OK to avoid email enumeration
+    return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+def reset_password_with_code_view(request):
+    payload = _parse_payload(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+    email = str(payload.get("email") or "").strip().lower()
+    code = str(payload.get("code") or "").strip()
+    new_password = payload.get("new_password")
+    if not email or not code or not isinstance(new_password, str) or len(new_password) < 8:
+        return JsonResponse({"error": "Datos inválidos."}, status=400)
+
+    now = timezone.now()
+    qs = PasswordResetCode.objects.filter(email=email, code=code, used_at__isnull=True, expires_at__gte=now).order_by("-created_at")
+    if not qs.exists():
+        return JsonResponse({"error": "Código inválido o expirado."}, status=400)
+
+    prc = qs.first()
+    prc.mark_used()
+
+    User = get_user_model()
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        # Allow reset by username if email field was not set (dev accounts)
+        try:
+            user = User.objects.get(username__iexact=email)
+        except User.DoesNotExist:
+            return JsonResponse({"ok": True})
+
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+    return JsonResponse({"ok": True})
+
+
+# Override with username-based flow (prevents arbitrary email entry)
+@csrf_exempt
+@require_POST
+def request_password_code_view(request):
+    payload = _parse_payload(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+    username = str(payload.get("username") or "").strip()
+    if not username:
+        return JsonResponse({"error": "Username is required."}, status=400)
+
+    User = get_user_model()
+    try:
+        user = User.objects.get(username__iexact=username)
+    except User.DoesNotExist:
+        return JsonResponse({"ok": True})
+
+    email = (user.email or "").strip().lower()
+    if not email:
+        return JsonResponse({"ok": True})
+
+    code = _generate_code(6)
+    expires = timezone.now() + timezone.timedelta(minutes=15)
+    PasswordResetCode.objects.create(email=email, code=code, expires_at=expires)
+
+    subject = "recuperacion de contraseña"
+    message = (
+        "Has solicitado recuperar tu contraseña en SERVIGENMAN.\n\n"
+        f"Tu código de verificación es: {code}\n"
+        "Este código expira en 15 minutos.\n\n"
+        "Si no realizaste esta solicitud, ignora este correo."
+    )
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@servigenman.local")
+    try:
+        send_mail(subject, message, from_email, [email], fail_silently=False)
+    except Exception as exc:
+        return JsonResponse({"error": "No se pudo enviar el correo", "detail": str(exc)}, status=500)
+
+    import os
+    if settings.DEBUG and os.getenv("DJANGO_EXPOSE_RESET_CODE", "0").lower() in {"1","true","yes"}:
+        return JsonResponse({"ok": True, "code": code})
+    return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+def reset_password_with_code_view(request):
+    payload = _parse_payload(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+    username = str(payload.get("username") or "").strip()
+    code = str(payload.get("code") or "").strip()
+    new_password = payload.get("new_password")
+    if not username or not code or not isinstance(new_password, str) or len(new_password) < 8:
+        return JsonResponse({"error": "Datos inválidos."}, status=400)
+
+    now = timezone.now()
+    User = get_user_model()
+    try:
+        user = User.objects.get(username__iexact=username)
+    except User.DoesNotExist:
+        return JsonResponse({"ok": True})
+
+    email = (user.email or "").strip().lower()
+    qs = PasswordResetCode.objects.filter(email=email, code=code, used_at__isnull=True, expires_at__gte=now).order_by("-created_at")
+    if not qs.exists():
+        return JsonResponse({"error": "Código inválido o expirado."}, status=400)
+
+    prc = qs.first()
+    prc.mark_used()
+
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+    return JsonResponse({"ok": True})
+
+
