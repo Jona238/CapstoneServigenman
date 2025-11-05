@@ -1,4 +1,4 @@
-export const DEFAULT_LOW_STOCK_THRESHOLD = 3;
+export const DEFAULT_LOW_STOCK_THRESHOLD = 1;
 
 export type StockStatus = "ok" | "low";
 
