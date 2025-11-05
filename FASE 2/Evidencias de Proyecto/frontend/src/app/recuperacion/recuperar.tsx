@@ -8,7 +8,7 @@ import "./styles.css";
 const INTEGRATION_EVENT = "servigenman:passwordRecoveryRequest";
 
 export default function RecuperarContrasena() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -46,16 +46,16 @@ export default function RecuperarContrasena() {
     );
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmedEmail = email.trim();
+    const trimmedUser = username.trim();
 
     setMessage(null);
     setFeedbackType(null);
 
-    if (!trimmedEmail || !trimmedEmail.includes("@")) {
-      const errorMessage = "Validacion local: por favor ingresa un correo electronico valido.";
+    if (!trimmedUser) {
+      const errorMessage = "Por favor ingresa tu usuario.";
       setMessage(errorMessage);
       setFeedbackType("error");
       dispatchIntegrationEvent({
@@ -65,26 +65,41 @@ export default function RecuperarContrasena() {
       return;
     }
 
-    dispatchIntegrationEvent({
-      status: "pending",
-      payload: { email: trimmedEmail },
-    });
+    dispatchIntegrationEvent({ status: "pending", payload: { username: trimmedUser } });
 
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = window.setTimeout(() => {
-      const mockMessage =
-        "Solicitud registrada. Si el correo existe enviaremos un enlace de recuperacion en los proximos minutos.";
-      setMessage(mockMessage);
-      setFeedbackType("success");
-      dispatchIntegrationEvent({
-        status: "success",
-        payload: { email: trimmedEmail, message: mockMessage },
+    try {
+      const base = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+      const res = await fetch(`${base}/api/password/request/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: trimmedUser }),
       });
-      timerRef.current = null;
-    }, 400);
+
+      let payload: any = null;
+      try { payload = await res.json(); } catch { payload = null; }
+
+      if (!res.ok) {
+        const err = (payload && (payload.detail || payload.error)) || 'No se pudo enviar el correo. Verifica la configuración del servidor.';
+        setMessage(err);
+        setFeedbackType('error');
+        dispatchIntegrationEvent({ status: 'error', payload: { username: trimmedUser, message: err } });
+        return;
+      }
+
+      let text = 'Si el usuario existe y tiene correo asociado, enviaremos un código de verificación.';
+      if (payload && payload.code) {
+        text += `\n\n(DEV) Tu código es: ${payload.code}`;
+      }
+      setMessage(text);
+      setFeedbackType('success');
+      dispatchIntegrationEvent({ status: 'success', payload: { username: trimmedUser, message: text } });
+    } catch {
+      const err = 'No se pudo procesar la solicitud. Intenta nuevamente.';
+      setMessage(err);
+      setFeedbackType('error');
+      dispatchIntegrationEvent({ status: 'error', payload: { username: trimmedUser, message: err } });
+    }
   };
 
   return (
@@ -133,7 +148,8 @@ export default function RecuperarContrasena() {
         <div>
           <h1 id="recovery-title" className="recovery-title">Recuperar Contrasena</h1>
           <p className="recovery-description">
-            Ingresa tu correo electronico y te enviaremos un enlace para restablecer tu contrasena.
+            Ingresa tu correo y te enviaremos un <strong>código</strong> para autorizar el cambio de contraseña.
+            Luego, introduce ese código y tu nueva contraseña en el siguiente paso.
           </p>
           {/* 
             Nota: No incluye integración HTTP real.
@@ -142,19 +158,17 @@ export default function RecuperarContrasena() {
         </div>
 
         <form className="recovery-form" onSubmit={handleSubmit} noValidate>
-          <label className="recovery-label" htmlFor="email">
-            Correo electronico
-          </label>
+          <label className="recovery-label" htmlFor="username">Usuario</label>
           <input
             className="recovery-field"
-            type="email"
-            id="email"
-            name="email"
+            type="text"
+            id="username"
+            name="username"
             ref={emailInputRef}
-            placeholder="ejemplo@correo.com"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            placeholder="tu_usuario"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
             required
           />
 
@@ -170,14 +184,12 @@ export default function RecuperarContrasena() {
             </div>
           )}
 
-          <button className="recovery-btn" type="submit">
-            Enviar enlace
-          </button>
+          <button className="recovery-btn" type="submit">Enviar código</button>
         </form>
 
         <div className="recovery-links">
           <Link href="/login">Volver al inicio de sesion</Link>
-          <Link href="/recuperacion/validar">Ya tienes un codigo? Validar contrasena</Link>
+          <Link href="/recuperacion/validar">Ya tienes un código? Cambiar contraseña</Link>
         </div>
 
         <div className="recovery-footer">
