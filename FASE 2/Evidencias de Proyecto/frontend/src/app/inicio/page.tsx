@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
+import { isLowStock } from "@/lib/stockAlerts";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -112,6 +114,7 @@ export default function InicioPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { formatCurrency } = useCurrency();
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
 
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
@@ -274,16 +277,29 @@ export default function InicioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {FEATURED_RESOURCES.map((resource) => (
-                    <tr key={resource.id}>
-                      <td>{resource.id}</td>
-                      <td>{resource.name}</td>
-                      <td>{resource.category}</td>
-                      <td>{resource.quantity}</td>
-                      <td>{formatCurrency(resource.price)}</td>
-                      <td>{resource.info}</td>
-                    </tr>
-                  ))}
+                  {FEATURED_RESOURCES.map((resource) => {
+                    const lowStock = isLowStock(resource.quantity, lowStockThreshold);
+                    return (
+                      <tr
+                        key={resource.id}
+                        className={lowStock ? "home-preview__row home-preview__row--low" : "home-preview__row"}
+                      >
+                        <td>{resource.id}</td>
+                        <td>{resource.name}</td>
+                        <td>{resource.category}</td>
+                        <td className={lowStock ? "home-preview__quantity home-preview__quantity--low" : "home-preview__quantity"}>
+                          <span className="quantity-value">{resource.quantity}</span>
+                          {lowStock && (
+                            <span className="low-stock-badge" role="status">
+                              {t.home.lowStock}
+                            </span>
+                          )}
+                        </td>
+                        <td>{formatCurrency(resource.price)}</td>
+                        <td>{resource.info}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

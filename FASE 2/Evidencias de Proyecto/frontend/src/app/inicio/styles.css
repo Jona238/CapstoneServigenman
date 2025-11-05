@@ -463,6 +463,35 @@ input[type="checkbox"]:checked + .switch::after {
   background: var(--home-table-stripe);
 }
 
+.home-preview__row {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-preview__row--low {
+  background: var(--inventory-danger-bg);
+  color: var(--inventory-danger-text);
+  box-shadow: inset 0 0 0 1px var(--inventory-danger-border);
+}
+
+.home-preview__row--low td {
+  color: inherit;
+}
+
+.home-preview__quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.home-preview__quantity--low {
+  color: var(--inventory-danger-text);
+}
+
+.home-preview__quantity .low-stock-badge {
+  margin-left: 0;
+}
+
 .home-panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

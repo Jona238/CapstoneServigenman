@@ -5,6 +5,7 @@ import AppFooter from "@/components/AppFooter";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -16,6 +17,7 @@ import "./styles.css";
 export default function CategoriesPage() {
   useBodyClass();
   const { t } = useLanguage();
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
     const env = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -67,7 +69,11 @@ export default function CategoriesPage() {
         <AppHeader />
         
 
-        <div className="categories-shell">
+        <div
+          className="categories-shell"
+          data-low-stock-label={t.inventory.lowStock}
+          data-low-stock-threshold={lowStockThreshold}
+        >
           <main className="categories-main">
             <section className="categories-hero">
               <div>
