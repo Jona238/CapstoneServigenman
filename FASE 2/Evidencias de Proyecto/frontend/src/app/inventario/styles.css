@@ -299,6 +299,42 @@ nav a:hover {
   color: var(--inventory-nav-item-active-color);
 }
 
+/* Floating toolbar while editing a row */
+.edit-toolbar {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 1000;
+  background: var(--inventory-panel);
+  border: 1px solid var(--inventory-border);
+  box-shadow: var(--inventory-shadow);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.edit-toolbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.edit-toolbar__label {
+  font-weight: 600;
+  color: var(--inventory-muted);
+}
+.edit-toolbar__actions { display: flex; gap: 10px; }
+.edit-toolbar__btn {
+  border: 1px solid var(--inventory-neutral-button-border);
+  background: var(--inventory-neutral-button-bg);
+  color: var(--inventory-text);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.edit-toolbar__btn.primary {
+  background: var(--inventory-accent);
+  border: none;
+  color: #041325;
+}
 .inventory-main {
   flex: 1;
   display: flex;

@@ -40,6 +40,7 @@ const INVENTORY_KEY = "inventarioData";
 const CATS_KEY = "categoriasInventario";
 
 // Backend base URL (override at build time with NEXT_PUBLIC_BACKEND_URL)
+// In the browser we prefer same-origin calls (Next.js rewrite to backend) to carry cookies properly.
 const BACKEND_URL =
   (typeof process !== "undefined" &&
     (process.env.NEXT_PUBLIC_API_URL ??
@@ -79,7 +80,12 @@ async function apiCreateItem(
       body: JSON.stringify(payload),
     });
     if (!res.ok) return null;
-    return (await res.json()) as InventoryItem;
+    const data = await res.json();
+    if (data && (data as any).pending) {
+      try { alert("Creación enviada para aprobación del desarrollador."); } catch {}
+      return null;
+    }
+    return data as InventoryItem;
   } catch {
     return null;
   }
@@ -95,7 +101,12 @@ async function apiUpdateItem(
       body: JSON.stringify(payload),
     });
     if (!res.ok) return null;
-    return (await res.json()) as InventoryItem;
+    const data = await res.json();
+    if (data && (data as any).pending) {
+      try { alert("Edición enviada para aprobación del desarrollador."); } catch {}
+      return null;
+    }
+    return data as InventoryItem;
   } catch {
     return null;
   }
@@ -106,7 +117,14 @@ async function apiDeleteItem(id: number): Promise<boolean> {
     const res = await backendFetch(`/api/inventory/items/${id}/`, {
       method: "DELETE",
     });
-    return res.ok;
+    if (!res.ok) return false;
+    try {
+      const data = await res.json();
+      if (data && (data as any).pending) {
+        alert("Eliminación enviada para aprobación del desarrollador.");
+      }
+    } catch {}
+    return true;
   } catch {
     return false;
   }
@@ -114,6 +132,47 @@ async function apiDeleteItem(id: number): Promise<boolean> {
 
 const filasPorPagina = 10;
 let paginaActual = 1;
+let currentEditingRow: HTMLTableRowElement | null = null;
+
+function showEditToolbar(row: HTMLTableRowElement) {
+  currentEditingRow = row;
+  let bar = document.getElementById("editToolbar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "editToolbar";
+    bar.className = "edit-toolbar";
+    bar.innerHTML = `
+      <div class="edit-toolbar__inner">
+        <span class="edit-toolbar__label">Editando recurso</span>
+        <div class="edit-toolbar__actions">
+          <button type="button" id="editToolbarSave" class="edit-toolbar__btn primary">Guardar cambios</button>
+          <button type="button" id="editToolbarCancel" class="edit-toolbar__btn">Cancelar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(bar);
+  }
+  const save = document.getElementById("editToolbarSave") as HTMLButtonElement | null;
+  const cancel = document.getElementById("editToolbarCancel") as HTMLButtonElement | null;
+  if (save) {
+    save.onclick = () => {
+      const btn = currentEditingRow?.querySelector<HTMLButtonElement>('button[data-action="save"]');
+      if (btn) void guardarFila(btn);
+    };
+  }
+  if (cancel) {
+    cancel.onclick = () => {
+      const btn = currentEditingRow?.querySelector<HTMLButtonElement>('button[data-action="cancel"]');
+      if (btn) cancelarEdicion(btn);
+    };
+  }
+  bar.style.display = "block";
+}
+
+function hideEditToolbar() {
+  const bar = document.getElementById("editToolbar");
+  if (bar) bar.style.display = "none";
+  currentEditingRow = null;
+}
 
 export function initializeInventoryPage(): CleanupFn {
   if (typeof document === "undefined") {
@@ -771,7 +830,7 @@ function editarFila(button: HTMLButtonElement) {
   celdas[1].innerHTML = `<input type="text" value="${original.recurso}" class="editar-input" />`;
   celdas[2].innerHTML = `<input type="text" value="${original.categoria}" class="editar-input" />`;
   celdas[3].innerHTML = `<input type="number" value="${original.cantidad}" min="0" step="1" class="editar-input" />`;
-  celdas[4].innerHTML = `<input type="number" value="${original.precio}" min="0" step="0.01" class="editar-input precio" />`;
+  celdas[4].innerHTML = `<input type="number" value="${Number.parseFloat(original.precioRaw) || 0}" min="0" step="0.01" class="editar-input precio" />`;
   celdas[5].innerHTML = `
     <div>
       ${
@@ -787,6 +846,7 @@ function editarFila(button: HTMLButtonElement) {
       <button type="button" class="boton-guardar" data-action="save">Guardar</button>
       <button type="button" class="boton-cancelar" data-action="cancel">Cancelar</button>
     </div>`;
+  showEditToolbar(fila);
 }
 
 async function guardarFila(button: HTMLButtonElement) {
@@ -815,6 +875,76 @@ async function guardarFila(button: HTMLButtonElement) {
   if (fileInput && fileInput.files && fileInput.files[0]) {
     fotoDataURL = await readFileAsDataURL(fileInput.files[0]);
   }
+
+  // Confirmación de cambios antes de aplicar
+  const safeCantidadTry = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
+  const safePrecioTry = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
+
+  const originalRaw = fila.dataset.original || "";
+  try {
+    if (originalRaw) {
+      const original = JSON.parse(originalRaw) as {
+        recurso: string;
+        categoria: string;
+        cantidad: string;
+        precioText: string;
+        precioRaw: string;
+        imgSrc: string;
+        info: string;
+      };
+
+      const cambios: string[] = [];
+      if ((original.recurso || "") !== (nuevoRecurso || "")) {
+        cambios.push(`Recurso: "${original.recurso || ""}" → "${nuevoRecurso || ""}"`);
+      }
+      if ((original.categoria || "") !== (nuevaCategoria || "")) {
+        cambios.push(`Categoría: "${original.categoria || ""}" → "${nuevaCategoria || ""}"`);
+      }
+      if ((original.cantidad || "0") !== String(safeCantidadTry)) {
+        cambios.push(`Cantidad: ${original.cantidad || "0"} → ${safeCantidadTry}`);
+      }
+      if ((Number.parseFloat(original.precioRaw) || 0) !== safePrecioTry) {
+        cambios.push(
+          `Precio: ${formatCurrency(Number.parseFloat(original.precioRaw) || 0)} → ${formatCurrency(safePrecioTry)}`
+        );
+      }
+      if ((original.info || "") !== (nuevaInfo || "")) {
+        cambios.push(`Info: "${original.info || ""}" → "${nuevaInfo || ""}"`);
+      }
+      const fotoCambio = (original.imgSrc || "") !== (fotoDataURL || "");
+      if (fotoCambio) {
+        cambios.push("Foto: (cambiada)");
+      }
+
+      if (cambios.length === 0) {
+        // No hay cambios; salir del modo edición sin tocar backend
+        celdas[7].innerHTML = `
+      <div class="tabla-acciones">
+        <button type="button" class="boton-editar" data-action="edit">Editar</button>
+        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
+      </div>`;
+        fila.dataset.original = "";
+        filtrarTabla({ resetPage: false });
+        ordenarTabla();
+        actualizarPaginacion();
+        hideEditToolbar();
+        return;
+      }
+
+      const idText = celdas[0]?.innerText ?? "0";
+      const ok = window.confirm(`Confirmar modificación del recurso #${idText}\n\n` + cambios.join("\n"));
+      if (!ok) {
+        // Permanecer en modo edición si cancela
+        return;
+      }
+    }
+  } catch {
+    const ok = window.confirm("Confirmar modificación de este recurso?");
+    if (!ok) return;
+  }
+
+  const safeCantidad = safeCantidadTry;
+  const safePrecio = safePrecioTry;
 
   celdas[1].innerText = nuevoRecurso;
   celdas[2].innerText = nuevaCategoria;
@@ -857,6 +987,7 @@ async function guardarFila(button: HTMLButtonElement) {
   filtrarTabla({ resetPage: false });
   ordenarTabla();
   actualizarPaginacion();
+  hideEditToolbar();
 }
 
 function cancelarEdicion(button: HTMLButtonElement) {
@@ -869,7 +1000,8 @@ function cancelarEdicion(button: HTMLButtonElement) {
     recurso: string;
     categoria: string;
     cantidad: string;
-    precio: string;
+    precioText: string;
+    precioRaw: string;
     imgSrc: string;
     info: string;
   };
@@ -901,6 +1033,7 @@ function cancelarEdicion(button: HTMLButtonElement) {
   filtrarTabla();
   ordenarTabla();
   actualizarPaginacion();
+  hideEditToolbar();
 }
 
 function eliminarFila(button: HTMLButtonElement) {

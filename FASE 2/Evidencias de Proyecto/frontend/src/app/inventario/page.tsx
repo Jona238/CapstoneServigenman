@@ -4,7 +4,7 @@ import AppFooter from "@/components/AppFooter";
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Script from "next/script";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
@@ -64,6 +64,17 @@ export default function InventoryPage() {
     };
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/me/`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setIsDeveloper(Boolean(data?.user?.is_developer));
+      } catch {}
+    })();
+  }, [apiBaseUrl]);
+
   return (
     <>
       <Script
@@ -82,6 +93,13 @@ export default function InventoryPage() {
               <div className="inventory-card__heading">
                 <h2>{t.inventory.listTitle}</h2>
                 <p>{t.inventory.listDescription}</p>
+                {isDeveloper && (
+                  <p>
+                    <a href="/inventario/papelera" style={{ fontWeight: 600 }}>
+                      Papelera / Cambios pendientes
+                    </a>
+                  </p>
+                )}
               </div>
 
               <section className="inventory-section">
