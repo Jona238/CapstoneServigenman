@@ -43,32 +43,11 @@ export async function middleware(request: NextRequest) {
   if (!isProtected(pathname)) {
     return NextResponse.next();
   }
-
-  // If we already have a Django session cookie, allow (fast path in dev)
-  const hasSession = request.cookies.get("sessionid");
-  if (hasSession) {
+  // Lightweight auth: rely on a frontend cookie set after login
+  const hasFrontendAuth = request.cookies.get("auth_ok");
+  if (hasFrontendAuth?.value === "1") {
     return NextResponse.next();
   }
-
-  // Verify session against backend /api/me/ by forwarding cookies
-  const backend = getBackendBase();
-  const cookieHeader = request.headers.get("cookie") || "";
-
-  try {
-    const res = await fetch(`${backend}/api/me/`, {
-      method: "GET",
-      headers: { cookie: cookieHeader },
-      // Edge runtime ignores credentials, forward cookies manually as above
-      cache: "no-store",
-    });
-
-    if (res.ok) {
-      return NextResponse.next();
-    }
-  } catch {
-    // Network error -> treat as unauthenticated
-  }
-
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", pathname);
   return NextResponse.redirect(loginUrl);

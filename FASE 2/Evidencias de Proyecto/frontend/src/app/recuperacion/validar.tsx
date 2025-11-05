@@ -5,15 +5,14 @@ import React, { useEffect, useRef, useState } from "react";
 
 import "./styles.css";
 
-const INTEGRATION_EVENT = "servigenman:passwordChangeAttempt";
+const INTEGRATION_EVENT = "servigenman:passwordResetWithCode";
 
 const ChangePassword: React.FC = () => {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [email, setEmail] = useState("");\n  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");\n  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const currentPasswordRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,7 +20,7 @@ const ChangePassword: React.FC = () => {
     const body = document.body;
     html.classList.add("recuperacion-root");
     body.classList.add("recuperacion-body");
-    currentPasswordRef.current?.focus();
+    emailRef.current?.focus();
 
     return () => {
       html.classList.remove("recuperacion-root");
@@ -114,7 +113,7 @@ const ChangePassword: React.FC = () => {
     setError(null);
     setSuccess(null);
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!email || !code || !newPassword || !confirmPassword) {
       const message = "Todos los campos son obligatorios.";
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
@@ -122,7 +121,7 @@ const ChangePassword: React.FC = () => {
     }
 
     if (newPassword.length < 8) {
-      const message = "La nueva contrasena debe tener al menos 8 caracteres.";
+      const message = "La nueva contrase�a debe tener al menos 8 caracteres.";
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
@@ -220,7 +219,7 @@ const ChangePassword: React.FC = () => {
             className="recovery-field"
             type="password"
             id="currentPassword"
-            ref={currentPasswordRef}
+            ref={emailRef}
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
             placeholder="********"
@@ -299,4 +298,6 @@ const ChangePassword: React.FC = () => {
 };
 
 export default ChangePassword;
+
+
 
