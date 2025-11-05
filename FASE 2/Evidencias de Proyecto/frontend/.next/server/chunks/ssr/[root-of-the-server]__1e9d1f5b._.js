@@ -1206,6 +1206,10 @@ function LoginPageClient() {
                 status: "success",
                 payload: successPayload
             });
+            try {
+                // Set a frontend cookie so middleware can allow navigation
+                document.cookie = "auth_ok=1; path=/; max-age=604800"; // 7 days
+            } catch  {}
             router.push("/inicio");
         } catch  {
             const message = "Error de red o servidor. Intenta nuevamente.";
@@ -1234,6 +1238,9 @@ function LoginPageClient() {
                 window.clearTimeout(redirectTimerRef.current);
             }
             redirectTimerRef.current = window.setTimeout(()=>{
+                try {
+                    document.cookie = "auth_ok=1; path=/; max-age=604800";
+                } catch  {}
                 router.push("/inicio");
                 redirectTimerRef.current = null;
             }, 600);
@@ -1251,7 +1258,7 @@ function LoginPageClient() {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f28$auth$292f$login$2f$components$2f$AnimatedBackground$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["AnimatedBackground"], {}, void 0, false, {
                 fileName: "[project]/src/app/(auth)/login/LoginPageClient.tsx",
-                lineNumber: 156,
+                lineNumber: 161,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f28$auth$292f$login$2f$components$2f$LoginCard$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["LoginCard"], {
@@ -1267,12 +1274,12 @@ function LoginPageClient() {
                 feedbackRef: feedbackRef
             }, void 0, false, {
                 fileName: "[project]/src/app/(auth)/login/LoginPageClient.tsx",
-                lineNumber: 157,
+                lineNumber: 162,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f28$auth$292f$login$2f$components$2f$SplashOverlay$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["SplashOverlay"], {}, void 0, false, {
                 fileName: "[project]/src/app/(auth)/login/LoginPageClient.tsx",
-                lineNumber: 169,
+                lineNumber: 174,
                 columnNumber: 7
             }, this)
         ]

@@ -41,6 +41,21 @@ class LoginViewTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["error"], "Invalid credentials.")
 
+    def test_login_marcos_success(self):
+        User = get_user_model()
+        if not User.objects.filter(username="marcos").exists():
+            User.objects.create_user(username="marcos", password="197154")
+
+        response = self.client.post(
+            "/api/login/",
+            data=json.dumps({"username": "marcos", "password": "197154"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["user"]["username"], "marcos")
+
     def test_login_missing_fields(self):
         response = self.client.post(
             "/api/login/",

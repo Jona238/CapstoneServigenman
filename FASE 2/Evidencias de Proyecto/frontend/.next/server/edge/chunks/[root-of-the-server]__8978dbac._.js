@@ -53,28 +53,10 @@ async function middleware(request) {
     if (!isProtected(pathname)) {
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next();
     }
-    // If we already have a Django session cookie, allow (fast path in dev)
-    const hasSession = request.cookies.get("sessionid");
-    if (hasSession) {
+    // Lightweight auth: rely on a frontend cookie set after login
+    const hasFrontendAuth = request.cookies.get("auth_ok");
+    if (hasFrontendAuth?.value === "1") {
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next();
-    }
-    // Verify session against backend /api/me/ by forwarding cookies
-    const backend = getBackendBase();
-    const cookieHeader = request.headers.get("cookie") || "";
-    try {
-        const res = await fetch(`${backend}/api/me/`, {
-            method: "GET",
-            headers: {
-                cookie: cookieHeader
-            },
-            // Edge runtime ignores credentials, forward cookies manually as above
-            cache: "no-store"
-        });
-        if (res.ok) {
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$esm$2f$server$2f$web$2f$exports$2f$index$2e$js__$5b$middleware$2d$edge$5d$__$28$ecmascript$29$__["NextResponse"].next();
-        }
-    } catch  {
-    // Network error -> treat as unauthenticated
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);

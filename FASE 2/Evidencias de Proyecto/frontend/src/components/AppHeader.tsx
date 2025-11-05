@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import LanguageSelector from "./LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function AppHeader() {
   const { t } = useLanguage();
+  const [isDeveloper, setIsDeveloper] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
     const env = process.env.NEXT_PUBLIC_API_URL?.trim() || process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
@@ -26,6 +28,7 @@ export default function AppHeader() {
     } catch {
       // ignore network errors
     } finally {
+      try { document.cookie = "auth_ok=; Max-Age=0; path=/"; } catch {}
       window.location.href = "/login";
     }
   };
@@ -72,6 +75,38 @@ export default function AppHeader() {
     return () => {};
   }, []);
 
+  // Load current user role to conditionally render Papelera link
+  useEffect(() => {
+    let aborted = false;
+    async function load() {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/me/`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!aborted) setIsDeveloper(Boolean(data?.user?.is_developer));
+      } catch {}
+    }
+    if (apiBaseUrl) void load();
+    return () => { aborted = true; };
+  }, [apiBaseUrl]);
+
+  // Pending count polling (developers only)
+  useEffect(() => {
+    if (!isDeveloper || !apiBaseUrl) return;
+    let aborted = false;
+    const getCount = async () => {
+      try {
+        const r = await fetch(`${apiBaseUrl}/api/inventory/pending/count/`, { credentials: "include" });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!aborted) setPendingCount(Number(d?.pending ?? 0));
+      } catch {}
+    };
+    void getCount();
+    const timer = setInterval(getCount, 15000);
+    return () => { aborted = true; clearInterval(timer); };
+  }, [isDeveloper, apiBaseUrl]);
+
   return (
     <header className="inventory-header">
       <div className="inventory-header__inner">
@@ -105,6 +140,13 @@ export default function AppHeader() {
           <ul>
             <li><Link href="/inicio">{t.common.home}</Link></li>
             <li><Link href="/inventario">{t.common.inventory}</Link></li>
+            {isDeveloper && (
+              <li>
+                <Link href="/inventario/papelera">
+                  Papelera{typeof pendingCount === "number" && pendingCount > 0 ? ` (${pendingCount})` : ""}
+                </Link>
+              </li>
+            )}
             <li><Link href="/categorias">{t.common.categories}</Link></li>
             <li><Link href="/presupuesto">{t.common.budget}</Link></li>
             <li><Link href="/ajustes">{t.common.settings}</Link></li>
@@ -114,3 +156,8 @@ export default function AppHeader() {
     </header>
   );
 }
+
+
+
+
+

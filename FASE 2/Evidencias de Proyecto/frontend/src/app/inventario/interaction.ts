@@ -31,16 +31,20 @@ const INVENTORY_KEY = "inventarioData";
 const CATS_KEY = "categoriasInventario";
 
 // Backend base URL (override at build time with NEXT_PUBLIC_BACKEND_URL)
+// In the browser we prefer same-origin calls (Next.js rewrite to backend) to carry cookies properly.
 const BACKEND_URL =
-  (typeof process !== "undefined" &&
-    (process as any).env &&
-    ((process as any).env.NEXT_PUBLIC_API_URL ||
-      (process as any).env.NEXT_PUBLIC_BACKEND_URL)) ||
-  "http://localhost:8000";
+  (typeof window !== "undefined")
+    ? "" // same-origin: rely on Next.js rewrite for /api/*
+    : ((typeof process !== "undefined" && (process as any).env &&
+        (((process as any).env.NEXT_PUBLIC_API_URL as string) ||
+         ((process as any).env.NEXT_PUBLIC_BACKEND_URL as string))) ||
+       "http://localhost:8000");
 
 async function backendFetch(path: string, options?: RequestInit): Promise<Response> {
-  const url = `${BACKEND_URL.replace(/\/$/, "")}${path}`;
+  const base = BACKEND_URL.replace(/\/$/, "");
+  const url = `${base}${path}`;
   return fetch(url, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(options?.headers || {}),
@@ -69,7 +73,12 @@ async function apiCreateItem(
       body: JSON.stringify(payload),
     });
     if (!res.ok) return null;
-    return (await res.json()) as InventoryItem;
+    const data = await res.json();
+    if (data && (data as any).pending) {
+      try { alert("Creación enviada para aprobación del desarrollador."); } catch {}
+      return null;
+    }
+    return data as InventoryItem;
   } catch {
     return null;
   }
@@ -85,7 +94,12 @@ async function apiUpdateItem(
       body: JSON.stringify(payload),
     });
     if (!res.ok) return null;
-    return (await res.json()) as InventoryItem;
+    const data = await res.json();
+    if (data && (data as any).pending) {
+      try { alert("Edición enviada para aprobación del desarrollador."); } catch {}
+      return null;
+    }
+    return data as InventoryItem;
   } catch {
     return null;
   }
@@ -96,7 +110,14 @@ async function apiDeleteItem(id: number): Promise<boolean> {
     const res = await backendFetch(`/api/inventory/items/${id}/`, {
       method: "DELETE",
     });
-    return res.ok;
+    if (!res.ok) return false;
+    try {
+      const data = await res.json();
+      if (data && (data as any).pending) {
+        alert("Eliminación enviada para aprobación del desarrollador.");
+      }
+    } catch {}
+    return true;
   } catch {
     return false;
   }
