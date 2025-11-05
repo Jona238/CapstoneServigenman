@@ -121,7 +121,7 @@ const ChangePassword: React.FC = () => {
     }
 
     if (newPassword.length < 8) {
-      const message = "La nueva contraseña debe tener al menos 8 caracteres.";
+      const message = "La nueva contraseï¿½a debe tener al menos 8 caracteres.";
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
