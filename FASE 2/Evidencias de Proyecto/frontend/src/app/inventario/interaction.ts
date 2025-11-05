@@ -48,13 +48,15 @@ const BACKEND_URL =
 
 async function backendFetch(path: string, options?: RequestInit): Promise<Response> {
   const url = `${BACKEND_URL.replace(/\/$/, "")}${path}`;
-  return fetch(url, {
+  const init: RequestInit = {
+    ...options,
+    credentials: options?.credentials ?? "include",
     headers: {
       "Content-Type": "application/json",
       ...(options?.headers || {}),
     },
-    ...options,
-  });
+  };
+  return fetch(url, init);
 }
 
 async function apiListItems(): Promise<InventoryItem[] | null> {
