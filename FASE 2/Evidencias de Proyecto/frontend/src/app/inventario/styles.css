@@ -153,6 +153,8 @@ body.servigenman-login.home-layout:not([data-theme="dark"])::after {
   display: flex;
   flex-direction: column;
   color: var(--inventory-text);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .inventory-shell {
@@ -177,11 +179,9 @@ body.servigenman-login.home-layout:not([data-theme="dark"])::after {
   border-bottom: 1px solid var(--inventory-border);
   box-shadow: var(--inventory-header-shadow);
   backdrop-filter: blur(18px);
-  /* Force full-viewport width regardless of parent layout */
-  width: 100vw;
-  left: 0;
-  right: 0;
+  width: 100%;
   margin: 0;
+  box-sizing: border-box;
 }
 
 .inventory-header::before {
