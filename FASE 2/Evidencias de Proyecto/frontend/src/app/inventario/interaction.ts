@@ -864,8 +864,7 @@ async function guardarFila(button: HTMLButtonElement) {
   const nuevoPrecio = Number.parseFloat(
     celdas[4]?.querySelector<HTMLInputElement>("input")?.value || "0"
   );
-  const safeCantidad = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
-  const safePrecio = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
+  // Valores saneados se calculan más abajo como parte de la confirmación
 
   const fileInput = celdas[5]?.querySelector<HTMLInputElement>("input[type='file']");
   const imgElement = celdas[5]?.querySelector<HTMLImageElement>("img");

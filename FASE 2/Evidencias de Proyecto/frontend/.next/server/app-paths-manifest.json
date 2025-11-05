@@ -2,6 +2,6 @@
   "/(auth)/login/page": "app/(auth)/login/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/inicio/page": "app/inicio/page.js",
-  "/recuperacion/page": "app/recuperacion/page.js",
-  "/recuperacion/validar/page": "app/recuperacion/validar/page.js"
+  "/inventario/page": "app/inventario/page.js",
+  "/page": "app/page.js"
 }

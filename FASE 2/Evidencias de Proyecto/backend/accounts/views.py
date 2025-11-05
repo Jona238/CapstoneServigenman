@@ -238,15 +238,16 @@ def request_password_code_view(request):
     expires = timezone.now() + timezone.timedelta(minutes=15)
     PasswordResetCode.objects.create(email=email, code=code, expires_at=expires)
 
-    subject = "recuperacion de contraseña"
+    subject = "recuperacion de contrasena"
     message = (
-        "Has solicitado recuperar tu contraseña en SERVIGENMAN.\n\n"
-        f"Tu código de verificación es: {code}\n"
-        "Este código expira en 15 minutos.\n\n"
+        "Has solicitado recuperar tu contrasena en SERVIGENMAN.\n\n"
+        f"Tu codigo de verificacion es: {code}\n"
+        "Este codigo expira en 15 minutos.\n\n"
         "Si no realizaste esta solicitud, ignora este correo."
     )
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@servigenman.local")
     try:
+        print(f"[PasswordReset] username={username} email={email} code={code}")
         send_mail(subject, message, from_email, [email], fail_silently=True)
     except Exception:
         # In dev we might be using console backend; ignore errors
@@ -271,7 +272,7 @@ def reset_password_with_code_view(request):
     now = timezone.now()
     qs = PasswordResetCode.objects.filter(email=email, code=code, used_at__isnull=True, expires_at__gte=now).order_by("-created_at")
     if not qs.exists():
-        return JsonResponse({"error": "Código inválido o expirado."}, status=400)
+        return JsonResponse({"error": "codigo inválido o expirado."}, status=400)
 
     prc = qs.first()
     prc.mark_used()
@@ -316,18 +317,20 @@ def request_password_code_view(request):
     expires = timezone.now() + timezone.timedelta(minutes=15)
     PasswordResetCode.objects.create(email=email, code=code, expires_at=expires)
 
-    subject = "recuperacion de contraseña"
+    subject = "recuperacion de contrasena"
     message = (
-        "Has solicitado recuperar tu contraseña en SERVIGENMAN.\n\n"
-        f"Tu código de verificación es: {code}\n"
-        "Este código expira en 15 minutos.\n\n"
+        "Has solicitado recuperar tu contrasena en SERVIGENMAN.\n\n"
+        f"Tu codigo de verificacion es: {code}\n"
+        "Este codigo expira en 15 minutos.\n\n"
         "Si no realizaste esta solicitud, ignora este correo."
     )
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@servigenman.local")
     try:
-        send_mail(subject, message, from_email, [email], fail_silently=False)
+        print("[PasswordReset] username=" + str(username) + " email=" + str(email) + " code=" + str(code))
+        send_mail(subject, message, from_email, [email], fail_silently=True)
     except Exception as exc:
-        return JsonResponse({"error": "No se pudo enviar el correo", "detail": str(exc)}, status=500)
+        print(f"[PasswordReset][SMTP ERROR] {exc}")
+        pass
 
     import os
     if settings.DEBUG and os.getenv("DJANGO_EXPOSE_RESET_CODE", "0").lower() in {"1","true","yes"}:
@@ -357,7 +360,7 @@ def reset_password_with_code_view(request):
     email = (user.email or "").strip().lower()
     qs = PasswordResetCode.objects.filter(email=email, code=code, used_at__isnull=True, expires_at__gte=now).order_by("-created_at")
     if not qs.exists():
-        return JsonResponse({"error": "Código inválido o expirado."}, status=400)
+        return JsonResponse({"error": "codigo inválido o expirado."}, status=400)
 
     prc = qs.first()
     prc.mark_used()
@@ -365,5 +368,6 @@ def reset_password_with_code_view(request):
     user.set_password(new_password)
     user.save(update_fields=["password"])
     return JsonResponse({"ok": True})
+
 
 

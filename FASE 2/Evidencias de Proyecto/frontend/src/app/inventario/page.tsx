@@ -18,6 +18,7 @@ import "./styles.css";
 export default function InventoryPage() {
   useBodyClass();
   const { t } = useLanguage();
+  const [isDeveloper, setIsDeveloper] = useState(false);
   const { threshold: lowStockThreshold } = useLowStockThreshold();
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
