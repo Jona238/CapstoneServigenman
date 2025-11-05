@@ -3,12 +3,29 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 
+from functools import wraps
+
 from django.http import JsonResponse, HttpRequest, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.contrib.auth.models import AnonymousUser
 
 from .models import Item, PendingChange
+
+
+def require_authenticated(view_func):
+    """Return 401 JSON when the user is not authenticated."""
+
+    @wraps(view_func)
+    def _wrapped(request: HttpRequest, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse(
+                {"detail": "Authentication credentials were not provided."},
+                status=401,
+            )
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
 
 
 def _parse_body(request: HttpRequest) -> dict:
@@ -58,6 +75,7 @@ def _is_developer(user) -> bool:
 
 
 @csrf_exempt
+@require_authenticated
 def items_list_create(request: HttpRequest):
     auth_error = _require_auth(request)
     if auth_error:
@@ -91,6 +109,7 @@ def items_list_create(request: HttpRequest):
 
 
 @csrf_exempt
+@require_authenticated
 def item_detail_update_delete(request: HttpRequest, item_id: int):
     auth_error = _require_auth(request)
     if auth_error:

@@ -1,3 +1,12 @@
+import {
+  DEFAULT_LOW_STOCK_THRESHOLD,
+  LOW_STOCK_THRESHOLD_EVENT,
+  LOW_STOCK_THRESHOLD_KEY,
+  getStoredLowStockThreshold,
+  isLowStock,
+  sanitizeLowStockThreshold,
+} from "@/lib/stockAlerts";
+
 type XLSXNamespace = {
   utils: {
     aoa_to_sheet: (data: unknown[][]) => unknown;
@@ -33,24 +42,22 @@ const CATS_KEY = "categoriasInventario";
 // Backend base URL (override at build time with NEXT_PUBLIC_BACKEND_URL)
 // In the browser we prefer same-origin calls (Next.js rewrite to backend) to carry cookies properly.
 const BACKEND_URL =
-  (typeof window !== "undefined")
-    ? "" // same-origin: rely on Next.js rewrite for /api/*
-    : ((typeof process !== "undefined" && (process as any).env &&
-        (((process as any).env.NEXT_PUBLIC_API_URL as string) ||
-         ((process as any).env.NEXT_PUBLIC_BACKEND_URL as string))) ||
-       "http://localhost:8000");
+  (typeof process !== "undefined" &&
+    (process.env.NEXT_PUBLIC_API_URL ??
+      process.env.NEXT_PUBLIC_BACKEND_URL)) ||
+  "http://localhost:8000";
 
 async function backendFetch(path: string, options?: RequestInit): Promise<Response> {
-  const base = BACKEND_URL.replace(/\/$/, "");
-  const url = `${base}${path}`;
-  return fetch(url, {
-    credentials: "include",
+  const url = `${BACKEND_URL.replace(/\/$/, "")}${path}`;
+  const init: RequestInit = {
+    ...options,
+    credentials: options?.credentials ?? "include",
     headers: {
       "Content-Type": "application/json",
       ...(options?.headers || {}),
     },
-    ...options,
-  });
+  };
+  return fetch(url, init);
 }
 
 async function apiListItems(): Promise<InventoryItem[] | null> {
@@ -358,14 +365,37 @@ export function initializeInventoryPage(): CleanupFn {
   }
 
   // Listen for currency changes
-  const currencyChangeHandler = (event: StorageEvent) => {
-    if (event.key === 'ajustes_currency') {
+  const storageHandler = (event: StorageEvent) => {
+    if (event.key === "ajustes_currency") {
       // Refresh table to update currency formatting
       actualizarPaginacion();
     }
+    if (event.key === LOW_STOCK_THRESHOLD_KEY) {
+      const sanitized = getStoredLowStockThreshold(DEFAULT_LOW_STOCK_THRESHOLD);
+      const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
+      if (table) {
+        table.dataset.lowStockThreshold = String(sanitized);
+      }
+      applyLowStockAlerts();
+    }
   };
-  window.addEventListener('storage', currencyChangeHandler);
-  cleanupFns.push(() => window.removeEventListener('storage', currencyChangeHandler));
+  window.addEventListener("storage", storageHandler);
+  cleanupFns.push(() => window.removeEventListener("storage", storageHandler));
+
+  const thresholdChangeHandler = (event: Event) => {
+    const custom = event as CustomEvent<number>;
+    const value =
+      typeof custom.detail === "number"
+        ? sanitizeLowStockThreshold(custom.detail)
+        : getStoredLowStockThreshold(DEFAULT_LOW_STOCK_THRESHOLD);
+    const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
+    if (table) {
+      table.dataset.lowStockThreshold = String(value);
+    }
+    applyLowStockAlerts();
+  };
+  window.addEventListener(LOW_STOCK_THRESHOLD_EVENT, thresholdChangeHandler as EventListener);
+  cleanupFns.push(() => window.removeEventListener(LOW_STOCK_THRESHOLD_EVENT, thresholdChangeHandler as EventListener));
 
   return () => {
     cleanupFns.forEach((fn) => fn());
@@ -412,6 +442,84 @@ function nextIdFromStorage(): number {
   return arr.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
 }
 
+function setQuantityCell(
+  cell: HTMLTableCellElement | null | undefined,
+  value: number | string | null | undefined
+) {
+  if (!cell) return;
+  const parsed = Number.parseInt(String(value ?? "0"), 10);
+  const quantity = Number.isNaN(parsed) ? 0 : parsed;
+  cell.setAttribute("data-quantity", String(quantity));
+  cell.innerHTML = "";
+  const span = document.createElement("span");
+  span.className = "quantity-value";
+  span.textContent = String(quantity);
+  cell.appendChild(span);
+}
+
+function resolveLowStockMeta(table: HTMLTableElement | null) {
+  const label =
+    table?.dataset.lowStockLabel?.trim() ??
+    "Low stock";
+  const thresholdAttr = table?.dataset.lowStockThreshold;
+  const thresholdParsed = thresholdAttr ? Number.parseInt(thresholdAttr, 10) : Number.NaN;
+  const threshold = Number.isNaN(thresholdParsed)
+    ? getStoredLowStockThreshold(DEFAULT_LOW_STOCK_THRESHOLD)
+    : thresholdParsed;
+  return { label, threshold };
+}
+
+function applyLowStockAlerts() {
+  if (typeof document === "undefined") return;
+  const table = document.getElementById("tablaRecursos") as HTMLTableElement | null;
+  if (!table) return;
+  const { label, threshold } = resolveLowStockMeta(table);
+  table.dataset.lowStockThreshold = String(threshold);
+
+  const rows = table.querySelectorAll<HTMLTableRowElement>("tbody tr");
+  rows.forEach((row) => {
+    const quantityCell = row.cells[3];
+    if (!quantityCell) return;
+    if (quantityCell.querySelector("input")) return;
+
+    const dataQuantity = quantityCell.getAttribute("data-quantity");
+    const parsed = dataQuantity
+      ? Number.parseInt(dataQuantity, 10)
+      : Number.parseInt(quantityCell.textContent ?? "0", 10);
+    const quantity = Number.isNaN(parsed) ? 0 : parsed;
+
+    if (!quantityCell.querySelector(".quantity-value")) {
+      setQuantityCell(quantityCell, quantity);
+    } else {
+      quantityCell.setAttribute("data-quantity", String(quantity));
+      const valueSpan = quantityCell.querySelector<HTMLSpanElement>(".quantity-value");
+      if (valueSpan) valueSpan.textContent = String(quantity);
+    }
+
+    const isLow = isLowStock(quantity, threshold);
+    row.classList.toggle("inventory-row--low", isLow);
+    quantityCell.classList.toggle("inventory-quantity--low", isLow);
+    if (isLow) {
+      quantityCell.setAttribute("aria-label", `${quantity} - ${label}`);
+    } else {
+      quantityCell.removeAttribute("aria-label");
+    }
+
+    let badge = quantityCell.querySelector<HTMLSpanElement>(".low-stock-badge");
+    if (isLow) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "low-stock-badge";
+        badge.setAttribute("role", "status");
+        quantityCell.appendChild(badge);
+      }
+      badge.textContent = label;
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
 function renderInventarioToDOM(arr: InventoryItem[]) {
   const tbody = document.querySelector<HTMLTableSectionElement>(
     "#tablaRecursos tbody"
@@ -426,7 +534,7 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
       <td>${item.id}</td>
       <td>${item.recurso}</td>
       <td>${item.categoria}</td>
-      <td>${item.cantidad ?? 0}</td>
+      <td data-quantity="${item.cantidad ?? 0}">${item.cantidad ?? 0}</td>
       <td data-precio="${item.precio ?? 0}">${formatCurrency(item.precio ?? 0)}</td>
       <td data-foto="${item.foto ? "1" : ""}">
         ${item.foto ? `<img class=\"thumb\" src=\"${item.foto}\" alt=\"\" />` : ""}
@@ -438,8 +546,10 @@ function renderInventarioToDOM(arr: InventoryItem[]) {
           <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
         </div>
       </td>`;
+    setQuantityCell(tr.cells[3] ?? null, item.cantidad ?? 0);
     tbody.appendChild(tr);
   });
+  applyLowStockAlerts();
   toggleEmptyState(arr.length === 0);
 }
 
@@ -450,11 +560,15 @@ function snapshotInventarioDesdeTabla(): InventoryItem[] {
   return rows.map((tr) => {
     const tds = tr.querySelectorAll<HTMLTableCellElement>("td");
     const img = tds[5]?.querySelector<HTMLImageElement>("img");
+    const quantityAttr = tds[3]?.getAttribute("data-quantity");
+    const parsedQuantity = quantityAttr
+      ? Number.parseInt(quantityAttr, 10)
+      : Number.parseInt(tds[3]?.innerText || "0", 10);
     return {
       id: Number.parseInt(tds[0]?.innerText ?? "0", 10),
       recurso: tds[1]?.innerText.trim() ?? "",
       categoria: tds[2]?.innerText.trim() ?? "",
-      cantidad: Number.parseInt(tds[3]?.innerText || "0", 10) || 0,
+      cantidad: Number.isNaN(parsedQuantity) ? 0 : parsedQuantity || 0,
       precio: Number.parseFloat(tds[4]?.getAttribute("data-precio") || "0") || 0,
       foto: img?.src ?? "",
       info: tds[6]?.innerText.trim() ?? "",
@@ -705,9 +819,8 @@ function editarFila(button: HTMLButtonElement) {
   const original = {
     recurso: celdas[1]?.innerText ?? "",
     categoria: celdas[2]?.innerText ?? "",
-    cantidad: celdas[3]?.innerText ?? "0",
-    precioText: celdas[4]?.innerText ?? "0",
-    precioRaw: celdas[4]?.getAttribute("data-precio") ?? "0",
+    cantidad: celdas[3]?.getAttribute("data-quantity") ?? celdas[3]?.innerText ?? "0",
+    precio: celdas[4]?.getAttribute("data-precio") ?? celdas[4]?.innerText ?? "0",
     imgSrc: celdas[5]?.querySelector("img")?.src ?? "",
     info: celdas[6]?.innerText ?? "",
   };
@@ -751,6 +864,8 @@ async function guardarFila(button: HTMLButtonElement) {
   const nuevoPrecio = Number.parseFloat(
     celdas[4]?.querySelector<HTMLInputElement>("input")?.value || "0"
   );
+  const safeCantidad = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
+  const safePrecio = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
 
   const fileInput = celdas[5]?.querySelector<HTMLInputElement>("input[type='file']");
   const imgElement = celdas[5]?.querySelector<HTMLImageElement>("img");
@@ -833,7 +948,7 @@ async function guardarFila(button: HTMLButtonElement) {
 
   celdas[1].innerText = nuevoRecurso;
   celdas[2].innerText = nuevaCategoria;
-  celdas[3].innerText = String(safeCantidad);
+  setQuantityCell(celdas[3], safeCantidad);
   celdas[4].setAttribute("data-precio", String(safePrecio));
   celdas[4].innerText = formatCurrency(safePrecio);
   if (fotoDataURL) {
@@ -894,10 +1009,13 @@ function cancelarEdicion(button: HTMLButtonElement) {
   const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
   celdas[1].innerText = original.recurso;
   celdas[2].innerText = original.categoria;
-  celdas[3].innerText = original.cantidad;
-  const precioNum = Number.parseFloat(original.precioRaw) || 0;
-  celdas[4].setAttribute("data-precio", String(precioNum));
-  celdas[4].innerText = formatCurrency(precioNum);
+  const cantidadOriginal = Number.parseInt(original.cantidad ?? "0", 10);
+  const safeCantidad = Number.isNaN(cantidadOriginal) ? 0 : cantidadOriginal;
+  setQuantityCell(celdas[3], safeCantidad);
+  const precioOriginal = Number.parseFloat(original.precio ?? "0");
+  const safePrecio = Number.isNaN(precioOriginal) ? 0 : precioOriginal;
+  celdas[4].setAttribute("data-precio", String(safePrecio));
+  celdas[4].innerText = formatCurrency(safePrecio);
   if (original.imgSrc) {
     celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
     celdas[5].setAttribute("data-foto", "1");
@@ -1186,6 +1304,7 @@ function actualizarPaginacion() {
   if (btnAnterior) btnAnterior.disabled = paginaActual <= 1;
   if (btnSiguiente) btnSiguiente.disabled = paginaActual >= totalPaginas;
 
+  applyLowStockAlerts();
   persistInventario();
 }
 
