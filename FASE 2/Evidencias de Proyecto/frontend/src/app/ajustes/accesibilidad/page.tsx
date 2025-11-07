@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { SettingsHero } from "../components/Hero";
 import { SettingsTabs } from "../components/Tabs";
 
@@ -9,11 +9,23 @@ export default function AccesibilidadPage() {
   const [highContrastLevel, setHighContrastLevel] = useState(100);
   const [uiScale, setUiScale] = useState(100);
   const contrastMin = 0;
-  const contrastMax = 100;
-  const scaleMin = 95;
-  const scaleMax = 105;
+  const contrastMax = 200;
+  const scaleMin = 90;
+  const scaleMax = 120;
   const highContrastStorageKey = "accesibilidad_high_contrast";
   const uiScaleStorageKey = "accesibilidad_ui_scale";
+
+  const updateDocumentContrast = (value: number) => {
+    if (typeof document === "undefined") return;
+    const factor = value / 100;
+    document.documentElement.style.setProperty("--user-contrast", factor.toFixed(2));
+  };
+
+  const updateDocumentFontScale = (value: number) => {
+    if (typeof document === "undefined") return;
+    const factor = value / 100;
+    document.documentElement.style.setProperty("--user-font-scale", factor.toFixed(2));
+  };
 
   useEffect(() => {
     try {
@@ -21,14 +33,18 @@ export default function AccesibilidadPage() {
       if (storedContrast !== null) {
         const parsed = Number.parseInt(storedContrast, 10);
         if (!Number.isNaN(parsed)) {
-          setHighContrastLevel(Math.min(contrastMax, Math.max(contrastMin, parsed)));
+          const sanitized = Math.min(contrastMax, Math.max(contrastMin, parsed));
+          setHighContrastLevel(sanitized);
+          updateDocumentContrast(sanitized);
         }
       }
       const storedScale = localStorage.getItem(uiScaleStorageKey);
       if (storedScale !== null) {
         const parsedScale = Number.parseInt(storedScale, 10);
         if (!Number.isNaN(parsedScale)) {
-          setUiScale(Math.min(scaleMax, Math.max(scaleMin, parsedScale)));
+          const sanitizedScale = Math.min(scaleMax, Math.max(scaleMin, parsedScale));
+          setUiScale(sanitizedScale);
+          updateDocumentFontScale(sanitizedScale);
         }
       }
     } catch {
@@ -39,6 +55,7 @@ export default function AccesibilidadPage() {
   const applyHighContrast = (value: number) => {
     const sanitized = Math.min(contrastMax, Math.max(contrastMin, value));
     setHighContrastLevel(sanitized);
+    updateDocumentContrast(sanitized);
     try {
       localStorage.setItem(highContrastStorageKey, sanitized.toString());
     } catch {
@@ -49,6 +66,7 @@ export default function AccesibilidadPage() {
   const applyUiScale = (value: number) => {
     const sanitized = Math.min(scaleMax, Math.max(scaleMin, value));
     setUiScale(sanitized);
+    updateDocumentFontScale(sanitized);
     try {
       localStorage.setItem(uiScaleStorageKey, sanitized.toString());
     } catch {
@@ -56,23 +74,12 @@ export default function AccesibilidadPage() {
     }
   };
 
-  const scaleFactor = uiScale / 100;
-  const contrastFactor = highContrastLevel / 100;
-  const formStyle: CSSProperties = {
-    fontSize: `${uiScale}%`,
-    filter: `contrast(${contrastFactor.toFixed(2)})`,
-    transform: `scale(${scaleFactor})`,
-    transformOrigin: "top left",
-    width: `${(100 / scaleFactor).toFixed(3)}%`,
-    maxWidth: `${(760 / scaleFactor).toFixed(2)}px`,
-  };
-
   return (
     <>
       <SettingsHero />
       <div className="settings-grid">
         <SettingsTabs>
-          <div className="settings-form" style={formStyle}>
+          <div className="settings-form">
             <label className="settings-label" htmlFor="reduceMotion">
               <input
                 id="reduceMotion"

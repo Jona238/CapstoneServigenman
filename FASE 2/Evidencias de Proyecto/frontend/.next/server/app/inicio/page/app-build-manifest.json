@@ -1,0 +1,28 @@
+{
+  "pages": {
+    "/inicio/page": [
+      "static/chunks/84cff_next_dist_873f76ad._.js",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_app_favicon_ico_mjs_bd09f01c._.js",
+      "static/chunks/[root-of-the-server]__8d25a35b._.css",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_bd468cd8._.js",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_app_layout_tsx_3aca2adc._.js",
+      "static/chunks/84cff_next_dist_006eee35._.js",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_app_not-found_9bab213e.css",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_app_not-found_tsx_49891e9b._.js",
+      "static/chunks/84cff_next_dist_client_components_builtin_global-error_49891e9b.js",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_07124551._.js",
+      "static/chunks/84cff_next_2ba6c499._.js",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_app_163eeb11._.css",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_src_app_inicio_page_tsx_49891e9b._.js",
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_57b3f8cc._.js",
+      "static/chunks/84cff_next_dist_compiled_react-dom_e50b7f8f._.js",
+      "static/chunks/84cff_next_dist_compiled_next-devtools_index_13845a17.js",
+      "static/chunks/84cff_next_dist_compiled_6b34dc46._.js",
+      "static/chunks/84cff_next_dist_client_03f8ab2c._.js",
+      "static/chunks/84cff_next_dist_fe8105f8._.js",
+      "static/chunks/84cff_@swc_helpers_cjs_5c9870ca._.js",
+      "static/chunks/FASE 2_Evidencias de Proyecto_frontend_a0ff3932._.js",
+      "static/chunks/turbopack-FASE 2_Evidencias de Proyecto_frontend_4e30af64._.js"
+    ]
+  }
+}

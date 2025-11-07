@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-scale-base: 1;
+  --user-font-scale: 1;
+  --user-contrast: 1;
+}
+
+html {
+  font-size: calc(16px * var(--font-scale-base) * var(--user-font-scale));
 }
 
 @theme inline {

@@ -4,9 +4,10 @@ import AppFooter from "@/components/AppFooter";
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Script from "next/script";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
 
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
@@ -17,6 +18,8 @@ import "./styles.css";
 export default function InventoryPage() {
   useBodyClass();
   const { t } = useLanguage();
+  const [isDeveloper, setIsDeveloper] = useState(false);
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
     const env = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -62,6 +65,17 @@ export default function InventoryPage() {
     };
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/me/`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setIsDeveloper(Boolean(data?.user?.is_developer));
+      } catch {}
+    })();
+  }, [apiBaseUrl]);
+
   return (
     <>
       <Script
@@ -80,6 +94,13 @@ export default function InventoryPage() {
               <div className="inventory-card__heading">
                 <h2>{t.inventory.listTitle}</h2>
                 <p>{t.inventory.listDescription}</p>
+                {isDeveloper && (
+                  <p>
+                    <a href="/inventario/papelera" style={{ fontWeight: 600 }}>
+                      Papelera / Cambios pendientes
+                    </a>
+                  </p>
+                )}
               </div>
 
               <section className="inventory-section">
@@ -271,7 +292,11 @@ export default function InventoryPage() {
               </div>
 
               <div className="tabla-scroll">
-                <table id="tablaRecursos">
+                <table
+                  id="tablaRecursos"
+                  data-low-stock-label={t.inventory.lowStock}
+                  data-low-stock-threshold={lowStockThreshold}
+                >
                   <thead>
                     <tr>
                       <th>ID</th>
@@ -289,7 +314,9 @@ export default function InventoryPage() {
                       <td>1</td>
                       <td>Bombas sumergibles 1HP</td>
                       <td>Bombas de agua</td>
-                      <td>5</td>
+                      <td data-quantity="5">
+                        <span className="quantity-value">5</span>
+                      </td>
                       <td>120.00</td>
                       <td data-foto=""></td>
                       <td>Equipo básico</td>
@@ -301,7 +328,9 @@ export default function InventoryPage() {
                       </td>
                     </tr>
                     <tr data-match="1">
-                      <td>2</td>
+                      <td data-quantity="2">
+                        <span className="quantity-value">2</span>
+                      </td>
                       <td>Kit reparación rodamientos</td>
                       <td>Repuestos</td>
                       <td>2</td>

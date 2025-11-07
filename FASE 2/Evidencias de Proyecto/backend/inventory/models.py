@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 
 class Item(models.Model):
@@ -31,5 +33,61 @@ class Item(models.Model):
             "precio": float(self.precio),
             "foto": self.foto or "",
             "info": self.info or "",
+        }
+
+
+class PendingChange(models.Model):
+    ACTION_DELETE = "delete"
+    ACTION_UPDATE = "update"
+    ACTION_CREATE = "create"
+
+    ACTIONS = [
+        (ACTION_DELETE, "delete"),
+        (ACTION_UPDATE, "update"),
+        (ACTION_CREATE, "create"),
+    ]
+
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
+
+    STATUSES = [
+        (STATUS_PENDING, "pending"),
+        (STATUS_APPROVED, "approved"),
+        (STATUS_REJECTED, "rejected"),
+    ]
+
+    action = models.CharField(max_length=16, choices=ACTIONS)
+    status = models.CharField(max_length=16, choices=STATUSES, default=STATUS_PENDING)
+
+    # Target item and snapshot
+    item = models.ForeignKey(Item, null=True, blank=True, on_delete=models.SET_NULL)
+    item_id_snapshot = models.IntegerField(null=True, blank=True)
+    item_snapshot = models.JSONField(default=dict, blank=True)
+
+    payload = models.JSONField(default=dict, blank=True)
+
+    created_by = models.ForeignKey(get_user_model(), null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(default=timezone.now)
+    decided_by = models.ForeignKey(
+        get_user_model(), related_name="approved_changes", null=True, blank=True, on_delete=models.SET_NULL
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "action": self.action,
+            "status": self.status,
+            "item_id": self.item_id if self.item_id else self.item_id_snapshot,
+            "item_snapshot": self.item_snapshot,
+            "payload": self.payload,
+            "created_by": getattr(self.created_by, "username", None),
+            "created_at": self.created_at.isoformat(),
+            "decided_by": getattr(self.decided_by, "username", None),
+            "decided_at": self.decided_at.isoformat() if self.decided_at else None,
         }
 

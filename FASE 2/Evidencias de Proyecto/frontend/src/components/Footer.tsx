@@ -1,0 +1,1 @@
+export default function Footer() { return ( <footer className="fixed bottom-0 left-0 w-full bg-blue-600 text-white text-center py-3"> <p>&copy; 2025 ServiGenman - Todos los derechos reservados</p> </footer> ); } 

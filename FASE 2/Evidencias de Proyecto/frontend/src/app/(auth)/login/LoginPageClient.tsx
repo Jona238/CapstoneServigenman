@@ -118,6 +118,10 @@ export default function LoginPageClient() {
 
       setSuccess(successPayload);
       dispatchIntegrationEvent({ status: "success", payload: successPayload });
+      try {
+        // Set a frontend cookie so middleware can allow navigation
+        document.cookie = "auth_ok=1; path=/; max-age=604800"; // 7 days
+      } catch {}
       router.push("/inicio");
     } catch {
       const message = "Error de red o servidor. Intenta nuevamente.";
@@ -140,6 +144,7 @@ export default function LoginPageClient() {
         window.clearTimeout(redirectTimerRef.current);
       }
       redirectTimerRef.current = window.setTimeout(() => {
+        try { document.cookie = "auth_ok=1; path=/; max-age=604800"; } catch {}
         router.push("/inicio");
         redirectTimerRef.current = null;
       }, 600);

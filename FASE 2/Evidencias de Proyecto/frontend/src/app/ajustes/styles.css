@@ -629,9 +629,9 @@
 }
 
 /* Font scale helpers */
-html[data-font-scale="sm"] { font-size: 14px; }
-html[data-font-scale="md"] { font-size: 16px; }
-html[data-font-scale="lg"] { font-size: 18px; }
+html[data-font-scale="sm"] { --font-scale-base: 0.875; }
+html[data-font-scale="md"] { --font-scale-base: 1; }
+html[data-font-scale="lg"] { --font-scale-base: 1.125; }
 
 /* Ensure dark theme surfaces when body has data-theme="dark" */
 body[data-theme="dark"] .settings-card {
@@ -653,3 +653,8 @@ body[data-theme='dark'] .settings-hero-card { background: rgba(6,22,40,0.9); bor
 body[data-theme='dark'] .settings-section-card { background: rgba(6,22,40,0.9); border-color: rgba(90,140,200,0.35); }
 body[data-theme='dark'] .settings-tabs { background: rgba(255,255,255,0.04); border-color: rgba(90,140,200,0.35); }
 body[data-theme='dark'] .settings-panel { background: rgba(8,26,45,0.85); border-color: rgba(90,140,200,0.35); }
+
+.ajustes-slider-group { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.ajustes-slider-group input[type="range"] { flex: 1; accent-color: var(--inventory-danger); }
+.ajustes-slider-value { width: 96px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--inventory-input-border); background: var(--inventory-input-bg); color: var(--inventory-text); font-weight: 600; }
+.ajustes-hint { margin: 6px 0 0; font-size: 13px; color: var(--settings-muted); }
