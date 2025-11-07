@@ -359,12 +359,444 @@ body.recuperacion-body{
   text-align:center;
 }
 
-@media (max-width:520px){
-  .recovery-shell{
-    padding:20px 16px;
+/* EXTRA SMALL - 320px-374px */
+@media (max-width: 374px) {
+  html.recuperacion-root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
-  .recovery-card{
-    padding:24px 20px 18px;
+
+  body.recuperacion-body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .recovery-shell {
+    padding: 16px 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .recovery-card {
+    width: min(260px, 92vw);
+    padding: 18px 14px 12px;
+    gap: 12px;
+  }
+
+  .recovery-brand {
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  .recovery-logo {
+    height: 32px;
+    width: 32px;
+  }
+
+  .recovery-title {
+    font-size: clamp(18px, 2.8vw, 22px);
+    line-height: 1.2;
+  }
+
+  .recovery-subtitle {
+    font-size: clamp(14px, 2.2vw, 16px);
+    line-height: 1.2;
+  }
+
+  .recovery-description {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .recovery-form {
+    gap: 10px;
+  }
+
+  .recovery-label {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .recovery-field {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .recovery-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .recovery-feedback {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .recovery-footer {
+    font-size: 10px;
+    margin-top: 4px;
+  }
+
+  .recovery-links {
+    gap: 4px;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .integration-note {
+    font-size: 10px;
+  }
+}
+
+/* SMALL - 375px-479px */
+@media (max-width: 479px) and (min-width: 375px) {
+  html.recuperacion-root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  body.recuperacion-body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .recovery-shell {
+    padding: 20px 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .recovery-card {
+    width: min(340px, 95vw);
+    padding: 22px 18px 16px;
+    gap: 14px;
+  }
+
+  .recovery-brand {
+    gap: 10px;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .recovery-logo {
+    height: 36px;
+    width: 36px;
+  }
+
+  .recovery-title {
+    font-size: clamp(20px, 2.8vw, 24px);
+    line-height: 1.3;
+  }
+
+  .recovery-subtitle {
+    font-size: clamp(15px, 2.2vw, 18px);
+    line-height: 1.3;
+  }
+
+  .recovery-description {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .recovery-form {
+    gap: 13px;
+  }
+
+  .recovery-label {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  .recovery-field {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .recovery-btn {
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  .recovery-feedback {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  .recovery-footer {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .recovery-links {
+    gap: 5px;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .integration-note {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .recovery-shell {
+    padding: 28px 20px;
+  }
+
+  .recovery-card {
+    padding: 28px 24px 20px;
+  }
+
+  .recovery-title {
+    font-size: 24px;
+  }
+
+  .recovery-subtitle {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  html.recuperacion-root {
+    overflow-x: hidden;
+  }
+
+  body.recuperacion-body {
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .recovery-shell {
+    padding: 24px 16px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .recovery-card {
+    width: min(360px, 96vw);
+    padding: 24px 20px 18px;
+    gap: 16px;
+  }
+
+  .recovery-brand {
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .recovery-logo {
+    height: 36px;
+    width: 36px;
+  }
+
+  .recovery-title {
+    font-size: clamp(20px, 2.8vw, 24px);
+    line-height: 1.3;
+  }
+
+  .recovery-subtitle {
+    font-size: clamp(14px, 2.2vw, 18px);
+    line-height: 1.3;
+  }
+
+  .recovery-description {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .recovery-form {
+    gap: 13px;
+  }
+
+  .recovery-label {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  .recovery-field {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .recovery-btn {
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  .recovery-feedback {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  .recovery-footer {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .recovery-links {
+    gap: 5px;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .integration-note {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .recovery-shell {
+    padding: 16px 12px;
+  }
+
+  .recovery-card {
+    width: min(280px, 92vw);
+    padding: 20px 16px 14px;
+  }
+
+  .recovery-title {
+    font-size: 20px;
+  }
+
+  .recovery-brand {
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .recovery-logo {
+    height: 36px;
+    width: 36px;
+  }
+}
+
+/* TABLET PEQUEÑA - 600px-767px */
+@media (min-width: 600px) and (max-width: 767px) {
+  .recovery-shell {
+    padding: 40px 24px;
+  }
+
+  .recovery-card {
+    width: min(460px, 95vw);
+    padding: 32px 28px 24px;
+    gap: 20px;
+  }
+
+  .recovery-brand {
+    gap: 12px;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .recovery-logo {
+    height: 40px;
+    width: 40px;
+  }
+
+  .recovery-title {
+    font-size: 26px;
+    line-height: 1.3;
+  }
+
+  .recovery-subtitle {
+    font-size: 18px;
+  }
+
+  .recovery-description {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .recovery-form {
+    gap: 16px;
+  }
+
+  .recovery-field {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  .recovery-btn {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+
+  .recovery-feedback {
+    font-size: 13px;
+    padding: 12px 14px;
+  }
+
+  .recovery-footer {
+    font-size: 12px;
+  }
+
+  .recovery-links {
+    font-size: 13px;
+  }
+}
+
+/* TABLET - 768px-1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .recovery-shell {
+    padding: 60px 40px;
+  }
+
+  .recovery-card {
+    width: min(480px, 95vw);
+    padding: 36px 32px 28px;
+  }
+
+  .recovery-title {
+    font-size: 30px;
+  }
+
+  .recovery-form {
+    gap: 18px;
+  }
+
+  .recovery-field {
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  .recovery-btn {
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+}
+
+/* LAPTOP PEQUEÑA - 1024px-1439px */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .recovery-shell {
+    padding: 80px 60px;
+  }
+
+  .recovery-card {
+    width: min(520px, 100vw);
+  }
+}
+
+/* DESKTOP - 1440px+ */
+@media (min-width: 1440px) {
+  .recovery-shell {
+    padding: 100px 80px;
+  }
+
+  .recovery-card {
+    width: 520px;
+    padding: 40px 36px 32px;
+  }
+
+  .recovery-title {
+    font-size: 32px;
   }
 }
 
