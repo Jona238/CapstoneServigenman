@@ -7,6 +7,7 @@ const items = [
   { href: "/ajustes/perfil", label: "Perfil" },
   { href: "/ajustes/apariencia", label: "Apariencia" },
   { href: "/ajustes/accesibilidad", label: "Accesibilidad" },
+  { href: "/ajustes/control-sistema", label: "Control del sistema" },
 ];
 
 export function Sidebar() {
