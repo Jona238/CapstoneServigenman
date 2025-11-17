@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import SessionManager from "@/lib/session/SessionManager";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,10 +25,11 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
         <LanguageProvider>
+          {/* Global session + inactivity management (client-side) */}
+          <SessionManager />
           {children}
         </LanguageProvider>
       </body>
     </html>
   );
 }
-
