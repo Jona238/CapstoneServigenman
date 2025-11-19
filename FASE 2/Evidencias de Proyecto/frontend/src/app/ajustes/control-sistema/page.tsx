@@ -52,10 +52,15 @@ export default function ControlSistemaPage() {
 
   return (
     <div className="control-system-shell">
-      <h2 className="control-title">Control del sistema</h2>
+      <section className="settings-hero-card control-hero">
+        <h2 className="control-title">Control del sistema</h2>
+        <p className="control-hero__desc">
+          Ajusta la expiración automática y el tiempo de inactividad permitido en la plataforma.
+        </p>
+      </section>
       <SettingsTabs>
-        <Section title="Cierre autom\u00e1tico del sistema">
-          <p className="control-text">Define cada cu\u00e1ntas horas expira tu sesi\u00f3n de forma autom\u00e1tica.</p>
+        <Section title="Cierre automático del sistema">
+          <p className="control-text">Define cada cuántas horas expira tu sesión de forma automática.</p>
           <div className="control-options">
             {hourOptions.map((opt) => (
               <label key={opt.value}>
@@ -70,13 +75,13 @@ export default function ControlSistemaPage() {
               </label>
             ))}
           </div>
-          <p className="control-hint">La opci\u00f3n por defecto es 2 horas (Recomendado).</p>
+          <p className="control-hint">La opción por defecto es 2 horas (Recomendado).</p>
         </Section>
 
-        <Section title="Expiraci\u00f3n por inactividad">
+        <Section title="Expiración por inactividad">
           <p className="control-text">
-            Configura el tiempo de inactividad permitido. Mostraremos un aviso con un cron\u00f3metro de 60 segundos antes de
-            cerrar la sesi\u00f3n.
+            Configura el tiempo de inactividad permitido. Mostraremos un aviso con un cronómetro de 60 segundos antes de
+            cerrar la sesión.
           </p>
           <div className="control-options">
             {idleOptions.map((m) => (
@@ -98,3 +103,4 @@ export default function ControlSistemaPage() {
     </div>
   );
 }
+

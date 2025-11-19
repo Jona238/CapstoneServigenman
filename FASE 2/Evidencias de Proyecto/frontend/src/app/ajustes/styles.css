@@ -682,7 +682,10 @@ body[data-theme='dark'] .settings-panel { background: rgba(8,26,45,0.85); border
 
 /* Control del sistema (ajustes) */
 .control-system-shell { max-width: 1120px; margin: 0 auto; }
-.control-title { margin: 0 0 16px; font-size: clamp(22px, 3vw, 28px); color: var(--settings-text); }
+.control-title { margin: 0 0 6px; font-size: clamp(22px, 3vw, 28px); color: var(--settings-text); }
+.control-hero { margin: 0 0 18px; color: var(--settings-text); }
+.control-hero .control-title { color: #ffffff; }
+.control-hero__desc { margin: 6px 0 0; color: rgba(255, 255, 255, 0.75); }
 .control-section { display: grid; gap: 10px; margin-bottom: 20px; }
 .control-section__title { margin: 0; font-size: 16px; font-weight: 700; color: var(--settings-text); }
 .control-card {
