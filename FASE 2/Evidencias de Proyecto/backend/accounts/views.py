@@ -20,6 +20,12 @@ from .auth0 import (
     authenticate_with_auth0,
 )
 from .models import PasswordResetCode
+from .authentication import (
+    attach_jwt_cookie,
+    clear_jwt_cookie,
+    ensure_authenticated_user,
+    issue_session_token,
+)
 
 
 def _parse_payload(request):
@@ -108,6 +114,26 @@ def _build_response_payload(user_profile: Dict[str, str], tokens: Dict[str, obje
     return payload
 
 
+def _finalize_login_response(user, base_payload: Dict[str, object]) -> JsonResponse:
+    """Adjunta un JWT propio a la respuesta para que el middleware pueda validarlo."""
+    token, claims = issue_session_token(user)
+    response_payload = dict(base_payload)
+    response_payload["session_token"] = token
+    response_payload["session_expires_at"] = claims.get("exp")
+    response_payload["roles"] = claims.get("roles", [])
+    response_payload["is_developer"] = bool(claims.get("is_developer"))
+    max_age = 0
+    try:
+        issued = int(claims.get("iat", 0))
+        expires_at = int(claims.get("exp", 0))
+        max_age = max(60, expires_at - issued)
+    except Exception:
+        max_age = getattr(settings, "JWT_EXPIRATION_SECONDS", 3600)
+    response = JsonResponse(response_payload)
+    attach_jwt_cookie(response, token, max_age=max_age)
+    return response
+
+
 @csrf_exempt
 @require_POST
 def login_view(request):
@@ -137,7 +163,7 @@ def login_view(request):
         profile = _normalize_profile(username, auth0_result.profile)
         user = _sync_user_with_profile(username, profile)
         login(request, user)
-        return JsonResponse(_build_response_payload(profile, auth0_result.tokens))
+        return _finalize_login_response(user, _build_response_payload(profile, auth0_result.tokens))
 
     user = authenticate(request, username=username, password=password)
 
@@ -164,7 +190,8 @@ def login_view(request):
 
     login(request, user)
 
-    return JsonResponse(
+    return _finalize_login_response(
+        user,
         {
             "message": "Login successful.",
             "user": {
@@ -173,17 +200,18 @@ def login_view(request):
                 "last_name": user.last_name,
                 "email": user.email,
             },
-        }
+        },
     )
 
 
 @require_GET
 def me_view(request):
     """Return the current user if authenticated, otherwise 401."""
-    if not request.user.is_authenticated:
-        return JsonResponse({"detail": "Not authenticated"}, status=401)
-
-    user = request.user
+    user, error = ensure_authenticated_user(request)
+    if error:
+        return error
+    # El helper anterior valida tanto la sesión clásica como el JWT emitido en login
+    assert user is not None
     try:
         is_developer = bool(
             user.is_staff
@@ -214,7 +242,9 @@ def me_view(request):
 def logout_view(request):
     """Log out the current session."""
     django_logout(request)
-    return JsonResponse({"ok": True})
+    response = JsonResponse({"ok": True})
+    clear_jwt_cookie(response)  # Limpia el JWT para evitar que el middleware lo siga aceptando
+    return response
 
 
 # Password recovery flow
