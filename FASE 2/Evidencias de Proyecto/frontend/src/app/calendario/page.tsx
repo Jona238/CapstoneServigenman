@@ -37,6 +37,56 @@ type CalendarDayCell = {
   events: CalendarEvent[];
 };
 
+const CALENDAR_FALLBACK = {
+  heroEyebrow: "Planificación operativa",
+  heroTitle: "Calendario operativo",
+  heroSubtitle: "Agenda de mantenimiento y abastecimiento.",
+  stats: {
+    totalEvents: "Eventos registrados",
+    nextEvent: "Próximo evento",
+    noNextEvent: "Sin fecha pendiente",
+    maintenanceCount: "Mantenciones",
+    purchaseCount: "Compras",
+    expirationCount: "Vencimientos",
+  },
+  formTitle: "Registrar evento",
+  formDescription: "Define fechas críticas para tu equipo.",
+  form: {
+    title: "Título del evento",
+    titlePlaceholder: "Ej: Mantención preventiva",
+    date: "Fecha",
+    type: "Tipo",
+    description: "Descripción / notas",
+    descriptionPlaceholder: "Notas internas para cuadrillas o compras.",
+    helper: "Datos guardados localmente.",
+    createButton: "Agregar",
+    updateButton: "Guardar cambios",
+    cancelEdit: "Cancelar",
+  },
+  editing: "Editando evento",
+  calendarTitle: "Calendario operativo",
+  calendarSubtitle: "Selecciona un día para revisar sus hitos.",
+  selectedDayTitle: "Agenda del {date}",
+  selectedDayEmpty: "No hay eventos planificados para esta fecha.",
+  legend: "Leyenda de tipos de evento",
+  upcomingTitle: "Próximos hitos",
+  upcomingSubtitle: "Planificación cronológica",
+  upcomingEmpty: "No existen hitos pendientes.",
+  localOnly: "Datos guardados localmente",
+  filters: {
+    label: "Filtrar por tipo",
+    all: "Todos",
+  },
+  types: {
+    maintenance: "Mantención",
+    purchase: "Compra",
+    expiration: "Vencimiento",
+  },
+  labels: {
+    today: "Hoy",
+  },
+};
+
 const STORAGE_KEY = "servigenman_calendar_events_v1";
 const EVENT_TYPES: CalendarEventType[] = ["maintenance", "purchase", "expiration"];
 
@@ -49,6 +99,15 @@ const typeClassName: Record<CalendarEventType, string> = {
 export default function CalendarPage() {
   useBodyClass();
   const { t, locale } = useLanguage();
+  const calendar = useMemo(() => ({
+    ...CALENDAR_FALLBACK,
+    ...(t.calendar ?? {}),
+    stats: { ...CALENDAR_FALLBACK.stats, ...(t.calendar?.stats ?? {}) },
+    form: { ...CALENDAR_FALLBACK.form, ...(t.calendar?.form ?? {}) },
+    filters: { ...CALENDAR_FALLBACK.filters, ...(t.calendar?.filters ?? {}) },
+    types: { ...CALENDAR_FALLBACK.types, ...(t.calendar?.types ?? {}) },
+    labels: { ...CALENDAR_FALLBACK.labels, ...(t.calendar?.labels ?? {}) },
+  }), [t]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [formData, setFormData] = useState<FormState>(() => getDefaultFormState());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -169,11 +228,11 @@ export default function CalendarPage() {
 
   const typeLabels = useMemo(
     () => ({
-      maintenance: t.calendar.types.maintenance,
-      purchase: t.calendar.types.purchase,
-      expiration: t.calendar.types.expiration,
+      maintenance: calendar.types.maintenance,
+      purchase: calendar.types.purchase,
+      expiration: calendar.types.expiration,
     }),
-    [t],
+    [calendar],
   );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -231,7 +290,7 @@ export default function CalendarPage() {
     setMonthCursor((prev) => startOfMonth(new Date(prev.getFullYear(), prev.getMonth() + delta, 1)));
   };
 
-  const selectedDayTitle = t.calendar.selectedDayTitle.replace("{date}", selectedDayLabel || "--");
+  const selectedDayTitle = calendar.selectedDayTitle.replace("{date}", selectedDayLabel || "--");
 
   return (
     <>
@@ -242,33 +301,33 @@ export default function CalendarPage() {
           <main className="calendar-main">
             <section className="calendar-hero">
             <div>
-              <p className="calendar-hero__eyebrow">{t.calendar.heroEyebrow}</p>
-              <h2>{t.calendar.heroTitle}</h2>
-              <p>{t.calendar.heroSubtitle}</p>
+              <p className="calendar-hero__eyebrow">{calendar.heroEyebrow}</p>
+              <h2>{calendar.heroTitle}</h2>
+              <p>{calendar.heroSubtitle}</p>
             </div>
             <div className="calendar-hero__stats">
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{t.calendar.stats.totalEvents}</p>
+                <p className="calendar-stat__label">{calendar.stats.totalEvents}</p>
                 <p className="calendar-stat__value">{stats.total}</p>
               </article>
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{t.calendar.stats.nextEvent}</p>
+                <p className="calendar-stat__label">{calendar.stats.nextEvent}</p>
                 <p className="calendar-stat__value calendar-stat__value--accent">
                   {stats.nextEvent
                     ? formatFullDate(stats.nextEvent.date, locale)
-                    : t.calendar.stats.noNextEvent}
+                    : calendar.stats.noNextEvent}
                 </p>
               </article>
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{t.calendar.stats.maintenanceCount}</p>
+                <p className="calendar-stat__label">{calendar.stats.maintenanceCount}</p>
                 <p className="calendar-stat__value">{stats.maintenance}</p>
               </article>
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{t.calendar.stats.purchaseCount}</p>
+                <p className="calendar-stat__label">{calendar.stats.purchaseCount}</p>
                 <p className="calendar-stat__value">{stats.purchase}</p>
               </article>
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{t.calendar.stats.expirationCount}</p>
+                <p className="calendar-stat__label">{calendar.stats.expirationCount}</p>
                 <p className="calendar-stat__value">{stats.expiration}</p>
               </article>
             </div>
@@ -277,26 +336,26 @@ export default function CalendarPage() {
             <div className="calendar-grid">
             <section className="calendar-card calendar-card--form">
               <header>
-                <p className="calendar-card__eyebrow">{t.calendar.formTitle}</p>
-                <h3>{t.calendar.formDescription}</h3>
+                <p className="calendar-card__eyebrow">{calendar.formTitle}</p>
+                <h3>{calendar.formDescription}</h3>
               </header>
 
               {editingId ? (
                 <div className="calendar-mode-banner" role="status">
-                  <strong>{t.calendar.editing}</strong>
-                  <span>{formData.title || t.calendar.form.title}</span>
+                  <strong>{calendar.editing}</strong>
+                  <span>{formData.title || calendar.form.title}</span>
                 </div>
               ) : null}
 
               <form className="calendar-form" onSubmit={handleSubmit}>
                 <div className="calendar-form__field">
-                  <label htmlFor="eventTitle">{t.calendar.form.title}</label>
+                  <label htmlFor="eventTitle">{calendar.form.title}</label>
                   <input
                     id="eventTitle"
                     name="title"
                     type="text"
                     value={formData.title}
-                    placeholder={t.calendar.form.titlePlaceholder}
+                    placeholder={calendar.form.titlePlaceholder}
                     onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                     required
                   />
@@ -304,7 +363,7 @@ export default function CalendarPage() {
 
                 <div className="calendar-form__row">
                   <div className="calendar-form__field">
-                    <label htmlFor="eventDate">{t.calendar.form.date}</label>
+                    <label htmlFor="eventDate">{calendar.form.date}</label>
                     <input
                       id="eventDate"
                       name="date"
@@ -316,7 +375,7 @@ export default function CalendarPage() {
                   </div>
 
                   <div className="calendar-form__field">
-                    <label htmlFor="eventType">{t.calendar.form.type}</label>
+                    <label htmlFor="eventType">{calendar.form.type}</label>
                     <select
                       id="eventType"
                       name="type"
@@ -335,24 +394,24 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="calendar-form__field">
-                  <label htmlFor="eventDescription">{t.calendar.form.description}</label>
+                  <label htmlFor="eventDescription">{calendar.form.description}</label>
                   <textarea
                     id="eventDescription"
                     name="description"
                     rows={4}
                     value={formData.description}
-                    placeholder={t.calendar.form.descriptionPlaceholder}
+                    placeholder={calendar.form.descriptionPlaceholder}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, description: e.target.value }))
                     }
                   />
                 </div>
 
-                <p className="calendar-form__helper">{t.calendar.form.helper}</p>
+                <p className="calendar-form__helper">{calendar.form.helper}</p>
 
                 <div className="calendar-form__actions">
                   <button type="submit" className="calendar-btn calendar-btn--primary">
-                    {editingId ? t.calendar.form.updateButton : t.calendar.form.createButton}
+                    {editingId ? calendar.form.updateButton : calendar.form.createButton}
                   </button>
                   {editingId ? (
                     <button
@@ -360,7 +419,7 @@ export default function CalendarPage() {
                       className="calendar-btn calendar-btn--ghost"
                       onClick={resetForm}
                     >
-                      {t.calendar.form.cancelEdit}
+                      {calendar.form.cancelEdit}
                     </button>
                   ) : null}
                 </div>
@@ -370,8 +429,8 @@ export default function CalendarPage() {
             <section className="calendar-card calendar-card--calendar">
               <div className="calendar-card__header">
                 <div>
-                  <p className="calendar-card__eyebrow">{t.calendar.calendarTitle}</p>
-                  <h3>{t.calendar.calendarSubtitle}</h3>
+                  <p className="calendar-card__eyebrow">{calendar.calendarTitle}</p>
+                  <h3>{calendar.calendarSubtitle}</h3>
                 </div>
                 <div className="calendar-month-controls">
                   <button type="button" aria-label={t.common.previous} onClick={() => changeMonth(-1)}>
@@ -427,11 +486,11 @@ export default function CalendarPage() {
                 <div className="calendar-day-detail__header">
                   <h4>{selectedDayTitle}</h4>
                   {isSelectedDayToday ? (
-                    <span className="calendar-chip">{t.calendar.labels.today}</span>
+                    <span className="calendar-chip">{calendar.labels.today}</span>
                   ) : null}
                 </div>
                 {selectedDayEvents.length === 0 ? (
-                  <p className="calendar-empty">{t.calendar.selectedDayEmpty}</p>
+                  <p className="calendar-empty">{calendar.selectedDayEmpty}</p>
                 ) : (
                   <ul className="calendar-events">
                     {selectedDayEvents.map((event) => (
@@ -460,7 +519,7 @@ export default function CalendarPage() {
               </div>
 
               <div className="calendar-legend">
-                <p>{t.calendar.legend}</p>
+                <p>{calendar.legend}</p>
                 <div>
                   {EVENT_TYPES.map((type) => (
                     <span key={type} className={`calendar-tag ${typeClassName[type]}`}>
@@ -474,21 +533,21 @@ export default function CalendarPage() {
               <section className="calendar-card calendar-card--list">
               <div className="calendar-card__header">
                 <div>
-                  <p className="calendar-card__eyebrow">{t.calendar.upcomingTitle}</p>
-                  <h3>{t.calendar.upcomingSubtitle}</h3>
+                  <p className="calendar-card__eyebrow">{calendar.upcomingTitle}</p>
+                  <h3>{calendar.upcomingSubtitle}</h3>
                 </div>
-                <span className="calendar-chip calendar-chip--muted">{t.calendar.localOnly}</span>
+                <span className="calendar-chip calendar-chip--muted">{calendar.localOnly}</span>
               </div>
 
               <div className="calendar-filters">
-                <p>{t.calendar.filters.label}</p>
+                <p>{calendar.filters.label}</p>
                 <div className="calendar-filter__options">
                   <button
                     type="button"
                     className={filter === "all" ? "calendar-filter calendar-filter--active" : "calendar-filter"}
                     onClick={() => setFilter("all")}
                   >
-                    {t.calendar.filters.all} ({events.length})
+                    {calendar.filters.all} ({events.length})
                   </button>
                   {EVENT_TYPES.map((type) => (
                     <button
@@ -504,7 +563,7 @@ export default function CalendarPage() {
               </div>
 
               {upcomingEvents.length === 0 ? (
-                <p className="calendar-empty">{t.calendar.upcomingEmpty}</p>
+                <p className="calendar-empty">{calendar.upcomingEmpty}</p>
               ) : (
                 <ul className="calendar-upcoming">
                   {upcomingEvents.map((event) => (
