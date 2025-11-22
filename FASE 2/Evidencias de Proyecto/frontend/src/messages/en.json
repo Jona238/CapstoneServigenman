@@ -10,6 +10,8 @@
     "welcome": "Welcome",
     "home": "Home",
     "inventory": "Inventory",
+    "calendar": "Calendar",
+    "invoices": "Invoices",
     "categories": "Categories",
     "budget": "Budget",
     "settings": "Settings",
@@ -205,5 +207,57 @@
     "next": "Next",
     "emptyState": "No categories registered yet. Add resources to the inventory to build this visual summary.",
     "footer": "Version 1.1 - Personal Portfolio Project"
+  },
+  "invoices": {
+    "hero": {
+      "eyebrow": "Billing control",
+      "title": "Invoice registry and service tracking",
+      "subtitle": "Centralize supporting documents and executed work to improve traceability with procurement and finance."
+    },
+    "summary": {
+      "totalInvoices": "Registered invoices",
+      "totalAmount": "Total amount",
+      "lastSupplier": "Last supplier",
+      "noRecords": "No records"
+    },
+    "form": {
+      "eyebrow": "Quick entry",
+      "title": "Register new invoice",
+      "description": "Complete the fields to keep purchases and finance aligned.",
+      "number": "Invoice number",
+      "date": "Issue date",
+      "supplier": "Supplier",
+      "amount": "Total amount",
+      "descriptionLabel": "Work description",
+      "attachment": "Attach support file",
+      "attachmentHint": "PDF, DOC or image. Max 5 MB.",
+      "submit": "Save invoice",
+      "saving": "Saving...",
+      "reset": "Clear form"
+    },
+    "errors": {
+      "invoiceRequired": "Enter the invoice number.",
+      "dateRequired": "Select the issue date.",
+      "supplierRequired": "Enter the supplier.",
+      "amountInvalid": "Amount must be greater than 0.",
+      "fileTooLarge": "The file exceeds the 5 MB limit."
+    },
+    "messages": {
+      "saved": "Invoice saved successfully.",
+      "error": "We could not register the invoice. Please try again."
+    },
+    "table": {
+      "eyebrow": "History",
+      "title": "Recently registered invoices",
+      "helper": "The table syncs automatically with the database and lets you download supporting files.",
+      "empty": "No invoices registered yet.",
+      "number": "Number",
+      "date": "Date",
+      "supplier": "Supplier",
+      "amount": "Amount",
+      "description": "Description",
+      "attachment": "Attachment",
+      "noAttachment": "No file"
+    }
   }
 }

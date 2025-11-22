@@ -10,6 +10,8 @@
     "welcome": "Bienvenido",
     "home": "Inicio",
     "inventory": "Inventario",
+    "calendar": "Calendario",
+    "invoices": "Facturas",
     "categories": "Categorías",
     "budget": "Presupuesto",
     "settings": "Ajustes",
@@ -205,5 +207,57 @@
     "next": "Siguiente",
     "emptyState": "No hay categorías registradas todavía. Agrega recursos en el inventario para construir este resumen visual.",
     "footer": "Versión 1.1 - Proyecto Personal para Portafolio"
+  },
+  "invoices": {
+    "hero": {
+      "eyebrow": "Control de facturación",
+      "title": "Registro de facturas y órdenes de servicio",
+      "subtitle": "Centraliza comprobantes y trabajos ejecutados para mejorar la trazabilidad con compras y finanzas."
+    },
+    "summary": {
+      "totalInvoices": "Facturas registradas",
+      "totalAmount": "Monto total",
+      "lastSupplier": "Último proveedor",
+      "noRecords": "Sin registros"
+    },
+    "form": {
+      "eyebrow": "Registro rápido",
+      "title": "Registrar nueva factura",
+      "description": "Completa los campos para sincronizar la información con compras y finanzas.",
+      "number": "Número de factura",
+      "date": "Fecha de emisión",
+      "supplier": "Proveedor",
+      "amount": "Monto total",
+      "descriptionLabel": "Descripción del trabajo",
+      "attachment": "Adjuntar respaldo",
+      "attachmentHint": "PDF, DOC o imagen. Máximo 5 MB.",
+      "submit": "Guardar factura",
+      "saving": "Guardando...",
+      "reset": "Limpiar formulario"
+    },
+    "errors": {
+      "invoiceRequired": "Ingresa el número de factura.",
+      "dateRequired": "Selecciona la fecha de emisión.",
+      "supplierRequired": "Ingresa el proveedor.",
+      "amountInvalid": "El monto debe ser mayor a 0.",
+      "fileTooLarge": "El archivo supera los 5 MB permitidos."
+    },
+    "messages": {
+      "saved": "Factura registrada correctamente.",
+      "error": "No pudimos registrar la factura. Inténtalo nuevamente."
+    },
+    "table": {
+      "eyebrow": "Historial",
+      "title": "Facturas registradas recientemente",
+      "helper": "La tabla se sincroniza automáticamente con la base de datos y te permite descargar los respaldos.",
+      "empty": "No hay facturas registradas todavía.",
+      "number": "Número",
+      "date": "Fecha",
+      "supplier": "Proveedor",
+      "amount": "Monto",
+      "description": "Descripción",
+      "attachment": "Adjunto",
+      "noAttachment": "Sin archivo"
+    }
   }
 }
