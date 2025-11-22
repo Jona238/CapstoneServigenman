@@ -233,18 +233,37 @@
       "attachmentHint": "PDF, DOC o imagen. Máximo 5 MB.",
       "submit": "Guardar factura",
       "saving": "Guardando...",
-      "reset": "Limpiar formulario"
+      "reset": "Limpiar pesta?a",
+      "tabLabel": "Seleccionar tipo de factura",
+      "tabs": {
+        "purchase": "Factura de compra",
+        "sale": "Factura de venta"
+      },
+      "purchaseHelper": "Usa esta pesta?a para capturar proveedor, montos y materiales de las facturas de compra.",
+      "salesHelper": "Usa esta pesta?a para capturar cliente, montos y descripci?n del trabajo de las facturas de venta.",
+      "client": "Cliente",
+      "autofill": "Leer factura y autocompletar",
+      "autofilling": "Leyendo...",
+      "autofillHint": "Adjunta el PDF o imagen, presiona el bot?n y leeremos los datos principales autom?ticamente.",
+      "materialsDetected": "Materiales detectados",
+      "materialsHelper": "Revisa y ajusta las cantidades antes de guardar la factura de compra.",
+      "materialDescription": "Descripci?n",
+      "materialQuantity": "Cantidad",
+      "addMaterial": "Agregar material"
     },
     "errors": {
       "invoiceRequired": "Ingresa el número de factura.",
       "dateRequired": "Selecciona la fecha de emisión.",
       "supplierRequired": "Ingresa el proveedor.",
       "amountInvalid": "El monto debe ser mayor a 0.",
-      "fileTooLarge": "El archivo supera los 5 MB permitidos."
+      "fileTooLarge": "El archivo supera los 5 MB permitidos.",
+      "fileRequiredForOcr": "Adjunta un PDF o imagen para poder leerlo."
     },
     "messages": {
       "saved": "Factura registrada correctamente.",
-      "error": "No pudimos registrar la factura. Inténtalo nuevamente."
+      "error": "No pudimos registrar la factura. Inténtalo nuevamente.",
+      "autofillSuccess": "Listo, completamos los campos detectados.",
+      "autofillError": "No pudimos leer la factura. Revisa el archivo e int?ntalo nuevamente."
     },
     "table": {
       "eyebrow": "Historial",

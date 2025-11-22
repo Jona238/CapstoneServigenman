@@ -224,13 +224,29 @@
       "eyebrow": "Quick entry",
       "title": "Register new invoice",
       "description": "Complete the fields to keep purchases and finance aligned.",
+      "tabLabel": "Select invoice type",
+      "tabs": {
+        "purchase": "Purchase invoice",
+        "sale": "Sales invoice"
+      },
+      "purchaseHelper": "Use this tab to capture supplier, amounts and materials for purchase invoices.",
+      "salesHelper": "Use this tab to capture client, amounts and service descriptions for sales invoices.",
       "number": "Invoice number",
       "date": "Issue date",
       "supplier": "Supplier",
+      "client": "Client",
       "amount": "Total amount",
       "descriptionLabel": "Work description",
       "attachment": "Attach support file",
       "attachmentHint": "PDF, DOC or image. Max 5 MB.",
+      "autofill": "Read invoice and autofill",
+      "autofilling": "Reading...",
+      "autofillHint": "Attach the PDF or image, press the button and we will read the main data automatically.",
+      "materialsDetected": "Detected materials",
+      "materialsHelper": "Review and adjust quantities before saving the purchase invoice.",
+      "materialDescription": "Description",
+      "materialQuantity": "Quantity",
+      "addMaterial": "Add material",
       "submit": "Save invoice",
       "saving": "Saving...",
       "reset": "Clear form"
@@ -240,11 +256,14 @@
       "dateRequired": "Select the issue date.",
       "supplierRequired": "Enter the supplier.",
       "amountInvalid": "Amount must be greater than 0.",
-      "fileTooLarge": "The file exceeds the 5 MB limit."
+      "fileTooLarge": "The file exceeds the 5 MB limit.",
+      "fileRequiredForOcr": "Attach a PDF or image to read it."
     },
     "messages": {
       "saved": "Invoice saved successfully.",
-      "error": "We could not register the invoice. Please try again."
+      "error": "We could not register the invoice. Please try again.",
+      "autofillSuccess": "Done! We filled the detected fields.",
+      "autofillError": "We couldn't read the invoice. Check the file and try again."
     },
     "table": {
       "eyebrow": "History",
