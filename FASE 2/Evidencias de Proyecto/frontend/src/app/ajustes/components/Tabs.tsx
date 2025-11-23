@@ -12,6 +12,7 @@ export function SettingsTabs({ children }: { children: React.ReactNode }) {
     { href: "/ajustes/perfil", label: t.settings.profile },
     { href: "/ajustes/apariencia", label: t.settings.appearance },
     { href: "/ajustes/accesibilidad", label: t.settings.accessibility },
+    { href: "/ajustes/control-sistema", label: "Control del sistema" },
   ];
 
   return (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import LoginPageClient from "./LoginPageClient";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "SERVIGENMAN - Portal Interno",
@@ -9,6 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginPageClient />;
+  return (
+    <Suspense>
+      <LoginPageClient />
+    </Suspense>
+  );
 }
 

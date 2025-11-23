@@ -2,10 +2,16 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "^20.11.0 || 20.x"
+  },
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "powershell -NoProfile -Command \"$env:NEXT_DISABLE_TURBOPACK='1'; $env:NEXT_USE_TURBOPACK='0'; $env:TURBOPACK='0'; $env:WATCHPACK_POLLING='true'; $env:WATCHPACK_POLLING_INTERVAL='1000'; $env:CHOKIDAR_USEPOLLING='true'; $env:CHOKIDAR_INTERVAL='1000'; node .\\node_modules\\next\\dist\\bin\\next dev\"",
+    "dev:ps": "powershell -NoProfile -Command \"$env:WATCHPACK_POLLING='true'; $env:WATCHPACK_POLLING_INTERVAL='1000'; $env:CHOKIDAR_USEPOLLING='true'; $env:CHOKIDAR_INTERVAL='1000'; node .\\node_modules\\next\\dist\\bin\\next dev --no-turbo\"",
+    "clean": "powershell -NoProfile -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
+    "build": "next build",
     "start": "next start",
+    "preview": "next build && next start",
     "lint": "eslint"
   },
   "dependencies": {

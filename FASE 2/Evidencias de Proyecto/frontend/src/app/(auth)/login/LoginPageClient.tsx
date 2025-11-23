@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { AnimatedBackground } from "./components/AnimatedBackground";
 import { LoginCard } from "./components/LoginCard";
@@ -11,7 +11,9 @@ import { useBodyClass } from "./hooks/useBodyClass";
 import { useSplashSequence } from "./hooks/useSplashSequence";
 import { useWaterRippleCleanup } from "./hooks/useWaterRippleCleanup";
 import type { LoginSuccess } from "./types";
+import { setCookie } from "@/lib/session/cookies";
 import "./styles.css";
+import LoginNotice from "@/components/LoginNotice";
 
 const INTEGRATION_EVENT = "servigenman:loginAttempt";
 
@@ -22,6 +24,7 @@ export default function LoginPageClient() {
   useWaterRippleCleanup();
 
   const router = useRouter();
+  const search = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,6 +46,18 @@ export default function LoginPageClient() {
       }
     };
   }, []);
+
+  const loginBanner = useMemo(() => {
+    const expired = search?.get("expired");
+    const timeout = search?.get("timeout");
+    if (expired === "1") {
+      return { message: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", variant: "warning" as const };
+    }
+    if (timeout === "1") {
+      return { message: "Tu sesión se cerró por inactividad.", variant: "info" as const };
+    }
+    return null;
+  }, [search]);
 
   const dispatchIntegrationEvent = (detail: Record<string, unknown>) => {
     window.dispatchEvent(
@@ -121,6 +136,19 @@ export default function LoginPageClient() {
       try {
         // Set a frontend cookie so middleware can allow navigation
         document.cookie = "auth_ok=1; path=/; max-age=604800"; // 7 days
+        // Compute session expiration based on Auth tokens if provided, else configured close hours (default 2h)
+        const expiresIn = (successPayload as any)?.tokens?.expires_in;
+        if (typeof expiresIn === "number" && Number.isFinite(expiresIn) && expiresIn > 0) {
+          const maxAge = Math.min(24 * 3600, Math.max(300, Math.floor(expiresIn)));
+          const expEpoch = Math.floor(Date.now() / 1000) + maxAge;
+          setCookie("session_exp", String(expEpoch), { maxAgeSeconds: maxAge, path: "/" });
+        } else {
+          const rawHours = window.localStorage.getItem("system.closeHours");
+          const hours = rawHours ? Math.min(24, Math.max(1, parseInt(rawHours, 10) || 2)) : 2;
+          const maxAge = hours * 3600;
+          const expEpoch = Math.floor(Date.now() / 1000) + maxAge;
+          setCookie("session_exp", String(expEpoch), { maxAgeSeconds: maxAge, path: "/" });
+        }
       } catch {}
       router.push("/inicio");
     } catch {
@@ -158,6 +186,9 @@ export default function LoginPageClient() {
 
   return (
     <>
+      {loginBanner && (
+        <LoginNotice message={loginBanner.message} variant={loginBanner.variant} autoHideMs={60000} />
+      )}
       <AnimatedBackground />
       <LoginCard
         username={username}

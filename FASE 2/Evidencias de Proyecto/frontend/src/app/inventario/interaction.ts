@@ -294,8 +294,9 @@ export function initializeInventoryPage(): CleanupFn {
   const exportContainer = document.querySelector(".exportar-dropdown");
   if (exportContainer) {
     const handler = (event: MouseEvent) => {
-      if (!(event.target instanceof Node)) return;
-      if (!event.target.closest(".exportar-dropdown")) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest(".exportar-dropdown")) {
         closeAllMenus();
       }
     };
@@ -820,7 +821,10 @@ function editarFila(button: HTMLButtonElement) {
     recurso: celdas[1]?.innerText ?? "",
     categoria: celdas[2]?.innerText ?? "",
     cantidad: celdas[3]?.getAttribute("data-quantity") ?? celdas[3]?.innerText ?? "0",
+    // Keep legacy 'precio' while also storing text/raw for confirmation step
     precio: celdas[4]?.getAttribute("data-precio") ?? celdas[4]?.innerText ?? "0",
+    precioText: celdas[4]?.innerText ?? "0",
+    precioRaw: celdas[4]?.getAttribute("data-precio") ?? celdas[4]?.innerText ?? "0",
     imgSrc: celdas[5]?.querySelector("img")?.src ?? "",
     info: celdas[6]?.innerText ?? "",
   };
