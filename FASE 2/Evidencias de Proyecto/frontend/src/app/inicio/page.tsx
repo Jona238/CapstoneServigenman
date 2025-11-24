@@ -39,11 +39,13 @@ type BudgetSnapshot = {
   trend?: "up" | "down";
 };
 
-const FEATURED_RESOURCES: ResourcePreview[] = [
+// Get featured resources - category names will be replaced using translations
+// This is sample data that will be displayed in the home page hero section
+const getFeaturedResources = (t: any): ResourcePreview[] => [
   {
     id: 1,
     name: "Bombas sumergibles 1HP",
-    category: "Bombas de agua",
+    category: t.categories.waterPumps,
     quantity: 5,
     price: 120000,
     info: "Equipo básico para faenas rurales",
@@ -51,7 +53,7 @@ const FEATURED_RESOURCES: ResourcePreview[] = [
   {
     id: 2,
     name: "Kit reparación rodamientos",
-    category: "Repuestos",
+    category: t.categories.spareParts,
     quantity: 2,
     price: 45500,
     info: "Incluye grasa industrial premium",
@@ -59,51 +61,53 @@ const FEATURED_RESOURCES: ResourcePreview[] = [
   {
     id: 5,
     name: "Panel de control trifásico",
-    category: "Materiales eléctricos",
+    category: t.categories.electricalMaterials,
     quantity: 3,
     price: 189000,
     info: "Tablero listo para montaje en terreno",
   },
 ];
 
-const CATEGORY_PREVIEW: CategoryPreview[] = [
+// Get category preview - category names will be replaced using translations
+const getCategoryPreview = (t: any): CategoryPreview[] => [
   {
-    name: "Materiales eléctricos",
+    name: t.categories.electricalMaterials,
     resources: 18,
     units: 84,
     value: 4280000,
   },
   {
-    name: "Bombas de agua",
+    name: t.categories.waterPumps,
     resources: 9,
     units: 21,
     value: 3515000,
   },
   {
-    name: "Herramientas especializadas",
+    name: t.categories.specializedTools,
     resources: 6,
     units: 32,
     value: 1458000,
   },
 ];
 
-const BUDGET_SNAPSHOT: BudgetSnapshot[] = [
+// Get budget snapshot - labels will be replaced using translations
+const getBudgetSnapshot = (t: any): BudgetSnapshot[] => [
   {
-    label: "Ejecución trimestral",
+    label: t.home.quarterlyExecution,
     value: "54%",
-    detail: "Meta Q2: 62%",
+    detail: t.home.quarterlyGoal,
     trend: "up",
   },
   {
-    label: "Gasto del mes",
+    label: t.home.monthlyExpense,
     value: 1875000,
-    detail: "Abril 2024",
+    detail: t.home.monthLabel,
     trend: "down",
   },
   {
-    label: "Saldo disponible",
+    label: t.home.availableBalance,
     value: 1640000,
-    detail: "Reservado para urgencias",
+    detail: t.home.reservedForEmergencies,
   },
 ];
 
@@ -277,7 +281,7 @@ export default function InicioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {FEATURED_RESOURCES.map((resource) => {
+                  {getFeaturedResources(t).map((resource) => {
                     const lowStock = isLowStock(resource.quantity, lowStockThreshold);
                     return (
                       <tr
@@ -313,7 +317,7 @@ export default function InicioPage() {
               </p>
               <div className="home-panel__preview" aria-label={t.home.categoryOverview}>
                 <ul className="category-preview">
-                  {CATEGORY_PREVIEW.map((category) => (
+                  {getCategoryPreview(t).map((category) => (
                     <li key={category.name} className="category-preview__item">
                       <div>
                         <p className="category-preview__name">{category.name}</p>
@@ -337,7 +341,7 @@ export default function InicioPage() {
               </p>
               <div className="home-panel__preview" aria-label={t.home.quickStats}>
                 <ul className="budget-preview">
-                  {BUDGET_SNAPSHOT.map((item) => (
+                  {getBudgetSnapshot(t).map((item) => (
                     <li key={item.label} className="budget-preview__item">
                       <div className="budget-preview__header">
                         <p className="budget-preview__label">{item.label}</p>

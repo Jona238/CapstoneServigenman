@@ -1,0 +1,450 @@
+/* ============================================================================
+   SISTEMA BASE DE TARJETAS - CLASES REUTILIZABLES
+   Define estilos comunes para todas las tarjetas en la aplicación
+   ============================================================================ */
+
+/* ============================================================================
+   CLASE BASE .card - Aplicar a todos los contenedores de tarjeta
+   ============================================================================ */
+.card {
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-default-radius);
+  padding: var(--card-default-padding);
+  box-shadow: var(--card-default-shadow);
+  backdrop-filter: var(--card-default-backdrop);
+  transition: var(--card-transition);
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap-lg);
+}
+
+/* Aplicar sombra oscura en dark mode */
+@media (prefers-color-scheme: dark) {
+  .card {
+    box-shadow: var(--card-default-shadow-dark);
+  }
+}
+
+body[data-theme="dark"] .card {
+  box-shadow: var(--card-default-shadow-dark);
+}
+
+/* ============================================================================
+   VARIANTES DE TAMAÑO DE BORDER-RADIUS
+   ============================================================================ */
+
+.card-radius-sm {
+  border-radius: var(--card-radius-sm);
+}
+
+.card-radius-md {
+  border-radius: var(--card-radius-md);
+}
+
+.card-radius-lg {
+  border-radius: var(--card-radius-lg);
+}
+
+.card-radius-xl {
+  border-radius: var(--card-radius-xl);
+}
+
+/* ============================================================================
+   VARIANTES DE PADDING
+   ============================================================================ */
+
+.card-padding-xs {
+  padding: var(--card-padding-xs);
+}
+
+.card-padding-sm {
+  padding: var(--card-padding-sm);
+}
+
+.card-padding-md {
+  padding: var(--card-padding-md);
+}
+
+.card-padding-lg {
+  padding: var(--card-padding-lg);
+}
+
+.card-padding-xl {
+  padding: var(--card-padding-xl);
+}
+
+.card-padding-2xl {
+  padding: var(--card-padding-2xl);
+}
+
+/* ============================================================================
+   VARIANTES DE SOMBRA
+   ============================================================================ */
+
+.card-shadow-sm {
+  box-shadow: var(--card-shadow-sm);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-shadow-sm {
+    box-shadow: var(--card-shadow-dark-sm);
+  }
+}
+
+body[data-theme="dark"] .card-shadow-sm {
+  box-shadow: var(--card-shadow-dark-sm);
+}
+
+.card-shadow-md {
+  box-shadow: var(--card-shadow-md);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-shadow-md {
+    box-shadow: var(--card-shadow-dark-md);
+  }
+}
+
+body[data-theme="dark"] .card-shadow-md {
+  box-shadow: var(--card-shadow-dark-md);
+}
+
+.card-shadow-lg {
+  box-shadow: var(--card-shadow-lg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-shadow-lg {
+    box-shadow: var(--card-shadow-dark-lg);
+  }
+}
+
+body[data-theme="dark"] .card-shadow-lg {
+  box-shadow: var(--card-shadow-dark-lg);
+}
+
+/* ============================================================================
+   VARIANTES DE GAP (espaciado entre elementos)
+   ============================================================================ */
+
+.card-gap-sm {
+  gap: var(--card-gap-sm);
+}
+
+.card-gap-md {
+  gap: var(--card-gap-md);
+}
+
+.card-gap-lg {
+  gap: var(--card-gap-lg);
+}
+
+.card-gap-xl {
+  gap: var(--card-gap-xl);
+}
+
+/* ============================================================================
+   VARIANTES DE CONTENIDO - Componentes comunes dentro de tarjetas
+   ============================================================================ */
+
+.card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.card-header h1,
+.card-header h2,
+.card-header h3,
+.card-header h4 {
+  margin: 0;
+  color: var(--card-text);
+}
+
+.card-header p {
+  margin: 0;
+  color: var(--card-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap-md);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--card-divider);
+  color: var(--card-muted);
+  font-size: 0.92rem;
+}
+
+/* ============================================================================
+   VARIANTES DE ESTADO Y ÉNFASIS
+   ============================================================================ */
+
+/* Card con estado peligroso/error */
+.card-danger {
+  background: var(--card-danger-bg);
+  border-color: var(--card-danger-border);
+  color: var(--card-danger-text);
+}
+
+.card-danger .card-header h1,
+.card-danger .card-header h2,
+.card-danger .card-header h3,
+.card-danger .card-header h4 {
+  color: var(--card-danger-text);
+}
+
+.card-danger .card-header p,
+.card-danger .card-body p {
+  color: var(--card-danger-text);
+}
+
+/* Card con estado exitoso */
+.card-success {
+  background: var(--card-success-bg);
+  border-color: var(--card-success-border);
+  color: var(--card-text);
+}
+
+/* Card con estado de advertencia */
+.card-warning {
+  background: var(--card-warning-bg);
+  border-color: var(--card-warning-border);
+  color: var(--card-text);
+}
+
+/* ============================================================================
+   VARIANTES DE INTERACCIÓN
+   ============================================================================ */
+
+/* Card hoverable */
+.card-hover {
+  cursor: pointer;
+  transition: var(--card-transition-hover);
+}
+
+.card-hover:hover,
+.card-hover:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--card-accent);
+  outline: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-hover:hover,
+  .card-hover:focus-visible {
+    box-shadow: var(--card-shadow-dark-lg);
+  }
+}
+
+body[data-theme="dark"] .card-hover:hover,
+body[data-theme="dark"] .card-hover:focus-visible {
+  box-shadow: var(--card-shadow-dark-lg);
+}
+
+/* Card sin backdrop */
+.card-flat {
+  backdrop-filter: none;
+}
+
+/* Card con efecto glassmorphism más fuerte */
+.card-glass {
+  backdrop-filter: blur(20px);
+}
+
+/* ============================================================================
+   VARIANTES DE TAMAÑO COMPLETO
+   ============================================================================ */
+
+/* Card pequeña */
+.card-sm {
+  gap: var(--card-gap-sm);
+  padding: var(--card-padding-md);
+  border-radius: var(--card-radius-md);
+}
+
+/* Card normal (default) - ya definida en .card */
+
+/* Card grande */
+.card-lg {
+  gap: var(--card-gap-lg);
+  padding: var(--card-padding-xl);
+  border-radius: var(--card-radius-lg);
+}
+
+/* Card extragrande */
+.card-xl {
+  gap: var(--card-gap-xl);
+  padding: var(--card-padding-2xl);
+  border-radius: var(--card-radius-xl);
+}
+
+/* ============================================================================
+   GRID DE TARJETAS
+   ============================================================================ */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--card-gap-lg);
+  width: 100%;
+}
+
+.card-grid-sm {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--card-gap-md);
+}
+
+.card-grid-lg {
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--card-gap-xl);
+}
+
+/* ============================================================================
+   ELEMENTOS COMUNES DENTRO DE TARJETAS
+   ============================================================================ */
+
+.card-input,
+.card-select {
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius-md);
+  color: var(--card-text);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: var(--card-transition-fast);
+}
+
+.card-input:focus,
+.card-select:focus {
+  outline: none;
+  border-color: var(--card-accent);
+  box-shadow: 0 0 0 3px rgba(46, 120, 255, 0.15);
+}
+
+.card-button {
+  padding: 10px 16px;
+  border-radius: var(--card-radius-md);
+  border: 1px solid var(--card-border);
+  background: var(--card-accent);
+  color: #041325;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--card-transition-fast);
+}
+
+.card-button:hover {
+  filter: brightness(1.05);
+}
+
+.card-button:active {
+  transform: translateY(1px);
+}
+
+/* Button secondary */
+.card-button-secondary {
+  background: transparent;
+  color: var(--card-text);
+  border: 1px solid var(--card-border);
+}
+
+.card-button-secondary:hover {
+  background: var(--card-surface-secondary);
+}
+
+/* Button danger */
+.card-button-danger {
+  background: var(--card-danger-bg);
+  color: var(--card-danger-text);
+  border-color: var(--card-danger-border);
+}
+
+.card-button-danger:hover {
+  filter: brightness(1.1);
+}
+
+/* ============================================================================
+   BADGE/CHIP
+   ============================================================================ */
+
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--card-accent);
+  color: #041325;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card-badge-secondary {
+  background: var(--card-surface-secondary);
+  color: var(--card-text);
+  border: 1px solid var(--card-border);
+}
+
+.card-badge-danger {
+  background: var(--card-danger-bg);
+  color: var(--card-danger-text);
+  border: 1px solid var(--card-danger-border);
+}
+
+/* ============================================================================
+   DIVIDER
+   ============================================================================ */
+
+.card-divider {
+  height: 1px;
+  background: var(--card-divider);
+  margin: 8px 0;
+}
+
+.card-divider-lg {
+  margin: 16px 0;
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+.card-empty {
+  text-align: center;
+  padding: 32px;
+  border-radius: var(--card-radius-lg);
+  background: var(--card-surface-secondary);
+  border: 1px dashed var(--card-divider);
+  color: var(--card-muted);
+}
+
+.card-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.card-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--card-text);
+  margin-bottom: 8px;
+}
+
+.card-empty-subtitle {
+  font-size: 14px;
+  color: var(--card-muted);
+}

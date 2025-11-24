@@ -1,18 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { SettingsHero } from "../components/Hero";
 import { SettingsTabs } from "../components/Tabs";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-8">
-      <h3 className="mb-2 text-base font-semibold text-gray-900">{title}</h3>
-      <div className="rounded-md border border-gray-200 bg-white p-4">{children}</div>
-    </section>
-  );
-}
-
 export default function ControlSistemaPage() {
+  const { t } = useLanguage();
   const [hours, setHours] = useState<number>(2);
   const [idleMinutes, setIdleMinutes] = useState<number>(30);
 
@@ -41,65 +35,66 @@ export default function ControlSistemaPage() {
 
   const hourOptions = useMemo(
     () => [
-      { value: 1, label: "1 hora" },
-      { value: 2, label: "2 horas (Recomendado)" },
-      { value: 3, label: "3 horas (Menos recomendado)" },
+      { value: 1, label: t.systemControl.oneHour },
+      { value: 2, label: t.systemControl.twoHours },
+      { value: 3, label: t.systemControl.threeHours },
     ],
-    []
+    [t]
   );
 
   const idleOptions = useMemo(() => [30, 35, 40, 45], []);
 
   return (
-    <div className="container mx-auto max-w-5xl p-4">
-      <h2 className="mb-4 text-xl font-bold text-gray-900">Control del sistema</h2>
-      <SettingsTabs>
-        <Section title="Cierre automático del sistema">
-          <p className="mb-3 text-sm text-gray-600">
-            Define cada cuántas horas expira tu sesión de forma automática.
-          </p>
-          <div className="flex flex-col gap-2">
-            {hourOptions.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="close-hours"
-                  value={opt.value}
-                  checked={hours === opt.value}
-                  onChange={() => setHours(opt.value)}
-                />
-                <span className="text-sm text-gray-800">{opt.label}</span>
-              </label>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-gray-500">
-            La opción por defecto es 2 horas (Recomendado).
-          </p>
-        </Section>
+    <>
+      <SettingsHero />
+      <div className="settings-grid">
+        <SettingsTabs>
+          <div className="settings-form">
+            <p className="settings-label">{t.systemControl.autoClose}</p>
+            <p style={{ marginTop: 8, marginBottom: 12, color: "var(--settings-muted)", fontSize: "14px" }}>
+              {t.systemControl.autoCloseDescription}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              {hourOptions.map((opt) => (
+                <label key={opt.value} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="close-hours"
+                    value={opt.value}
+                    checked={hours === opt.value}
+                    onChange={() => setHours(opt.value)}
+                  />
+                  <span className="settings-option-light" style={{ fontSize: "14px" }}>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--settings-muted)" }}>
+              {t.systemControl.defaultOption}
+            </p>
 
-        <Section title="Expiración por inactividad">
-          <p className="mb-3 text-sm text-gray-600">
-            Configura el tiempo de inactividad permitido. Mostraremos un aviso con
-            un cronómetro de 60 segundos antes de cerrar la sesión.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            {idleOptions.map((m) => (
-              <label key={m} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="idle-minutes"
-                  value={m}
-                  checked={idleMinutes === m}
-                  onChange={() => setIdleMinutes(m)}
-                />
-                <span className="text-sm text-gray-800">{m} min</span>
-              </label>
-            ))}
+            <p className="settings-label" style={{ marginTop: 24 }}>{t.systemControl.idleExpiration}</p>
+            <p style={{ marginTop: 8, marginBottom: 12, color: "var(--settings-muted)", fontSize: "14px" }}>
+              {t.systemControl.idleDescription}
+            </p>
+            <div className="settings-actions" style={{ alignItems: "center", marginBottom: 16 }}>
+              {idleOptions.map((m) => (
+                <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="idle-minutes"
+                    value={m}
+                    checked={idleMinutes === m}
+                    onChange={() => setIdleMinutes(m)}
+                  />
+                  <span className="settings-option-light" style={{ fontSize: "14px" }}>{m} {t.systemControl.minutes}</span>
+                </label>
+              ))}
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--settings-muted)" }}>{t.systemControl.allowedRange}</p>
           </div>
-          <p className="mt-3 text-xs text-gray-500">Rango permitido: 30–45 minutos.</p>
-        </Section>
-      </SettingsTabs>
-    </div>
+        </SettingsTabs>
+      </div>
+    </>
   );
 }
 

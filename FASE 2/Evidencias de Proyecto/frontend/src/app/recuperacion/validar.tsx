@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import "./styles.css";
 
 const INTEGRATION_EVENT = "servigenman:passwordResetWithCode";
 
 const ChangePassword: React.FC = () => {
-  const [email, setEmail] = useState("");\n  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");\n  const [confirmPassword, setConfirmPassword] = useState("");
+  const { t } = useLanguage();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -113,29 +116,29 @@ const ChangePassword: React.FC = () => {
     setError(null);
     setSuccess(null);
 
-    if (!email || !code || !newPassword || !confirmPassword) {
-      const message = "Todos los campos son obligatorios.";
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      const message = t.validation.fieldsRequired;
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
     }
 
     if (newPassword.length < 8) {
-      const message = "La nueva contrase�a debe tener al menos 8 caracteres.";
+      const message = t.validation.passwordLength;
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
     }
 
     if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword)) {
-      const message = "La nueva contrasena debe incluir mayusculas y minusculas.";
+      const message = t.validation.passwordCase;
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      const message = "La confirmacion de la contrasena no coincide.";
+      const message = t.validation.passwordMismatch;
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
@@ -149,7 +152,7 @@ const ChangePassword: React.FC = () => {
 
     dispatchIntegrationEvent({ status: "pending", payload });
 
-    setSuccess("Contrasena actualizada correctamente (mock sin integracion).");
+    setSuccess(t.validation.passwordUpdated);
     dispatchIntegrationEvent({ status: "success", payload });
   };
 
@@ -199,8 +202,8 @@ const ChangePassword: React.FC = () => {
           <span>SERVIGENMAN</span>
         </div>
 
-        <h1 id="change-title" className="recovery-title">Cambio de Contrasena</h1>
-        <p className="recovery-description">Minimo 8 caracteres, combina letras en mayusculas y minusculas.</p>
+        <h1 id="change-title" className="recovery-title">Cambio de Contraseña</h1>
+        <p className="recovery-description">Mínimo 8 caracteres, combina letras en mayúsculas y minúsculas.</p>
       {process.env.NODE_ENV === "development" && (
         <pre style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
           {`
@@ -213,7 +216,7 @@ const ChangePassword: React.FC = () => {
 
         <form className="recovery-form" onSubmit={handleSubmit} noValidate>
           <label className="recovery-label" htmlFor="currentPassword">
-            Contrasena actual
+            Contraseña actual
           </label>
           <input
             className="recovery-field"
@@ -222,13 +225,13 @@ const ChangePassword: React.FC = () => {
             ref={emailRef}
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
-            placeholder="********"
+            placeholder="••••••••"
             autoComplete="current-password"
             required
           />
 
           <label className="recovery-label" htmlFor="newPassword">
-            Nueva contrasena
+            Nueva contraseña
           </label>
           <input
             className="recovery-field"
@@ -236,13 +239,13 @@ const ChangePassword: React.FC = () => {
             id="newPassword"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            placeholder="********"
+            placeholder="••••••••"
             autoComplete="new-password"
             required
           />
 
           <label className="recovery-label" htmlFor="confirmPassword">
-            Confirmar contrasena
+            Confirmar contraseña
           </label>
           <input
             className="recovery-field"
@@ -250,7 +253,7 @@ const ChangePassword: React.FC = () => {
             id="confirmPassword"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="********"
+            placeholder="••••••••"
             autoComplete="new-password"
             required
           />
@@ -279,13 +282,13 @@ const ChangePassword: React.FC = () => {
           )}
 
           <button className="recovery-btn" type="submit">
-            Cambiar contrasena
+            Cambiar contraseña
           </button>
         </form>
 
         <div className="recovery-links">
           <Link href="/recuperacion">Volver a solicitar enlace</Link>
-          <Link href="/login">Volver al inicio de sesion</Link>
+          <Link href="/login">Volver al inicio de sesión</Link>
         </div>
 
         <div className="recovery-footer">

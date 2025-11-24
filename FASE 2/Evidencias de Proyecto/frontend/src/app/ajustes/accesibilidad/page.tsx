@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { SettingsHero } from "../components/Hero";
 import { SettingsTabs } from "../components/Tabs";
 
 export default function AccesibilidadPage() {
+  const { t } = useLanguage();
   const [reduceMotion, setReduceMotion] = useState(false);
   const [highContrastLevel, setHighContrastLevel] = useState(100);
   const [uiScale, setUiScale] = useState(100);
@@ -88,11 +90,11 @@ export default function AccesibilidadPage() {
                 onChange={(e) => setReduceMotion(e.target.checked)}
                 style={{ accentColor: "#4b8ef7", marginRight: 8 }}
               />
-              Reducir animaciones
+              {t.accessibility.reduceAnimations}
             </label>
 
             <label className="settings-label" htmlFor="highContrast">
-              Alto contraste
+              {t.accessibility.highContrast}
               <br />
               <input
                 id="highContrast"
@@ -105,12 +107,12 @@ export default function AccesibilidadPage() {
                 className="settings-slider"
               />
               <span style={{ display: "block", marginTop: 4 }}>
-                Nivel de contraste: {highContrastLevel}%
+                {t.accessibility.contrastLevel.replace("{level}", String(highContrastLevel))}
               </span>
             </label>
 
             <label className="settings-label" htmlFor="uiScale">
-              Tamano de interfaz
+              {t.accessibility.interfaceSize}
               <br />
               <input
                 id="uiScale"
@@ -123,12 +125,12 @@ export default function AccesibilidadPage() {
                 className="settings-slider"
               />
               <span style={{ display: "block", marginTop: 4 }}>
-                Escala UI: {uiScale}%
+                {t.accessibility.uiScale.replace("{scale}", String(uiScale))}
               </span>
             </label>
 
             <div className="settings-actions">
-              <button className="btn-primary" type="button" onClick={() => alert("Preferencias guardadas (demo)")}>Guardar</button>
+              <button className="btn-primary" type="button" onClick={() => alert(t.accessibility.preferencesSaved)}>{t.common.save}</button>
             </div>
           </div>
         </SettingsTabs>

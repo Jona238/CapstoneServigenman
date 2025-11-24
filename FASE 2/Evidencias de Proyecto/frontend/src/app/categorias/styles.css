@@ -78,10 +78,10 @@ body[data-theme="dark"] {
   gap: 16px;
   background: var(--categories-surface);
   border: 1px solid var(--categories-border);
-  border-radius: 22px;
-  padding: 32px;
+  border-radius: var(--card-radius-xl);
+  padding: var(--card-padding-2xl);
   box-shadow: var(--categories-shadow);
-  backdrop-filter: blur(16px);
+  backdrop-filter: var(--card-backdrop);
   width: 100%;
 }
 
@@ -168,8 +168,8 @@ body[data-theme="dark"] {
   color: var(--categories-muted);
   font-style: italic;
   border: 1px dashed var(--categories-placeholder-border);
-  border-radius: 18px;
-  padding: 28px;
+  border-radius: var(--card-radius-lg);
+  padding: var(--card-padding-lg);
   background: var(--categories-placeholder-bg);
   box-sizing: border-box;
 }
@@ -210,16 +210,15 @@ body[data-theme="dark"] {
   max-width: 360px;
   background: var(--categories-surface);
   border: 1px solid var(--categories-border);
-  border-radius: 22px;
-  padding: 24px;
+  border-radius: var(--card-radius-xl);
+  padding: var(--card-padding-lg);
   box-shadow: var(--categories-shadow);
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  backdrop-filter: blur(12px);
+  gap: var(--card-gap-lg);
+  backdrop-filter: var(--card-backdrop-light);
   cursor: pointer;
-  transition: transform 0.25s ease, border-color 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: var(--card-transition-hover);
   box-sizing: border-box;
 }
 
@@ -373,9 +372,9 @@ body[data-theme="dark"] {
   }
 
   .categories-hero {
-    padding: 14px;
+    padding: var(--card-padding-xs);
     gap: 12px;
-    border-radius: 16px;
+    border-radius: var(--card-radius-md);
   }
 
   .categories-hero h2 {
@@ -421,8 +420,8 @@ body[data-theme="dark"] {
   .category-card {
     min-width: min(160px, 85vw);
     max-width: 200px;
-    padding: 10px;
-    gap: 10px;
+    padding: var(--card-padding-xs);
+    gap: var(--card-gap-sm);
   }
 
   .category-card__header {
@@ -495,9 +494,9 @@ body[data-theme="dark"] {
   }
 
   .categories-hero {
-    padding: 16px;
+    padding: var(--card-padding-sm);
     gap: 12px;
-    border-radius: 18px;
+    border-radius: var(--card-radius-lg);
   }
 
   .categories-hero h2 {
@@ -543,8 +542,8 @@ body[data-theme="dark"] {
   .category-card {
     min-width: min(180px, 85vw);
     max-width: 240px;
-    padding: 12px;
-    gap: 12px;
+    padding: var(--card-padding-sm);
+    gap: var(--card-gap-md);
   }
 
   .category-card__header {
@@ -651,12 +650,12 @@ body[data-theme="dark"] {
   }
 
   .categories-hero {
-    padding: 24px;
+    padding: var(--card-padding-lg);
   }
 
   .category-card {
     min-width: min(260px, 82vw);
-    padding: 20px;
+    padding: var(--card-padding-md);
   }
 }
 
@@ -668,7 +667,7 @@ body[data-theme="dark"] {
   }
 
   .categories-hero {
-    padding: 26px;
+    padding: var(--card-padding-lg);
     gap: 16px;
   }
 
@@ -678,8 +677,8 @@ body[data-theme="dark"] {
 
   .category-card {
     min-width: min(300px, 85vw);
-    padding: 22px;
-    gap: 16px;
+    padding: var(--card-padding-md);
+    gap: var(--card-gap-lg);
   }
 
   .category-carousel {
@@ -723,6 +722,6 @@ body[data-theme="dark"] {
   }
 
   .categories-hero {
-    padding: 36px;
+    padding: var(--card-padding-2xl);
   }
 }

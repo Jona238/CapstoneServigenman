@@ -15,6 +15,7 @@ export default function AjustesLayout({ children }: { children: React.ReactNode 
     const baseClass = "servigenman-login";
     body.classList.add(baseClass);
     body.classList.add(layoutClass);
+
     return () => {
       body.classList.remove(layoutClass);
       body.classList.remove(baseClass);

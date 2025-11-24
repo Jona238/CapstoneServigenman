@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   SISTEMA UNIFICADO DE DISEÑO DE TARJETAS
+   Importaciones de archivos de estilo centralizados
+   ============================================================================ */
+@import "./styles/variables.css";
+@import "./styles/cards.css";
+@import "./styles/responsive.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -239,5 +247,76 @@ body {
 
   h3 {
     font-size: 26px;
+  }
+}
+
+/* ============================================================================
+   LOGOUT MESSAGE
+   ============================================================================ */
+.logout-message {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 30, 0.95));
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.logout-message-content {
+  text-align: center;
+  color: white;
+  animation: slideUp 0.5s ease-out;
+}
+
+.logout-message-content p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.logout-message-content p:first-child {
+  font-size: clamp(32px, 8vw, 48px);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.logout-message-content p:last-child {
+  font-size: clamp(24px, 5vw, 36px);
+  letter-spacing: 2px;
+  opacity: 0.9;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

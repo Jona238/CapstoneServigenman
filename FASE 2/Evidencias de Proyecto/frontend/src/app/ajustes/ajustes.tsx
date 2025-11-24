@@ -1,10 +1,12 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
 import "./styles.css";
 
 export default function AjustesCuentaPanel() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("perfil");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
@@ -31,7 +33,7 @@ export default function AjustesCuentaPanel() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMensaje("Cambios guardados correctamente.");
+    setMensaje(t.settings.changesSaved);
   };
 
   const handleLowStockChange = (value: number) => {
@@ -48,24 +50,24 @@ export default function AjustesCuentaPanel() {
   const handlePreferenciasSave = () => {
     const sanitized = persistLowStockThreshold(lowStockThreshold);
     setLowStockThreshold(sanitized);
-    setMensajePreferencias("Stock mínimo actualizado.");
+    setMensajePreferencias(t.settingsPages.minimumStockUpdated);
   };
 
   return (
     <div className="ajustes-shell">
       {/* Breadcrumbs */}
       <nav className="ajustes-breadcrumbs">
-        <span>Inicio</span>
+        <span>{t.common.home}</span>
         <span>›</span>
-        <span>Cuenta</span>
+        <span>{t.settingsPages.accountSettings}</span>
         <span>›</span>
-        <strong>Ajustes</strong>
+        <strong>{t.common.settings}</strong>
       </nav>
 
       {/* Encabezado */}
       <header className="ajustes-header">
-        <h1>Ajustes de Cuenta</h1>
-        <p>Administra tu perfil, seguridad y preferencias de tu cuenta.</p>
+        <h1>{t.settingsPages.accountSettings}</h1>
+        <p>{t.settingsPages.manageProfile}</p>
       </header>
 
       {/* Tabs */}
@@ -88,31 +90,31 @@ export default function AjustesCuentaPanel() {
       {/* Contenido */}
       <main className="ajustes-content">
         {loading ? (
-          <div className="loader">Cargando ajustes...</div>
+          <div className="loader">{t.settingsPages.loadingSettings}</div>
         ) : isEmpty ? (
           <div className="empty-state">
             <img
               src="https://cdn-icons-png.flaticon.com/512/4076/4076549.png"
-              alt="Sin datos"
+              alt={t.settingsPages.noData}
             />
-            <p>No hay configuraciones disponibles en esta sección.</p>
+            <p>{t.settingsPages.noConfigurations}</p>
           </div>
         ) : (
           <>
             {activeTab === "perfil" && (
               <form className="ajustes-form" onSubmit={handleSubmit}>
-                <label>Nombre completo</label>
+                <label>{t.settings.fullName}</label>
                 <input
                   type="text"
-                  placeholder="Tu nombre"
+                  placeholder={t.settings.yourName}
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                 />
 
-                <label>Correo electrónico</label>
+                <label>{t.settings.emailAddress}</label>
                 <input
                   type="email"
-                  placeholder="ejemplo@correo.com"
+                  placeholder={t.settings.emailPlaceholder}
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                 />
@@ -121,10 +123,10 @@ export default function AjustesCuentaPanel() {
 
                 <div className="ajustes-actions">
                   <button type="submit" className="btn-guardar">
-                    Guardar
+                    {t.common.save}
                   </button>
                   <button type="button" className="btn-cancelar">
-                    Cancelar
+                    {t.common.cancel}
                   </button>
                 </div>
               </form>
@@ -132,32 +134,31 @@ export default function AjustesCuentaPanel() {
 
             {activeTab === "seguridad" && (
               <div className="ajustes-card">
-                <h2>Seguridad</h2>
+                <h2>{t.settingsPages.security}</h2>
                 <p>
-                  Cambia tu contraseña o activa la autenticación en dos pasos
-                  (2FA).
+                  {t.settingsPages.securityDescription}
                 </p>
-                <button className="btn-guardar">Actualizar contraseña</button>
+                <button className="btn-guardar">{t.settingsPages.updatePassword}</button>
               </div>
             )}
 
             {activeTab === "preferencias" && (
               <div className="ajustes-card">
-                <h2>Preferencias</h2>
-                <label>Tema</label>
+                <h2>{t.settingsPages.preferences}</h2>
+                <label>{t.appearance.theme}</label>
                 <select>
-                  <option>Oscuro</option>
-                  <option>Claro</option>
-                  <option>Sistema</option>
+                  <option>{t.appearance.dark}</option>
+                  <option>{t.appearance.light}</option>
+                  <option>{t.appearance.system}</option>
                 </select>
 
-                <label>Idioma</label>
+                <label>{t.common.language}</label>
                 <select>
-                  <option>Español</option>
-                  <option>Inglés</option>
+                  <option>{t.common.spanish}</option>
+                  <option>{t.common.english}</option>
                 </select>
 
-                <label htmlFor="stockMinimo">Stock mínimo para alertas</label>
+                <label htmlFor="stockMinimo">{t.settingsPages.minimumStockAlerts}</label>
                 <div className="ajustes-slider-group">
                   <input
                     id="stockMinimo"
@@ -176,19 +177,18 @@ export default function AjustesCuentaPanel() {
                     value={lowStockThreshold}
                     onChange={handleLowStockInput}
                     className="ajustes-slider-value"
-                    aria-label="Stock mínimo numérico"
+                    aria-label={t.settingsPages.minimumStockAlerts}
                   />
                 </div>
                 <p className="ajustes-hint">
-                  Ajusta el umbral para resaltar en rojo los recursos con existencias bajas en el
-                  inventario y en los resúmenes.
+                  {t.settingsPages.adjustThreshold}
                 </p>
 
                 {mensajePreferencias && <div className="mensaje-exito">{mensajePreferencias}</div>}
 
                 <div className="ajustes-actions">
                   <button type="button" className="btn-guardar" onClick={handlePreferenciasSave}>
-                    Guardar
+                    {t.common.save}
                   </button>
                 </div>
               </div>
