@@ -14,6 +14,7 @@ export default function CambiarContrasenaConCodigo() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [pending, setPending] = useState(false); // Bloquea UI durante verificacion + cambio
   const emailRef = useRef<HTMLInputElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
@@ -51,21 +52,40 @@ export default function CambiarContrasenaConCodigo() {
       return;
     }
     if (newPassword.length < 8) {
-      const message = "La nueva contraseña debe tener al menos 8 caracteres.";
+      const message = "La nueva contrasena debe tener al menos 8 caracteres.";
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
     }
     if (newPassword !== confirmPassword) {
-      const message = "Las contraseñas no coinciden.";
+      const message = "Las contrasenas no coinciden.";
       setError(message);
       dispatchIntegrationEvent({ status: "error", payload: { message } });
       return;
     }
 
+    setPending(true);
     dispatchIntegrationEvent({ status: "pending", payload: { username } });
+    const base = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+
     try {
-      const base = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+      // Paso 1: validar codigo sin consumirlo (backend retorna error si expiro)
+      const verifyRes = await fetch(`${base}/api/password/verify/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: username.trim(), code: code.trim() }),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok || verifyData?.error) {
+        const message = verifyData?.error || 'Codigo invalido o expirado.';
+        setError(message);
+        setPending(false);
+        dispatchIntegrationEvent({ status: 'error', payload: { message } });
+        return;
+      }
+
+      // Paso 2: aplicar cambio de contrasena (consume el codigo)
       const res = await fetch(`${base}/api/password/reset/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,16 +94,19 @@ export default function CambiarContrasenaConCodigo() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data?.error) {
-        const message = data?.error || 'No fue posible cambiar la contraseña.';
+        const message = data?.error || 'No fue posible cambiar la contrasena.';
         setError(message);
+        setPending(false);
         dispatchIntegrationEvent({ status: 'error', payload: { message } });
         return;
       }
-      setSuccess('Contraseña cambiada correctamente. Ya puedes iniciar sesión.');
-      dispatchIntegrationEvent({ status: 'success', payload: { changed: true } });
+      setSuccess('Contrasena cambiada correctamente. Ya puedes iniciar sesion.');
+      setPending(false);
+      dispatchIntegrationEvent({ status: 'success', payload: { changed: true, auth0_synced: data?.auth0_synced } });
     } catch {
       const message = 'Error de red o servidor.';
       setError(message);
+      setPending(false);
       dispatchIntegrationEvent({ status: 'error', payload: { message } });
     }
   };
@@ -98,8 +121,16 @@ export default function CambiarContrasenaConCodigo() {
               <stop offset="0%" stopColor="#2ad1ff" />
               <stop offset="100%" stopColor="#6d78ff" />
             </linearGradient>
+            <linearGradient id="recovery-wave-b" x1="100%" y1="0%" x2="0%" y2="0%">
+              <stop offset="0%" stopColor="#6d78ff" />
+              <stop offset="100%" stopColor="#2ad1ff" />
+            </linearGradient>
           </defs>
-          <path className="wave slow" stroke="url(#recovery-wave-a)" d="M0,130 C180,110 300,85 520,95 C740,105 900,145 1080,135 C1260,125 1360,100 1440,110" />
+          {/* Ondas múltiples para cubrir todo el alto visible como en el mock */}
+          <path className="wave slow" stroke="url(#recovery-wave-a)" d="M0,110 C200,90 360,80 560,90 C760,100 960,130 1180,120 C1340,115 1420,95 1440,110" />
+          <path className="wave mid" stroke="url(#recovery-wave-b)" d="M0,260 C180,240 340,230 560,240 C820,250 980,290 1200,280 C1340,270 1400,250 1440,260" />
+          <path className="wave" stroke="url(#recovery-wave-a)" d="M0,470 C220,450 380,430 600,440 C860,450 1020,490 1220,480 C1360,470 1420,450 1440,460" />
+          <path className="wave slow" stroke="url(#recovery-wave-b)" d="M0,700 C200,680 360,680 580,690 C820,700 1040,730 1240,720 C1360,710 1420,690 1440,700" />
         </svg>
       </div>
 
@@ -116,20 +147,22 @@ export default function CambiarContrasenaConCodigo() {
           <span>SERVIGENMAN</span>
         </div>
 
-        <h1 id="change-title" className="recovery-title">Cambiar contraseña</h1>
-        <p className="recovery-description">Revisa tu correo: ingresa el código y tu nueva contraseña (mínimo 8 caracteres).</p>
+        <h1 id="change-title" className="recovery-title">Cambiar contrasena</h1>
+        <p className="recovery-description">
+          Revisa tu correo: ingresa el codigo y tu nueva contrasena (minimo 8 caracteres).
+        </p>
 
         <form className="recovery-form" onSubmit={handleSubmit} noValidate>
           <label className="recovery-label" htmlFor="username">Usuario</label>
           <input className="recovery-field" type="text" id="username" ref={emailRef} value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="tu_usuario" autoComplete="username" required />
 
-          <label className="recovery-label" htmlFor="code">Código</label>
+          <label className="recovery-label" htmlFor="code">Codigo</label>
           <input className="recovery-field" type="text" id="code" value={code} onChange={(e)=>setCode(e.target.value)} placeholder="123456" inputMode="numeric" required />
 
-          <label className="recovery-label" htmlFor="newPassword">Nueva contraseña</label>
+          <label className="recovery-label" htmlFor="newPassword">Nueva contrasena</label>
           <input className="recovery-field" type="password" id="newPassword" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} placeholder="********" autoComplete="new-password" required />
 
-          <label className="recovery-label" htmlFor="confirmPassword">Confirmar contraseña</label>
+          <label className="recovery-label" htmlFor="confirmPassword">Confirmar contrasena</label>
           <input className="recovery-field" type="password" id="confirmPassword" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} placeholder="********" autoComplete="new-password" required />
 
           {error && (
@@ -143,18 +176,16 @@ export default function CambiarContrasenaConCodigo() {
             </div>
           )}
 
-          <button className="recovery-btn" type="submit">Cambiar contraseña</button>
+          <button className="recovery-btn" type="submit" disabled={pending}>
+            {pending ? "Validando codigo..." : "Cambiar contrasena"}
+          </button>
         </form>
 
         <div className="recovery-links">
-          <Link href="/recuperacion">Volver a solicitar código</Link>
-          <Link href="/login">Volver al inicio de sesión</Link>
+          <Link href="/recuperacion">Volver a solicitar codigo</Link>
+          <Link href="/login">Volver al inicio de sesion</Link>
         </div>
       </main>
     </div>
   );
 }
-
-
-
-

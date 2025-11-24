@@ -27,7 +27,8 @@ body.recuperacion-body{
     radial-gradient(1200px 600px at 75% 90%, rgba(42,209,255,.10), transparent 60%),
     radial-gradient(1100px 520px at 20% 10%, rgba(123,92,255,.10), transparent 60%),
     linear-gradient(160deg, var(--ocean-deep) 0%, var(--ocean-mid) 60%, var(--ocean-teal) 100%);
-  overflow:hidden;
+  overflow-x:hidden;
+  overflow-y:auto; /* Permite ver el recuadro completo en pantallas bajas */
   display:block;
 }
 
@@ -37,8 +38,10 @@ body.recuperacion-body{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:32px;
-  overflow:hidden;
+  padding:48px 32px 56px; /* Deja aire para que la tarjeta quede dentro del viewport */
+  overflow-x:hidden;
+  overflow-y:auto; /* Si la tarjeta es alta, se puede hacer scroll sin cortar */
+  box-sizing:border-box;
 }
 
 .noise{
