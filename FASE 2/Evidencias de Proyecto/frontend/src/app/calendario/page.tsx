@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useCallback, CSSProperties } from "react";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -10,8 +10,9 @@ import "../(auth)/login/styles.css";
 import "../inventario/styles.css";
 import "./styles.css";
 
-type CalendarEventType = "maintenance" | "purchase" | "expiration";
+type CalendarEventType = "factura_venta" | "nota" | "factura_compra" | "inicio_trabajo" | "termino_trabajo";
 type FilterValue = "all" | CalendarEventType;
+type RangeMode = "month" | "all" | "custom";
 
 type CalendarEvent = {
   id: string;
@@ -88,12 +89,30 @@ const CALENDAR_FALLBACK = {
 };
 
 const STORAGE_KEY = "servigenman_calendar_events_v1";
-const EVENT_TYPES: CalendarEventType[] = ["maintenance", "purchase", "expiration"];
+const EVENT_TYPES: CalendarEventType[] = ["factura_venta", "factura_compra", "inicio_trabajo", "termino_trabajo", "nota"];
+const NEXT_EVENT_CATEGORIES: { id: "all" | CalendarEventType; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "factura_venta", label: "Facturas de venta" },
+  { id: "factura_compra", label: "Facturas de compra" },
+  { id: "inicio_trabajo", label: "Inicio de trabajo" },
+  { id: "termino_trabajo", label: "Término de trabajo" },
+  { id: "nota", label: "Notas" },
+];
 
 const typeClassName: Record<CalendarEventType, string> = {
-  maintenance: "calendar-tag--maintenance",
-  purchase: "calendar-tag--purchase",
-  expiration: "calendar-tag--expiration",
+  factura_venta: "calendar-tag--purchase",
+  factura_compra: "calendar-tag--warning",
+  inicio_trabajo: "calendar-tag--info",
+  termino_trabajo: "calendar-tag--danger",
+  nota: "calendar-tag--maintenance",
+};
+
+const DAY_COLORS: Record<CalendarEventType, string> = {
+  factura_venta: "#4f6bff",
+  factura_compra: "#ff8c42",
+  inicio_trabajo: "#2ed4d4",
+  termino_trabajo: "#ff5c74",
+  nota: "#3ccf7c",
 };
 
 export default function CalendarPage() {
@@ -114,8 +133,50 @@ export default function CalendarPage() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => formatDateKey(new Date()));
+  const [showDayModal, setShowDayModal] = useState(false);
+  const [rangeMode, setRangeMode] = useState<RangeMode>("month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [milestoneIndex, setMilestoneIndex] = useState(0);
+  const [rightSlideIndex, setRightSlideIndex] = useState(0);
 
-  // Load stored events
+  const apiBaseUrl = useMemo(() => {
+    const sanitize = (u: string) => u.replace(/\/+$/, "");
+    const env = process.env.NEXT_PUBLIC_API_URL?.trim() || process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
+    if (env) return sanitize(env);
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return sanitize("http://localhost:8000");
+      }
+      return sanitize(window.location.origin);
+    }
+    return "";
+  }, []);
+
+  const fetchEvents = useCallback(
+    async (from?: string, to?: string) => {
+      if (!apiBaseUrl) return;
+      try {
+        const params = new URLSearchParams();
+        if (from) params.append("from", from);
+        if (to) params.append("to", to);
+        const query = params.toString();
+        const url = query ? `${apiBaseUrl}/api/calendar/?${query}` : `${apiBaseUrl}/api/calendar/`;
+        const res = await fetch(url, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : [];
+        const normalized = items.map(mapApiEvent);
+        setEvents(normalized);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      } catch {
+        // ignore JSON/localStorage errors
+      }
+    },
+    [apiBaseUrl],
+  );
+
+  // Load stored events initially (offline cache)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -128,14 +189,25 @@ export default function CalendarPage() {
     }
   }, []);
 
-  // Persist events on change
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-    } catch {
-      // ignore quota errors
+    const computeRange = () => {
+      if (rangeMode === "all") {
+        return { from: undefined, to: undefined };
+      }
+      if (rangeMode === "custom") {
+        if (!customFrom || !customTo) return null;
+        return { from: customFrom, to: customTo };
+      }
+      const from = formatDateKey(startOfMonth(monthCursor));
+      const toDate = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
+      const to = formatDateKey(toDate);
+      return { from, to };
+    };
+    const range = computeRange();
+    if (range) {
+      fetchEvents(range.from, range.to);
     }
-  }, [events]);
+  }, [fetchEvents, monthCursor, rangeMode, customFrom, customTo]);
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -167,19 +239,19 @@ export default function CalendarPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const base = {
-      maintenance: 0,
-      purchase: 0,
-      expiration: 0,
+    const base: Record<string, any> = {
+      factura_venta: 0,
+      factura_compra: 0,
+      inicio_trabajo: 0,
+      termino_trabajo: 0,
+      nota: 0,
       total: events.length,
-      nextEvent: null as CalendarEvent | null,
     };
 
     events.forEach((event) => {
-      base[event.type] += 1;
+      base[event.type] = (base[event.type] || 0) + 1;
     });
 
-    base.nextEvent = sortedEvents.find((event) => event.date >= todayKey) ?? null;
     return base;
   }, [events, sortedEvents, todayKey]);
 
@@ -193,6 +265,12 @@ export default function CalendarPage() {
   const upcomingEvents = useMemo(() => {
     return filteredEvents.filter((event) => event.date >= todayKey);
   }, [filteredEvents, todayKey]);
+  const nextEvent = useMemo(
+    () => sortedEvents.find((event) => event.date >= todayKey) ?? null,
+    [sortedEvents, todayKey],
+  );
+
+  const upcomingAll = useMemo(() => sortedEvents.filter((event) => event.date >= todayKey), [sortedEvents, todayKey]);
 
   const selectedDayEvents = useMemo(() => {
     const items = eventsByDay.get(selectedDay) ?? [];
@@ -228,32 +306,50 @@ export default function CalendarPage() {
 
   const typeLabels = useMemo(
     () => ({
-      maintenance: calendar.types.maintenance,
-      purchase: calendar.types.purchase,
-      expiration: calendar.types.expiration,
+      factura_venta: "Factura de venta",
+      factura_compra: "Factura de compra",
+      inicio_trabajo: "Inicio de trabajo",
+      termino_trabajo: "Término de trabajo",
+      nota: "Nota",
     }),
-    [calendar],
+    [],
   );
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!formData.title.trim() || !formData.date) {
       return;
     }
 
-    const payload: CalendarEvent = {
+    const payload = {
       ...formData,
       title: formData.title.trim(),
       description: formData.description.trim(),
-      id: editingId ?? createEventId(),
     };
 
-    setEvents((prev) => {
+    try {
       if (editingId) {
-        return prev.map((item) => (item.id === editingId ? payload : item));
+        await fetch(`${apiBaseUrl}/api/calendar/${editingId}/`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await fetch(`${apiBaseUrl}/api/calendar/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
       }
-      return [...prev, payload];
-    });
+      const from = formatDateKey(startOfMonth(monthCursor));
+      const toDate = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
+      const to = formatDateKey(toDate);
+      await fetchEvents(from, to);
+    } catch {
+      // ignore network errors
+    }
 
     setSelectedDay(payload.date);
     setMonthCursor(startOfMonth(parseDateKey(payload.date)));
@@ -313,28 +409,22 @@ export default function CalendarPage() {
               <article className="calendar-stat">
                 <p className="calendar-stat__label">{calendar.stats.nextEvent}</p>
                 <p className="calendar-stat__value calendar-stat__value--accent">
-                  {stats.nextEvent
-                    ? formatFullDate(stats.nextEvent.date, locale)
-                    : calendar.stats.noNextEvent}
+                  {nextEvent ? formatFullDate(nextEvent.date, locale) : calendar.stats.noNextEvent}
                 </p>
               </article>
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{calendar.stats.maintenanceCount}</p>
-                <p className="calendar-stat__value">{stats.maintenance}</p>
+                <p className="calendar-stat__label">Facturas de venta</p>
+                <p className="calendar-stat__value">{stats.factura_venta}</p>
               </article>
               <article className="calendar-stat">
-                <p className="calendar-stat__label">{calendar.stats.purchaseCount}</p>
-                <p className="calendar-stat__value">{stats.purchase}</p>
-              </article>
-              <article className="calendar-stat">
-                <p className="calendar-stat__label">{calendar.stats.expirationCount}</p>
-                <p className="calendar-stat__value">{stats.expiration}</p>
+                <p className="calendar-stat__label">Notas</p>
+                <p className="calendar-stat__value">{stats.nota}</p>
               </article>
             </div>
           </section>
 
-            <div className="calendar-grid">
-            <section className="calendar-card calendar-card--form">
+            <div className="calendar-grid calendar-grid--three">
+            <section className="calendar-card calendar-card--form leftCard">
               <header>
                 <p className="calendar-card__eyebrow">{calendar.formTitle}</p>
                 <h3>{calendar.formDescription}</h3>
@@ -432,14 +522,16 @@ export default function CalendarPage() {
                   <p className="calendar-card__eyebrow">{calendar.calendarTitle}</p>
                   <h3>{calendar.calendarSubtitle}</h3>
                 </div>
-                <div className="calendar-month-controls">
-                  <button type="button" aria-label={t.common.previous} onClick={() => changeMonth(-1)}>
-                    {"<"}
-                  </button>
-                  <p>{monthLabel}</p>
-                  <button type="button" aria-label={t.common.next} onClick={() => changeMonth(1)}>
-                    {">"}
-                  </button>
+                <div className="calendar-header-actions">
+                  <div className="calendar-month-controls">
+                    <button type="button" aria-label={t.common.previous} onClick={() => changeMonth(-1)}>
+                      {"<"}
+                    </button>
+                    <p>{monthLabel}</p>
+                    <button type="button" aria-label={t.common.next} onClick={() => changeMonth(1)}>
+                      {">"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -449,37 +541,57 @@ export default function CalendarPage() {
                 ))}
               </div>
               <div className="calendar-days">
-                {calendarDays.map((day) => (
+                {calendarDays.map((day) => {
+                  const types = new Set(day.events.map((ev) => ev.type));
+                  const presentTypes = Array.from(types) as CalendarEventType[];
+                  let variant = "";
+                  let inlineStyle: CSSProperties = {};
+                  if (presentTypes.length === 1) {
+                    const only = presentTypes[0];
+                    variant = `calendar-day--${only}`;
+                    inlineStyle = { background: DAY_COLORS[only], color: "#0b0f1e" };
+                  } else if (presentTypes.length === 2) {
+                    const [a, b] = presentTypes;
+                    inlineStyle = {
+                      background: `linear-gradient(135deg, ${DAY_COLORS[a]} 50%, ${DAY_COLORS[b]} 50%)`,
+                      color: "#0b0f1e",
+                    };
+                  } else if (presentTypes.length >= 3) {
+                    const [a, b, c] = presentTypes;
+                    inlineStyle = {
+                      background: `linear-gradient(90deg, ${DAY_COLORS[a]} 33%, ${DAY_COLORS[b]} 33%, ${DAY_COLORS[b]} 66%, ${DAY_COLORS[c]} 66%)`,
+                      color: "#0b0f1e",
+                    };
+                  }
+                  const count = day.events.length;
+                  return (
                   <button
                     type="button"
                     key={day.key}
-                    onClick={() => setSelectedDay(day.key)}
+                    onClick={() => {
+                      setSelectedDay(day.key);
+                      setShowDayModal(true);
+                    }}
                     className={[
                       "calendar-day",
                       !day.inMonth ? "calendar-day--outside" : "",
                       day.isToday ? "calendar-day--today" : "",
                       day.isSelected ? "calendar-day--selected" : "",
+                      variant,
                     ]
                       .filter(Boolean)
                       .join(" ")}
+                    style={inlineStyle}
                   >
-                    <span>{day.dayNumber}</span>
-                    {day.events.length > 0 ? (
+                    <span className="calendar-day__number">{day.dayNumber}</span>
+                    {count > 0 ? (
                       <span className="calendar-day__badges">
-                        {day.events.slice(0, 3).map((event) => (
-                          <span
-                            key={event.id}
-                            className={`calendar-badge ${typeClassName[event.type]}`}
-                            aria-label={typeLabels[event.type]}
-                          />
-                        ))}
-                        {day.events.length > 3 ? (
-                          <span className="calendar-badge calendar-badge--count">+{day.events.length - 3}</span>
-                        ) : null}
+                        <span className="calendar-badge calendar-badge--count day-count">{count}</span>
                       </span>
                     ) : null}
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="calendar-day-detail">
@@ -517,56 +629,148 @@ export default function CalendarPage() {
                   </ul>
                 )}
               </div>
+            </section>
 
-              <div className="calendar-legend">
-                <p>{calendar.legend}</p>
+            <aside className="calendar-sidebar rightColumn">
+            <section className="calendar-card calendar-card--filters">
+              <div className="calendar-card__header">
                 <div>
-                  {EVENT_TYPES.map((type) => (
-                    <span key={type} className={`calendar-tag ${typeClassName[type]}`}>
-                      {typeLabels[type]}
+                  <p className="calendar-card__eyebrow">Filtros</p>
+                  <h3>Filtrar por fecha</h3>
+                </div>
+              </div>
+              <div className="calendar-filter-panel">
+                <div className="calendar-filter-block">
+                  <div className="calendar-range__options calendar-range__options--wrap">
+                    <button
+                      type="button"
+                      className={rangeMode === "month" ? "calendar-filter calendar-filter--active" : "calendar-filter"}
+                      onClick={() => setRangeMode("month")}
+                    >
+                      Mes actual
+                    </button>
+                    <button
+                      type="button"
+                      className={rangeMode === "all" ? "calendar-filter calendar-filter--active" : "calendar-filter"}
+                      onClick={() => setRangeMode("all")}
+                    >
+                      Todo
+                    </button>
+                    <button
+                      type="button"
+                      className={rangeMode === "custom" ? "calendar-filter calendar-filter--active" : "calendar-filter"}
+                      onClick={() => setRangeMode("custom")}
+                    >
+                      Rango personalizado
+                    </button>
+                  </div>
+                  {rangeMode === "custom" ? (
+                    <div className="calendar-range__inputs">
+                      <input
+                        type="date"
+                        value={customFrom}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                        className="calendar-range__input"
+                        aria-label="Desde"
+                      />
+                      <input
+                        type="date"
+                        value={customTo}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        className="calendar-range__input"
+                        aria-label="Hasta"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="calendar-filter-block">
+                  <p className="calendar-range__label">Conteo por tipo</p>
+                  <div className="calendar-filter__options calendar-filter__options--grid calendar-filter__options--static">
+                    <span className="calendar-filter calendar-filter--static">
+                      Todos ({events.length})
                     </span>
-                  ))}
+                    <span className="calendar-filter calendar-filter--static">
+                      {typeLabels.factura_venta} ({stats.factura_venta})
+                    </span>
+                    <span className="calendar-filter calendar-filter--static">
+                      {typeLabels.factura_compra} ({stats.factura_compra})
+                    </span>
+                    <span className="calendar-filter calendar-filter--static">
+                      {typeLabels.inicio_trabajo} ({stats.inicio_trabajo})
+                    </span>
+                    <span className="calendar-filter calendar-filter--static">
+                      {typeLabels.termino_trabajo} ({stats.termino_trabajo})
+                    </span>
+                    <span className="calendar-filter calendar-filter--static">
+                      {typeLabels.nota} ({stats.nota})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="calendar-filter-block">
+                  <p className="calendar-range__label">Leyenda</p>
+                  <div className="calendar-legend-inline">
+                    <span className="legend-item">
+                      <span className="legend-swatch legend-swatch--venta" /> Factura de venta
+                    </span>
+                    <span className="legend-item">
+                      <span className="legend-swatch legend-swatch--compra" /> Factura de compra
+                    </span>
+                    <span className="legend-item">
+                      <span className="legend-swatch legend-swatch--inicio" /> Inicio de trabajo
+                    </span>
+                    <span className="legend-item">
+                      <span className="legend-swatch legend-swatch--termino" /> Término de trabajo
+                    </span>
+                    <span className="legend-item">
+                      <span className="legend-swatch legend-swatch--nota" /> Nota
+                    </span>
+                  </div>
                 </div>
               </div>
             </section>
 
-              <section className="calendar-card calendar-card--list">
+            <section className="calendar-card calendar-card--list nextMilestonesCard">
               <div className="calendar-card__header">
                 <div>
                   <p className="calendar-card__eyebrow">{calendar.upcomingTitle}</p>
-                  <h3>{calendar.upcomingSubtitle}</h3>
+                  <div className="hero-switcher">
+                    <button
+                      type="button"
+                      className="hero-switcher__btn"
+                      aria-label="Anterior"
+                      onClick={() =>
+                        setMilestoneIndex((prev) => (prev - 1 + NEXT_EVENT_CATEGORIES.length) % NEXT_EVENT_CATEGORIES.length)
+                      }
+                    >
+                      {"<"}
+                    </button>
+                    <h3 className="hero-switcher__label">Próximos hitos: {NEXT_EVENT_CATEGORIES[milestoneIndex].label}</h3>
+                    <button
+                      type="button"
+                      className="hero-switcher__btn"
+                      aria-label="Siguiente"
+                      onClick={() => setMilestoneIndex((prev) => (prev + 1) % NEXT_EVENT_CATEGORIES.length)}
+                    >
+                      {">"}
+                    </button>
+                  </div>
                 </div>
                 <span className="calendar-chip calendar-chip--muted">{calendar.localOnly}</span>
               </div>
 
-              <div className="calendar-filters">
-                <p>{calendar.filters.label}</p>
-                <div className="calendar-filter__options">
-                  <button
-                    type="button"
-                    className={filter === "all" ? "calendar-filter calendar-filter--active" : "calendar-filter"}
-                    onClick={() => setFilter("all")}
-                  >
-                    {calendar.filters.all} ({events.length})
-                  </button>
-                  {EVENT_TYPES.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      className={filter === type ? "calendar-filter calendar-filter--active" : "calendar-filter"}
-                      onClick={() => setFilter(type)}
-                    >
-                      {typeLabels[type]} ({stats[type]})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {upcomingEvents.length === 0 ? (
-                <p className="calendar-empty">{calendar.upcomingEmpty}</p>
-              ) : (
-                <ul className="calendar-upcoming">
-                  {upcomingEvents.map((event) => (
+              {(() => {
+                const category = NEXT_EVENT_CATEGORIES[milestoneIndex];
+                const filtered = upcomingEvents.filter((event) =>
+                  category.id === "all" ? true : event.type === category.id,
+                );
+                if (filtered.length === 0) {
+                  return <p className="calendar-empty">No existen hitos pendientes para este filtro.</p>;
+                }
+                return (
+                  <ul className="calendar-upcoming">
+                    {filtered.map((event) => (
                     <li key={event.id} className="calendar-upcoming__item">
                       <div>
                         <p className="calendar-event__title">{event.title}</p>
@@ -587,10 +791,57 @@ export default function CalendarPage() {
                       </div>
                     </li>
                   ))}
-                </ul>
-              )}
+                  </ul>
+                );
+              })()}
               </section>
+            </aside>
             </div>
+            {showDayModal ? (
+              <div className="calendar-modal" role="dialog" aria-modal="true">
+                <div className="calendar-modal__backdrop" onClick={() => setShowDayModal(false)} />
+                <div className="calendar-modal__dialog" onClick={(e) => e.stopPropagation()}>
+                  <div className="calendar-modal__header">
+                    <h4>Eventos del {selectedDayLabel || selectedDay}</h4>
+                    <button type="button" className="calendar-btn" onClick={() => setShowDayModal(false)}>
+                      Cerrar
+                    </button>
+                  </div>
+                  {selectedDayEvents.length === 0 ? (
+                    <p className="calendar-empty">{calendar.selectedDayEmpty}</p>
+                  ) : (
+                    <ul className="calendar-events">
+                      {selectedDayEvents.map((event) => (
+                        <li key={event.id} className="calendar-event">
+                          <div>
+                            <p className="calendar-event__title">{event.title}</p>
+                            <p className="calendar-event__meta">
+                              <span className={`calendar-tag ${typeClassName[event.type]}`}>
+                                {typeLabels[event.type]}
+                              </span>
+                              {event.description ? <span>{event.description}</span> : null}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="calendar-modal__actions">
+                    <button
+                      type="button"
+                      className="calendar-btn"
+                      onClick={() => {
+                        setFormData({ ...getDefaultFormState(), date: selectedDay, type: "nota" });
+                        setEditingId(null);
+                        setShowDayModal(false);
+                      }}
+                    >
+                      Agregar nota
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <AppFooter />
           </main>
         </div>
@@ -604,7 +855,7 @@ function getDefaultFormState(): FormState {
     title: "",
     date: "",
     description: "",
-    type: "maintenance",
+    type: "nota",
   };
 }
 
@@ -639,6 +890,16 @@ function createEventId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function mapApiEvent(raw: any): CalendarEvent {
+  return {
+    id: String(raw.id || createEventId()),
+    title: raw.title || "Evento",
+    date: raw.date || "",
+    description: raw.description || "",
+    type: (raw.type as CalendarEventType) || "nota",
+  };
+}
+
 function buildCalendarDays(
   monthCursor: Date,
   selectedDay: string,
@@ -665,3 +926,13 @@ function buildCalendarDays(
     };
   });
 }
+
+
+
+
+
+
+
+
+
+
