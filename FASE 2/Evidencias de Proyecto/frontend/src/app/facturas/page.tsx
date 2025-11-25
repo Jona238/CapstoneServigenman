@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
@@ -18,7 +18,14 @@ type InvoiceForm = {
   issueDate: string;
   supplier: string;
   amount: string;
+  netAmount: string;
+  vatAmount: string;
   description: string;
+  rut: string;
+  address: string;
+  contact: string;
+  quantity: string;
+  unitPrice: string;
 };
 
 type MaterialRow = {
@@ -38,6 +45,10 @@ type InvoiceRecord = InvoiceForm & {
   id: string;
   type: InvoiceType;
   amountNumber: number;
+  netAmountNumber: number;
+  vatAmountNumber: number;
+  quantityNumber?: number;
+  unitPriceNumber?: number;
   createdAt: string;
   attachment?: InvoiceAttachment;
   materials?: MaterialRow[];
@@ -56,7 +67,14 @@ const DEFAULT_FORM: InvoiceForm = {
   issueDate: "",
   supplier: "",
   amount: "",
+  netAmount: "",
+  vatAmount: "",
   description: "",
+  rut: "",
+  address: "",
+  contact: "",
+  quantity: "",
+  unitPrice: "",
 };
 
 const DEFAULT_FORMS: Record<InvoiceType, InvoiceForm> = {
@@ -79,6 +97,21 @@ const DEFAULT_FILES: Record<InvoiceType, File | null> = {
   venta: null,
 };
 
+const MONTH_LABELS = [
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
+];
+
 export default function InvoicesPage() {
   useBodyClass();
   const { t, locale } = useLanguage();
@@ -91,7 +124,18 @@ export default function InvoicesPage() {
   const [files, setFiles] = useState<Record<InvoiceType, File | null>>(DEFAULT_FILES);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFormPanel, setShowFormPanel] = useState(false);
   const [isReading, setIsReading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    year: "",
+    month: "",
+    client: "",
+    minAmount: "",
+    maxAmount: "",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
   const fileInputRefs = useRef<Record<InvoiceType, HTMLInputElement | null>>({
     compra: null,
     venta: null,
@@ -109,6 +153,20 @@ export default function InvoicesPage() {
     }
     return "";
   }, []);
+
+  const fetchInvoicesFromApi = useCallback(async () => {
+    if (!apiBaseUrl) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/invoices/`, { credentials: "include" });
+      if (!response.ok) return;
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : data.results || [];
+      const normalized = items.map(mapApiInvoiceToRecord);
+      setInvoices(normalized);
+    } catch {
+      // ignore network errors
+    }
+  }, [apiBaseUrl]);
 
   useEffect(() => {
     try {
@@ -129,7 +187,24 @@ export default function InvoicesPage() {
           typeof invoice.amountNumber === "number" && !Number.isNaN(invoice.amountNumber)
             ? invoice.amountNumber
             : parseAmount(invoice.amount),
+        netAmountNumber:
+          typeof invoice.netAmountNumber === "number" && !Number.isNaN(invoice.netAmountNumber)
+            ? invoice.netAmountNumber
+            : parseAmount(invoice.netAmount),
+        vatAmountNumber:
+          typeof invoice.vatAmountNumber === "number" && !Number.isNaN(invoice.vatAmountNumber)
+            ? invoice.vatAmountNumber
+            : parseAmount(invoice.vatAmount),
         materials: invoice.materials || [],
+        rut: invoice.rut || "",
+        address: invoice.address || "",
+        contact: invoice.contact || "",
+        netAmount: invoice.netAmount || "",
+        vatAmount: invoice.vatAmount || "",
+        quantity: invoice.quantity || "",
+        unitPrice: invoice.unitPrice || "",
+        quantityNumber: invoice.quantityNumber || undefined,
+        unitPriceNumber: invoice.unitPriceNumber || undefined,
       }));
       setInvoices(normalized);
     } catch {
@@ -156,10 +231,27 @@ export default function InvoicesPage() {
     }
   }, [invoices]);
 
+  useEffect(() => {
+    fetchInvoicesFromApi();
+  }, [fetchInvoicesFromApi]);
+
   const currentForm = forms[activeTab];
   const currentErrors = errors[activeTab];
   const currentFile = files[activeTab];
   const currentMaterials = materials[activeTab];
+  const calculatedIva = useMemo(() => {
+    const amt = parseAmount(currentForm.amount);
+    const netCandidate = parseAmount(currentForm.netAmount);
+    const result = computeNetVat(amt, netCandidate);
+    return result.vat;
+  }, [currentForm.amount, currentForm.netAmount]);
+
+  const computedNet = useMemo(() => {
+    const amt = parseAmount(currentForm.amount);
+    const netCandidate = parseAmount(currentForm.netAmount);
+    const result = computeNetVat(amt, netCandidate);
+    return result.net;
+  }, [currentForm.amount, currentForm.netAmount]);
 
   const handleTabChange = (nextTab: InvoiceType) => {
     setActiveTab(nextTab);
@@ -168,10 +260,10 @@ export default function InvoicesPage() {
 
   const handleInputChange =
     (field: keyof InvoiceForm) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setForms((prev) => ({
-        ...prev,
-        [activeTab]: { ...prev[activeTab], [field]: event.target.value },
-      }));
+      setForms((prev) => {
+        const nextForm = applyAmountSideEffects(prev[activeTab], field, event.target.value);
+        return { ...prev, [activeTab]: nextForm };
+      });
       setErrors((prev) => ({
         ...prev,
         [activeTab]: { ...prev[activeTab], [field]: undefined },
@@ -244,25 +336,40 @@ export default function InvoicesPage() {
         };
       }
 
+      const netAmountNumber = parseAmount(currentForm.netAmount);
+      const netVat = computeNetVat(amountNumber, netAmountNumber);
+      const vatAmountNumber = netVat.vat;
+      const quantityNumber = currentForm.quantity ? parseInt(currentForm.quantity, 10) || 0 : undefined;
+      const unitPriceNumber = parseAmount(currentForm.unitPrice);
+
       const record: InvoiceRecord = {
         ...currentForm,
         type: activeTab,
-        id: createId(),
+        id: editingId || createId(),
         amountNumber,
+        netAmountNumber: netVat.net,
+        vatAmountNumber,
+        quantityNumber,
+        unitPriceNumber,
         createdAt: new Date().toISOString(),
         attachment,
         materials: activeTab === "compra" ? currentMaterials : undefined,
       };
 
-      await persistInvoice(record, currentFile);
+      await persistInvoice(record, currentFile, Boolean(editingId));
 
-      setInvoices((prev) => [record, ...prev]);
+      setInvoices((prev) =>
+        editingId ? prev.map((item) => (item.id === editingId ? record : item)) : [record, ...prev],
+      );
       setForms((prev) => ({ ...prev, [activeTab]: { ...DEFAULT_FORM } }));
       setMaterials((prev) => ({ ...prev, [activeTab]: [] }));
       setFiles((prev) => ({ ...prev, [activeTab]: null }));
       if (fileInputRefs.current[activeTab]) {
         fileInputRefs.current[activeTab]!.value = "";
       }
+      setEditingId(null);
+      setShowFormPanel(false);
+      fetchInvoicesFromApi();
       setStatusMessage({ type: "success", text: t.invoices.messages.saved });
     } catch {
       setStatusMessage({ type: "error", text: t.invoices.messages.error });
@@ -271,7 +378,7 @@ export default function InvoicesPage() {
     }
   };
 
-  const persistInvoice = async (record: InvoiceRecord, attachment: File | null) => {
+  const persistInvoice = async (record: InvoiceRecord, attachment: File | null, isEdit: boolean) => {
     if (!apiBaseUrl) return;
     try {
       const payload = new FormData();
@@ -279,17 +386,39 @@ export default function InvoicesPage() {
       payload.append("issue_date", record.issueDate);
       payload.append("supplier", record.supplier);
       payload.append("amount", String(record.amountNumber));
+      payload.append("net_amount", String(record.netAmountNumber));
+      payload.append("vat_amount", String(record.vatAmountNumber));
       payload.append("description", record.description);
       payload.append("tipo_factura", record.type);
+      if (record.rut) {
+        payload.append("rut", record.rut);
+      }
+      if (record.address) {
+        payload.append("address", record.address);
+      }
+      if (record.contact) {
+        payload.append("contact", record.contact);
+      }
       if (record.materials?.length) {
         payload.append("materials", JSON.stringify(record.materials));
+      }
+      if (record.quantityNumber) {
+        payload.append("quantity", String(record.quantityNumber));
+      }
+      if (record.unitPriceNumber) {
+        payload.append("unit_price", String(record.unitPriceNumber));
+      }
+      if (record.id) {
+        payload.append("id", record.id);
       }
       payload.append("source", "frontend-demo");
       if (attachment) {
         payload.append("attachment", attachment);
       }
-      await fetch(`${apiBaseUrl}/api/invoices/`, {
-        method: "POST",
+      const endpoint = isEdit ? `${apiBaseUrl}/api/invoices/${record.id}/` : `${apiBaseUrl}/api/invoices/`;
+      const method = isEdit ? "PUT" : "POST";
+      await fetch(endpoint, {
+        method,
         credentials: "include",
         body: payload,
       }).catch(() => {
@@ -300,15 +429,100 @@ export default function InvoicesPage() {
     }
   };
 
-  const summary = useMemo(() => {
-    const totalAmount = invoices.reduce((acc, invoice) => acc + invoice.amountNumber, 0);
-    const lastInvoice = invoices[0];
+  const filteredBase = useMemo(() => {
+    return invoices.filter((inv) => {
+      const date = inv.issueDate ? new Date(inv.issueDate) : null;
+      const yearMatch = filters.year ? date?.getFullYear() === Number(filters.year) : true;
+      const monthMatch = filters.month ? (date ? date.getMonth() + 1 === Number(filters.month) : false) : true;
+      const clientMatch = filters.client
+        ? inv.supplier.toLowerCase().includes(filters.client.toLowerCase())
+        : true;
+      const minMatch = filters.minAmount ? inv.amountNumber >= Number(filters.minAmount) : true;
+      const maxMatch = filters.maxAmount ? inv.amountNumber <= Number(filters.maxAmount) : true;
+      return yearMatch && monthMatch && clientMatch && minMatch && maxMatch;
+    });
+  }, [filters, invoices]);
+
+  const filteredInvoices = useMemo(
+    () => filteredBase.filter((inv) => inv.type === activeTab),
+    [filteredBase, activeTab],
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredInvoices, activeTab]);
+
+  const computeSummary = (list: InvoiceRecord[]) => {
+    const sumVat = (list: InvoiceRecord[]) =>
+      list.reduce((acc, invoice) => {
+        const vat =
+          typeof invoice.vatAmountNumber === "number" ? invoice.vatAmountNumber : parseAmount(invoice.vatAmount);
+        return acc + (Number.isFinite(vat) ? vat : 0);
+      }, 0);
+
+    const sumAmount = (list: InvoiceRecord[]) => list.reduce((acc, invoice) => acc + invoice.amountNumber, 0);
+    const totalNet = list.reduce(
+      (acc, invoice) =>
+        acc +
+        (typeof invoice.netAmountNumber === "number" ? invoice.netAmountNumber : parseAmount(invoice.netAmount)),
+      0,
+    );
+    const totalQty = list.reduce(
+      (acc, invoice) => acc + (invoice.quantityNumber || parseInt(invoice.quantity || "0", 10) || 0),
+      0,
+    );
+    const avgAmount = list.length ? sumAmount(list) / list.length : 0;
+    const byClient = list.reduce<Record<string, { count: number; amount: number }>>((map, inv) => {
+      const key = inv.supplier || inv.client || inv.rut || "N/A";
+      if (!map[key]) map[key] = { count: 0, amount: 0 };
+      map[key].count += 1;
+      map[key].amount += inv.amountNumber;
+      return map;
+    }, {});
+    const clientMostCount = Object.entries(byClient).sort((a, b) => b[1].count - a[1].count)[0]?.[0] ?? "--";
+    const clientMostAmount = Object.entries(byClient).sort((a, b) => b[1].amount - a[1].amount)[0]?.[0] ?? "--";
+    const lastInvoice = list[0];
     return {
-      count: invoices.length,
-      totalAmount,
-      lastSupplier: lastInvoice?.supplier ?? t.invoices.summary.noRecords,
+      count: list.length,
+      total: sumAmount(list),
+      vat: sumVat(list),
+      lastParty: lastInvoice?.supplier ?? t.invoices.summary.noRecords,
+      totalNet,
+      totalQty,
+      avgAmount,
+      clientMostCount,
+      clientMostAmount,
+      ranking: Object.entries(byClient)
+        .map(([name, data]) => ({ name, count: data.count, amount: data.amount }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5),
     };
-  }, [invoices, t]);
+  };
+
+  const summary = useMemo(() => computeSummary(filteredInvoices), [filteredInvoices]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+  const paginatedInvoices = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredInvoices.slice(start, start + PAGE_SIZE);
+  }, [filteredInvoices, currentPage]);
+
+  const monthlySpark = useMemo(() => {
+    const totals = Array(12).fill(0);
+    filteredInvoices.forEach((inv) => {
+      if (!inv.issueDate) return;
+      const date = new Date(inv.issueDate);
+      if (Number.isNaN(date.getTime())) return;
+      const month = date.getMonth();
+      totals[month] += inv.amountNumber;
+    });
+    const max = Math.max(...totals, 0.0001);
+    return totals.map((val, idx) => ({
+      label: MONTH_LABELS[idx],
+      value: val,
+      height: Math.max((val / max) * 48, 4),
+    }));
+  }, [filteredInvoices]);
 
   const handleAutofill = async () => {
     setStatusMessage(null);
@@ -333,11 +547,24 @@ export default function InvoicesPage() {
         throw new Error("extract_failed");
       }
       const data = await response.json();
+      const totalRaw = unformatCLP(normalizeAmountInput(data.total_amount) || currentForm.amount);
+      const netRaw = unformatCLP(normalizeAmountInput(data.net_amount));
+      const totalNumber = parseAmount(totalRaw);
+      const netNumber = parseAmount(netRaw);
+      const netVat = computeNetVat(totalNumber, netNumber);
+
       const nextForm: Partial<InvoiceForm> = {
         invoiceNumber: data.invoice_number || currentForm.invoiceNumber,
         issueDate: normalizeDateInput(data.issue_date) || currentForm.issueDate,
         supplier: data.supplier || data.client || currentForm.supplier,
-        amount: normalizeAmountInput(data.total_amount) || currentForm.amount,
+        amount: totalRaw || currentForm.amount,
+        netAmount: String(netVat.net || "") || currentForm.netAmount,
+        vatAmount: String(netVat.vat || "") || currentForm.vatAmount,
+        rut: data.rut ? unformatRut(String(data.rut)) : currentForm.rut,
+        address: data.address || currentForm.address,
+        contact: data.contact || currentForm.contact,
+        quantity: data.quantity ? String(data.quantity) : currentForm.quantity,
+        unitPrice: data.unit_price ? String(data.unit_price) : currentForm.unitPrice,
         description:
           activeTab === "venta"
             ? data.work_description || currentForm.description
@@ -388,8 +615,60 @@ export default function InvoicesPage() {
     setMaterials((prev) => ({ ...prev, [activeTab]: [] }));
     setFiles((prev) => ({ ...prev, [activeTab]: null }));
     setErrors((prev) => ({ ...prev, [activeTab]: {} }));
+    setEditingId(null);
     if (fileInputRefs.current[activeTab]) {
       fileInputRefs.current[activeTab]!.value = "";
+    }
+  };
+
+  const closeFormPanel = () => {
+    resetTab();
+    setShowFormPanel(false);
+  };
+
+  const handleEdit = (invoice: InvoiceRecord) => {
+    setActiveTab(invoice.type);
+    setShowFormPanel(true);
+    setForms((prev) => ({
+      ...prev,
+      [invoice.type]: {
+        invoiceNumber: invoice.invoiceNumber,
+        issueDate: invoice.issueDate,
+        supplier: invoice.supplier,
+        amount: String(invoice.amountNumber),
+        netAmount: String(invoice.netAmountNumber || ""),
+        vatAmount: String(invoice.vatAmountNumber || ""),
+        description: invoice.description,
+        rut: invoice.rut || "",
+        address: invoice.address || "",
+        contact: invoice.contact || "",
+        quantity: invoice.quantityNumber ? String(invoice.quantityNumber) : "",
+        unitPrice: invoice.unitPriceNumber ? String(invoice.unitPriceNumber) : "",
+      },
+    }));
+    if (invoice.type === "compra") {
+      setMaterials((prev) => ({ ...prev, compra: invoice.materials || [] }));
+    }
+    setEditingId(invoice.id);
+    setStatusMessage({ type: "success", text: "Modo edicion activo" });
+    if (fileInputRefs.current[invoice.type]) {
+      fileInputRefs.current[invoice.type]!.value = "";
+    }
+  };
+
+  const handleDelete = async (invoiceId: string) => {
+    const confirmDelete = typeof window !== "undefined" ? window.confirm("¿Eliminar esta factura?") : true;
+    if (!confirmDelete) return;
+    setInvoices((prev) => prev.filter((inv) => inv.id !== invoiceId));
+    if (!apiBaseUrl) return;
+    try {
+      await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}/`, {
+        method: "DELETE",
+        credentials: "include",
+      }).catch(() => {});
+      fetchInvoicesFromApi();
+    } catch {
+      // ignore
     }
   };
 
@@ -399,7 +678,7 @@ export default function InvoicesPage() {
       <div className="inventory-page invoice-page">
         <AppHeader />
         <div className="inventory-shell invoice-shell">
-          <main className="inventory-main invoice-main">
+          <main className="invoice-layout invoice-main">
             <section className="inventory-card invoice-panel">
               <div className="inventory-card__heading">
                 <div>
@@ -407,20 +686,38 @@ export default function InvoicesPage() {
                   <h2>{t.invoices.hero.title}</h2>
                   <p>{t.invoices.hero.subtitle}</p>
                 </div>
-                <div className="invoice-kpis">
-                  <article>
-                    <p>{t.invoices.summary.totalInvoices}</p>
-                    <strong>{summary.count}</strong>
-                  </article>
-                  <article>
-                    <p>{t.invoices.summary.totalAmount}</p>
-                    <strong>{formatCurrency(summary.totalAmount)}</strong>
-                  </article>
-                  <article>
-                    <p>{t.invoices.summary.lastSupplier}</p>
-                    <strong>{summary.lastSupplier}</strong>
-                  </article>
+                <div className="invoice-tabs invoice-tabs--kpi" role="tablist" aria-label="Tipo de KPIs">
+                  {(["venta", "compra"] as InvoiceType[]).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab}
+                      className={`invoice-tab ${activeTab === tab ? "invoice-tab--active" : ""}`}
+                      onClick={() => setActiveTab(tab)}
+                    >
+                      {tab === "venta" ? "Facturas de venta" : "Facturas de compra"}
+                    </button>
+                  ))}
                 </div>
+              <div className="invoice-kpis">
+                <article>
+                  <p>{activeTab === "compra" ? "Facturas de compra" : "Facturas de venta"}</p>
+                  <strong>{summary.count}</strong>
+                </article>
+                <article>
+                  <p>{activeTab === "compra" ? "Gasto total" : "Ingreso total"}</p>
+                  <strong>{formatCurrency(summary.total)}</strong>
+                </article>
+                <article>
+                  <p>{activeTab === "compra" ? "IVA compras" : "IVA ventas"}</p>
+                  <strong>{formatCurrency(summary.vat)}</strong>
+                </article>
+                <article>
+                  <p>{activeTab === "compra" ? "Ultimo proveedor" : "Ultimo cliente"}</p>
+                  <strong>{summary.lastParty}</strong>
+                </article>
+              </div>
               </div>
 
               {statusMessage ? (
@@ -432,29 +729,248 @@ export default function InvoicesPage() {
                   {statusMessage.text}
                 </div>
               ) : null}
+              <div className="invoice-form-launch">
+                <button
+                  type="button"
+                  className="invoice-btn"
+                  onClick={() => {
+                    resetTab();
+                    setShowFormPanel(true);
+                  }}
+                >
+                  + Registrar nueva factura
+                </button>
+              </div>
 
               <section className="invoice-section">
                 <div className="invoice-section__heading">
-                  <h3>{t.invoices.form.title}</h3>
-                  <p>{t.invoices.form.description}</p>
-                  <div className="invoice-tabs" role="tablist" aria-label={t.invoices.form.tabLabel}>
-                    {(["compra", "venta"] as InvoiceType[]).map((tab) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeTab === tab}
-                        className={`invoice-tab ${activeTab === tab ? "invoice-tab--active" : ""}`}
-                        onClick={() => handleTabChange(tab)}
-                      >
-                        {tab === "compra" ? t.invoices.form.tabs.purchase : t.invoices.form.tabs.sale}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="invoice-tab__hint">
-                    {activeTab === "compra" ? t.invoices.form.purchaseHelper : t.invoices.form.salesHelper}
-                  </p>
+                  <h3>{t.invoices.table.title}</h3>
+                  <p>{t.invoices.table.helper}</p>
                 </div>
+
+                {filteredInvoices.length === 0 ? (
+                  <p className="invoice-empty">
+                    {activeTab === "compra" ? "No hay facturas de compra registradas" : t.invoices.table.empty}
+                  </p>
+                ) : (
+                  <div className="invoice-table__wrapper">
+                    <table className="invoice-table">
+                      <thead>
+                        <tr>
+                          <th>{t.invoices.table.number}</th>
+                      <th>{t.invoices.table.date}</th>
+                      <th>{t.invoices.table.supplier}</th>
+                      <th>{t.invoices.table.amount}</th>
+                      <th>{t.invoices.table.description}</th>
+                      <th>{t.invoices.table.attachment}</th>
+                      <th>{t.common.actions}</th>
+                    </tr>
+                  </thead>
+                      <tbody>
+                        {paginatedInvoices.map((invoice) => (
+                          <tr key={invoice.id}>
+                            <td>{invoice.invoiceNumber}</td>
+                            <td>{formatDate(invoice.issueDate, locale)}</td>
+                            <td>{invoice.supplier}</td>
+                            <td>{formatCurrency(invoice.amountNumber)}</td>
+                            <td>{invoice.description || "--"}</td>
+                            <td>
+                          {invoice.attachment && invoice.attachment.dataUrl ? (
+                            <a
+                              href={invoice.attachment.dataUrl}
+                              download={invoice.attachment.name}
+                              className="invoice-link"
+                            >
+                              {invoice.attachment.name}
+                            </a>
+                          ) : (
+                            <span>{t.invoices.table.noAttachment}</span>
+                          )}
+                        </td>
+                        <td>
+                          <button className="invoice-btn invoice-btn--ghost" type="button" onClick={() => handleEdit(invoice)}>
+                            Editar
+                          </button>
+                          <button className="invoice-btn invoice-btn--ghost" type="button" onClick={() => handleDelete(invoice.id)}>
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                      </tbody>
+                    </table>
+                    <div className="invoice-pagination">
+                      <button
+                        type="button"
+                        className="invoice-btn invoice-btn--ghost"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                      >
+                        {t.inventory.previous || "Anterior"}
+                      </button>
+                      <span className="invoice-page-info">
+                        {(t.inventory.page || "Página")} {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        className="invoice-btn invoice-btn--ghost"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                      >
+                        {t.inventory.next || "Siguiente"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </section>
+            <aside className="invoice-sidebar">
+              <div className="invoice-sidecard invoice-sidecard--accent">
+                <h4 className="invoice-sidecard__title">🔎 Filtros</h4>
+                <div className="invoice-filters">
+                  <label>
+                    <span className="invoice-filter-label">Año</span>
+                    <select
+                      value={filters.year}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, year: e.target.value }))}
+                    >
+                      <option value="">Todos</option>
+                      {[...new Set(invoices.map((inv) => new Date(inv.issueDate).getFullYear()).filter((y) => !Number.isNaN(y)))]
+                        .sort((a, b) => b - a)
+                        .map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="invoice-filter-label">Mes</span>
+                    <select
+                      value={filters.month}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, month: e.target.value }))}
+                    >
+                      <option value="">Todos</option>
+                      {MONTH_LABELS.map((label, idx) => (
+                        <option key={label} value={idx + 1}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="invoice-filter-label">Cliente</span>
+                    <input
+                      type="text"
+                      value={filters.client}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, client: e.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    <span className="invoice-filter-label">Monto mín.</span>
+                    <input
+                      type="number"
+                      value={filters.minAmount}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, minAmount: e.target.value }))}
+                    />
+                  </label>
+                  <label>
+                    <span className="invoice-filter-label">Monto máx.</span>
+                    <input
+                      type="number"
+                      value={filters.maxAmount}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, maxAmount: e.target.value }))}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="invoice-sidecard invoice-sidecard--accent">
+                <h4 className="invoice-sidecard__title">📊 Mini-estadísticas</h4>
+                <div className="invoice-mini-stats">
+                  <div>
+                    <p>🧮 Promedio factura</p>
+                    <strong className="invoice-mini-figure">{formatCurrency(summary.avgAmount || 0)}</strong>
+                  </div>
+                  <div>
+                    <p>Total neto</p>
+                    <strong className="invoice-mini-figure">{formatCurrency(summary.totalNet || 0)}</strong>
+                  </div>
+                  <div>
+                    <p>％ IVA acumulado</p>
+                    <strong className="invoice-mini-figure">{formatCurrency(summary.vat || 0)}</strong>
+                  </div>
+                  <div>
+                    <p>Cant. trabajos</p>
+                    <strong className="invoice-mini-figure">{summary.totalQty || 0}</strong>
+                  </div>
+                  <div>
+                    <p>👥 Cliente +facturas</p>
+                    <strong className="invoice-mini-figure">{summary.clientMostCount}</strong>
+                  </div>
+                  <div>
+                    <p>💰 Cliente +monto</p>
+                    <strong className="invoice-mini-figure">{summary.clientMostAmount}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="invoice-sidecard">
+                <h4 className="invoice-sidecard__title">🏆 Top clientes</h4>
+                <div className="invoice-ranking">
+                  {(summary.ranking || []).map((item) => (
+                    <div key={item.name}>
+                      <strong>{item.name}</strong> — {item.count} facturas · {formatCurrency(item.amount)}
+                    </div>
+                  ))}
+                  {(summary.ranking || []).length === 0 ? <p>No hay datos</p> : null}
+                </div>
+              </div>
+
+              <div className="invoice-sidecard">
+                <h4 className="invoice-sidecard__title">📈 Evolución mensual</h4>
+                <div className="invoice-sparkline">
+                  {monthlySpark.map((m) => (
+                    <div key={m.label} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <div className="invoice-sparkbar" style={{ height: `${m.height}px` }} title={`${m.label}: ${formatCurrency(m.value)}`} />
+                      <span className="invoice-sparklabel">{m.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          </main>
+          {showFormPanel ? (
+            <div className="invoice-modal" role="dialog" aria-modal="true">
+              <div className="invoice-modal__backdrop" onClick={closeFormPanel} />
+              <div className="invoice-modal__dialog" onClick={(event) => event.stopPropagation()}>
+                <div className="invoice-modal__header">
+                  <div>
+                    <h3>{t.invoices.form.title}</h3>
+                    <p>{t.invoices.form.description}</p>
+                    <div className="invoice-tabs" role="tablist" aria-label={t.invoices.form.tabLabel}>
+                      {(["compra", "venta"] as InvoiceType[]).map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === tab}
+                          className={`invoice-tab ${activeTab === tab ? "invoice-tab--active" : ""}`}
+                          onClick={() => handleTabChange(tab)}
+                        >
+                          {tab === "compra" ? t.invoices.form.tabs.purchase : t.invoices.form.tabs.sale}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="invoice-tab__hint">
+                      {activeTab === "compra" ? t.invoices.form.purchaseHelper : t.invoices.form.salesHelper}
+                    </p>
+                  </div>
+                  <button type="button" className="invoice-btn invoice-btn--ghost" onClick={closeFormPanel}>
+                    Cerrar
+                  </button>
+                </div>
+
                 <form className="invoice-form" onSubmit={handleSubmit} noValidate>
                   <div className="invoice-form__row">
                     <div className="invoice-field">
@@ -475,7 +991,7 @@ export default function InvoicesPage() {
                       ) : null}
                     </div>
                     <div className="invoice-field">
-                      <label htmlFor="issueDate">{t.invoices.form.date}</label>
+                      <label htmlFor="issueDate">{t.invoices.form.issueDate}</label>
                       <input
                         id="issueDate"
                         name="issueDate"
@@ -496,7 +1012,7 @@ export default function InvoicesPage() {
                   <div className="invoice-form__row">
                     <div className="invoice-field">
                       <label htmlFor="supplier">
-                        {activeTab === "venta" ? t.invoices.form.client : t.invoices.form.supplier}
+                        {activeTab === "compra" ? t.invoices.form.supplier : t.invoices.form.client}
                       </label>
                       <input
                         id="supplier"
@@ -519,8 +1035,6 @@ export default function InvoicesPage() {
                         id="amount"
                         name="amount"
                         type="number"
-                        inputMode="decimal"
-                        step="0.01"
                         value={currentForm.amount}
                         onChange={handleInputChange("amount")}
                         aria-invalid={Boolean(currentErrors.amount)}
@@ -532,6 +1046,102 @@ export default function InvoicesPage() {
                         </span>
                       ) : null}
                     </div>
+                  </div>
+
+                  <div className="invoice-form__row">
+                    <div className="invoice-field">
+                      <label htmlFor="netAmount">{t.invoices.form.netAmount}</label>
+                      <input
+                        id="netAmount"
+                        name="netAmount"
+                        type="number"
+                        value={currentForm.netAmount || computedNet || ""}
+                        onChange={handleInputChange("netAmount")}
+                      />
+                    </div>
+                    <div className="invoice-field">
+                      <label htmlFor="vatAmount">{t.invoices.form.vatAmount}</label>
+                      <input
+                        id="vatAmount"
+                        name="vatAmount"
+                        type="number"
+                        value={currentForm.vatAmount || calculatedIva || ""}
+                        onChange={handleInputChange("vatAmount")}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="invoice-form__row">
+                    <div className="invoice-field">
+                      <label htmlFor="quantity">{activeTab === "venta" ? "Cantidad del trabajo" : "Cantidad"}</label>
+                      <input
+                        id="quantity"
+                        name="quantity"
+                        type="number"
+                        min="1"
+                        value={currentForm.quantity || (activeTab === "venta" ? "1" : "")}
+                        onChange={handleInputChange("quantity")}
+                      />
+                    </div>
+                    <div className="invoice-field">
+                      <label htmlFor="unitPrice">
+                        {activeTab === "venta" ? "Precio unitario (CLP)" : t.invoices.form.unitPrice}
+                      </label>
+                      <input
+                        id="unitPrice"
+                        name="unitPrice"
+                        type="number"
+                        value={currentForm.unitPrice}
+                        onChange={handleInputChange("unitPrice")}
+                      />
+                    </div>
+                  </div>
+
+                  {activeTab === "venta" && currentForm.unitPrice ? (
+                    <div className="invoice-field">
+                      <label>Subtotal neto estimado</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formatCurrency(
+                          (parseInt(currentForm.quantity || "1", 10) || 1) * parseAmount(currentForm.unitPrice || "0"),
+                        )}
+                      />
+                    </div>
+                  ) : null}
+
+                  <div className="invoice-form__row">
+                    <div className="invoice-field">
+                      <label htmlFor="rut">{t.invoices.form.rut}</label>
+                      <input
+                        id="rut"
+                        name="rut"
+                        type="text"
+                        value={formatRut(currentForm.rut)}
+                        onChange={handleInputChange("rut")}
+                      />
+                    </div>
+                    <div className="invoice-field">
+                      <label htmlFor="contact">{t.invoices.form.contact}</label>
+                      <input
+                        id="contact"
+                        name="contact"
+                        type="text"
+                        value={currentForm.contact}
+                        onChange={handleInputChange("contact")}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="invoice-field">
+                    <label htmlFor="address">{t.invoices.form.address}</label>
+                    <input
+                      id="address"
+                      name="address"
+                      type="text"
+                      value={currentForm.address}
+                      onChange={handleInputChange("address")}
+                    />
                   </div>
 
                   <div className="invoice-field">
@@ -618,59 +1228,9 @@ export default function InvoicesPage() {
                     </button>
                   </div>
                 </form>
-              </section>
-
-              <section className="invoice-section">
-                <div className="invoice-section__heading">
-                  <h3>{t.invoices.table.title}</h3>
-                  <p>{t.invoices.table.helper}</p>
-                </div>
-
-                {invoices.length === 0 ? (
-                  <p className="invoice-empty">{t.invoices.table.empty}</p>
-                ) : (
-                  <div className="invoice-table__wrapper">
-                    <table className="invoice-table">
-                      <thead>
-                        <tr>
-                          <th>{t.invoices.table.number}</th>
-                          <th>{t.invoices.table.date}</th>
-                          <th>{t.invoices.table.supplier}</th>
-                          <th>{t.invoices.table.amount}</th>
-                          <th>{t.invoices.table.description}</th>
-                          <th>{t.invoices.table.attachment}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoices.map((invoice) => (
-                          <tr key={invoice.id}>
-                            <td>{invoice.invoiceNumber}</td>
-                            <td>{formatDate(invoice.issueDate, locale)}</td>
-                            <td>{invoice.supplier}</td>
-                            <td>{formatCurrency(invoice.amountNumber)}</td>
-                            <td>{invoice.description || "--"}</td>
-                            <td>
-                              {invoice.attachment && invoice.attachment.dataUrl ? (
-                                <a
-                                  href={invoice.attachment.dataUrl}
-                                  download={invoice.attachment.name}
-                                  className="invoice-link"
-                                >
-                                  {invoice.attachment.name}
-                                </a>
-                              ) : (
-                                <span>{t.invoices.table.noAttachment}</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </section>
-            </section>
-          </main>
+              </div>
+            </div>
+          ) : null}
           <AppFooter />
         </div>
       </div>
@@ -696,6 +1256,12 @@ function toBase64(file: File) {
 
 function formatDate(value: string, locale: string) {
   if (!value) return "--";
+  const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const match = value.match(isoPattern);
+  if (match) {
+    const [, y, m, d] = match;
+    return `${d}/${m}/${y}`;
+  }
   try {
     return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-CL", {
       day: "2-digit",
@@ -742,6 +1308,82 @@ function normalizeAmountInput(value: string | number | undefined) {
   return cleaned;
 }
 
+function formatCLP(value: string | number) {
+  const num = typeof value === "number" ? value : parseAmount(value);
+  if (!num || Number.isNaN(num)) return "";
+  return new Intl.NumberFormat("es-CL").format(num);
+}
+
+function unformatCLP(str: string | undefined) {
+  if (!str) return "";
+  return str.replace(/[^\d-]/g, "");
+}
+
+function unformatRut(str: string | undefined) {
+  if (!str) return "";
+  return str.replace(/[^0-9kK-]/g, "").replace(/\s+/g, "");
+}
+
+function formatRut(raw: string | undefined) {
+  if (!raw) return "";
+  const clean = unformatRut(raw);
+  const parts = clean.split("-");
+  if (parts[0].length < 2) return clean;
+  const body = parts[0];
+  const dv = parts[1] || "";
+  const withDots = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return dv ? `${withDots}-${dv}` : withDots;
+}
+
+function applyAmountSideEffects(form: InvoiceForm, field: keyof InvoiceForm, value: string) {
+  if (field === "amount") {
+    const raw = unformatCLP(value);
+    const parsed = parseAmount(raw);
+    if (!parsed || Number.isNaN(parsed)) {
+      return { ...form, amount: raw, netAmount: "", vatAmount: "" };
+    }
+    const netVat = computeNetVat(parsed, parseAmount(form.netAmount));
+    return {
+      ...form,
+      amount: raw,
+      netAmount: netVat.net ? String(netVat.net) : form.netAmount,
+      vatAmount: netVat.vat ? String(netVat.vat) : form.vatAmount,
+    };
+  }
+  if (field === "netAmount") {
+    const raw = unformatCLP(value);
+    const parsedNet = parseAmount(raw);
+    const parsedTotal = parseAmount(form.amount);
+    const netVat = computeNetVat(parsedTotal, parsedNet);
+    return {
+      ...form,
+      netAmount: raw,
+      vatAmount: netVat.vat ? String(netVat.vat) : form.vatAmount,
+    };
+  }
+  if (field === "vatAmount") {
+    const raw = unformatCLP(value);
+    return { ...form, vatAmount: raw };
+  }
+  if (field === "rut") {
+    return { ...form, rut: unformatRut(value) };
+  }
+  return { ...form, [field]: value };
+}
+
+function computeNetVat(totalValue: number, netOptional?: number) {
+  if (!totalValue || Number.isNaN(totalValue)) {
+    return { net: 0, vat: 0 };
+  }
+  if (netOptional && !Number.isNaN(netOptional) && netOptional > 0) {
+    const vat = Math.max(totalValue - netOptional, 0);
+    return { net: netOptional, vat };
+  }
+  const net = Math.round(totalValue / 1.19);
+  const vat = Math.max(totalValue - net, 0);
+  return { net, vat };
+}
+
 function normalizeDateInput(value: string | undefined) {
   if (!value) return "";
   const trimmed = value.trim();
@@ -755,3 +1397,55 @@ function normalizeDateInput(value: string | undefined) {
   }
   return trimmed;
 }
+
+function mapApiInvoiceToRecord(raw: any): InvoiceRecord {
+  const amountNumber = Number(raw.total_amount ?? raw.amount ?? 0) || 0;
+  const netAmountNumber = Number(raw.net_amount ?? 0) || 0;
+  const vatAmountNumber = Number(raw.vat_amount ?? 0) || 0;
+  const attachmentUrl: string | undefined = raw.attachment || undefined;
+  const attachmentName =
+    attachmentUrl?.split("/").filter(Boolean).slice(-1)[0] || raw.attachment_name || "archivo";
+
+  return {
+    id: String(raw.id || raw.pk || createId()),
+    type: raw.invoice_type === "venta" ? "venta" : "compra",
+    invoiceNumber: raw.invoice_number || "",
+    issueDate: raw.issue_date || "",
+    supplier: raw.supplier || raw.client || "",
+    amount: String(amountNumber),
+    netAmount: String(netAmountNumber),
+    vatAmount: String(vatAmountNumber),
+    description: raw.description || raw.work_description || "",
+    rut: raw.rut || "",
+    address: raw.address || "",
+    contact: raw.contact || "",
+    quantity: raw.quantity ? String(raw.quantity) : "",
+    unitPrice: raw.unit_price ? String(raw.unit_price) : "",
+    amountNumber,
+    netAmountNumber,
+    vatAmountNumber,
+    quantityNumber: raw.quantity ?? undefined,
+    unitPriceNumber: raw.unit_price ?? undefined,
+    createdAt: raw.created_at || new Date().toISOString(),
+    attachment: attachmentUrl
+      ? {
+          id: attachmentUrl,
+          name: attachmentName,
+          size: 0,
+          type: "application/octet-stream",
+          dataUrl: attachmentUrl,
+        }
+      : undefined,
+    materials: raw.materials || [],
+  };
+}
+
+
+
+
+
+
+
+
+
+
