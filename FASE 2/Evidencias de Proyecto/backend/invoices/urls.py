@@ -10,4 +10,7 @@ urlpatterns = [
     path("invoices/<str:invoice_id>/", views.invoice_detail, name="invoice-detail"),
     path("calendar/", views.calendar_collection, name="calendar-list"),
     path("calendar/<str:entry_id>/", views.calendar_detail, name="calendar-detail"),
+    path("purchase-invoices/", views.purchase_invoices_collection, name="purchase-invoice-list"),
+    path("purchase-invoices/summary/", views.purchase_summary, name="purchase-invoice-summary"),
+    path("purchase-invoices/<int:pk>/", views.purchase_invoice_detail, name="purchase-invoice-detail"),
 ]

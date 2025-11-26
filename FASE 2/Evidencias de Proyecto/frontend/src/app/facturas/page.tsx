@@ -26,11 +26,38 @@ type InvoiceForm = {
   contact: string;
   quantity: string;
   unitPrice: string;
+  paymentType?: string;
+  chequeBank?: string;
+  chequeNumber?: string;
+  chequeDueDate?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  dueDate?: string;
+  paymentNotes?: string;
 };
 
 type MaterialRow = {
   description: string;
   quantity: string;
+  unitPrice?: string;
+};
+
+type PurchaseMaterialRow = {
+  id: string;
+  description: string;
+  quantity: string;
+  unitPrice: string;
+};
+
+type PurchaseInvoice = {
+  id: string;
+  supplier: string;
+  issue_date: string;
+  rut: string;
+  net_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  materials: PurchaseMaterialRow[];
 };
 
 type InvoiceAttachment = {
@@ -52,6 +79,10 @@ type InvoiceRecord = InvoiceForm & {
   createdAt: string;
   attachment?: InvoiceAttachment;
   materials?: MaterialRow[];
+  paymentType?: string;
+  chequeBank?: string;
+  chequeNumber?: string;
+  chequeDueDate?: string;
 };
 
 type ValidationErrors = Partial<Record<keyof InvoiceForm, string>> & {
@@ -75,6 +106,14 @@ const DEFAULT_FORM: InvoiceForm = {
   contact: "",
   quantity: "",
   unitPrice: "",
+  paymentType: "contado",
+  chequeBank: "",
+  chequeNumber: "",
+  chequeDueDate: "",
+  paymentMethod: "contado",
+  paymentStatus: "pendiente",
+  dueDate: "",
+  paymentNotes: "",
 };
 
 const DEFAULT_FORMS: Record<InvoiceType, InvoiceForm> = {
@@ -121,7 +160,11 @@ export default function InvoicesPage() {
   const [materials, setMaterials] = useState<Record<InvoiceType, MaterialRow[]>>(DEFAULT_MATERIALS);
   const [errors, setErrors] = useState<Record<InvoiceType, ValidationErrors>>(DEFAULT_ERRORS);
   const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<InvoiceRecord[]>([]);
   const [files, setFiles] = useState<Record<InvoiceType, File | null>>(DEFAULT_FILES);
+  const [purchaseMaterials, setPurchaseMaterials] = useState<PurchaseMaterialRow[]>([
+    { id: createId(), description: "", quantity: "1", unitPrice: "" },
+  ]);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFormPanel, setShowFormPanel] = useState(false);
@@ -163,6 +206,56 @@ export default function InvoicesPage() {
       const items = Array.isArray(data) ? data : data.results || [];
       const normalized = items.map(mapApiInvoiceToRecord);
       setInvoices(normalized);
+    } catch {
+      // ignore network errors
+    }
+  }, [apiBaseUrl]);
+
+  const fetchPurchaseInvoicesFromApi = useCallback(async () => {
+    if (!apiBaseUrl) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/purchase-invoices/`, { credentials: "include" });
+      if (!response.ok) return;
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : data.results || [];
+      const normalized: InvoiceRecord[] = items.map((item: any) => ({
+        id: String(item.id || createId()),
+        type: "compra",
+        invoiceNumber: item.invoice_number || "",
+        issueDate: item.issue_date || "",
+        supplier: item.supplier || "",
+        amount: String(item.total_amount || 0),
+        netAmount: String(item.net_amount || 0),
+        vatAmount: String(item.tax_amount || 0),
+        paymentType: item.payment_type || "contado",
+        paymentMethod: item.payment_method || item.payment_type || "contado",
+        paymentStatus: item.payment_status || "pendiente",
+        dueDate: item.due_date || item.cheque_due_date || "",
+        paymentNotes: item.payment_notes || "",
+        chequeBank: item.cheque_bank || "",
+        chequeNumber: item.cheque_number || "",
+        chequeDueDate: item.cheque_due_date || "",
+        description: "",
+        rut: item.rut || "",
+        address: "",
+        contact: "",
+        quantity: "",
+        unitPrice: "",
+        amountNumber: Number(item.total_amount || 0),
+        netAmountNumber: Number(item.net_amount || 0),
+        vatAmountNumber: Number(item.tax_amount || 0),
+        quantityNumber: undefined,
+        unitPriceNumber: undefined,
+        createdAt: item.created_at || "",
+        materials: Array.isArray(item.materials)
+          ? item.materials.map((m: any, idx: number) => ({
+              description: m.description || `Material ${idx + 1}`,
+              quantity: String(m.quantity || 1),
+              unitPrice: m.unit_price !== null && m.unit_price !== undefined ? String(m.unit_price) : "",
+            }))
+          : [],
+      }));
+      setPurchaseInvoices(normalized);
     } catch {
       // ignore network errors
     }
@@ -233,7 +326,8 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     fetchInvoicesFromApi();
-  }, [fetchInvoicesFromApi]);
+    fetchPurchaseInvoicesFromApi();
+  }, [fetchInvoicesFromApi, fetchPurchaseInvoicesFromApi]);
 
   const currentForm = forms[activeTab];
   const currentErrors = errors[activeTab];
@@ -314,6 +408,40 @@ export default function InvoicesPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatusMessage(null);
+    if (activeTab === "compra") {
+      const validationErrors: ValidationErrors = {};
+      if (!currentForm.supplier.trim()) validationErrors.supplier = t.invoices.errors.supplierRequired;
+      if (!currentForm.issueDate) validationErrors.issueDate = t.invoices.errors.dateRequired;
+      if (!currentForm.netAmount || parseAmount(currentForm.netAmount) <= 0) {
+        validationErrors.netAmount = t.invoices.errors.amountInvalid;
+      }
+      if (!currentForm.amount || parseAmount(currentForm.amount) <= 0) {
+        validationErrors.amount = t.invoices.errors.amountInvalid;
+      }
+      if (Object.keys(validationErrors).length) {
+        setErrors((prev) => ({ ...prev, [activeTab]: validationErrors }));
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        await persistPurchase(Boolean(editingId), editingId || undefined);
+        setForms((prev) => ({ ...prev, compra: { ...DEFAULT_FORM } }));
+        setPurchaseMaterials([{ id: createId(), description: "", quantity: "1", unitPrice: "" }]);
+        setFiles((prev) => ({ ...prev, compra: null }));
+        if (fileInputRefs.current.compra) {
+          fileInputRefs.current.compra!.value = "";
+        }
+        setEditingId(null);
+        setShowFormPanel(false);
+        setStatusMessage({ type: "success", text: t.invoices.messages.saved });
+      } catch {
+        setStatusMessage({ type: "error", text: t.invoices.messages.error });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     const validationErrors = validations(currentForm, currentFile);
     if (Object.keys(validationErrors).length) {
       setErrors((prev) => ({ ...prev, [activeTab]: validationErrors }));
@@ -429,8 +557,60 @@ export default function InvoicesPage() {
     }
   };
 
+  const persistPurchase = async (isEdit: boolean, id?: string) => {
+    if (!apiBaseUrl) return;
+    const materialsPayload = purchaseMaterials
+      .filter((m) => m.description.trim())
+      .map((m) => ({
+        description: m.description.trim(),
+        quantity: Number(m.quantity) || 1,
+        unit_price: m.unitPrice === "" ? null : Number(m.unitPrice),
+      }));
+
+    const body = {
+      supplier: forms.compra.supplier,
+      issue_date: forms.compra.issueDate,
+      rut: forms.compra.rut,
+      net_amount: Number(forms.compra.netAmount || 0),
+      tax_amount: Number(forms.compra.vatAmount || 0),
+      total_amount: Number(forms.compra.amount || 0),
+      payment_type: forms.compra.paymentType || "contado",
+      payment_method: forms.compra.paymentMethod || forms.compra.paymentType || "contado",
+      payment_status: forms.compra.paymentStatus || "pendiente",
+      due_date: forms.compra.dueDate || null,
+      payment_notes: forms.compra.paymentNotes || "",
+      cheque_bank: forms.compra.chequeBank || "",
+      cheque_number: forms.compra.chequeNumber || "",
+      cheque_due_date: forms.compra.chequeDueDate || null,
+      materials: materialsPayload,
+    };
+
+    const method = isEdit && id ? "PUT" : "POST";
+    const endpoint = isEdit && id ? `${apiBaseUrl}/api/purchase-invoices/${id}/` : `${apiBaseUrl}/api/purchase-invoices/`;
+    const response = await fetch(endpoint, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      let errDetail = "";
+      try {
+        const data = await response.json();
+        errDetail = JSON.stringify(data);
+      } catch {
+        errDetail = `${response.status} ${response.statusText}`;
+      }
+      console.error("Error al guardar compra", errDetail);
+      throw new Error(errDetail);
+    }
+    await fetchPurchaseInvoicesFromApi();
+  };
+
   const filteredBase = useMemo(() => {
-    return invoices.filter((inv) => {
+    const source = activeTab === "compra" ? purchaseInvoices : invoices;
+    return source.filter((inv) => {
+      if (activeTab !== "compra" && inv.type !== activeTab) return false;
       const date = inv.issueDate ? new Date(inv.issueDate) : null;
       const yearMatch = filters.year ? date?.getFullYear() === Number(filters.year) : true;
       const monthMatch = filters.month ? (date ? date.getMonth() + 1 === Number(filters.month) : false) : true;
@@ -441,12 +621,9 @@ export default function InvoicesPage() {
       const maxMatch = filters.maxAmount ? inv.amountNumber <= Number(filters.maxAmount) : true;
       return yearMatch && monthMatch && clientMatch && minMatch && maxMatch;
     });
-  }, [filters, invoices]);
+  }, [filters, invoices, purchaseInvoices, activeTab]);
 
-  const filteredInvoices = useMemo(
-    () => filteredBase.filter((inv) => inv.type === activeTab),
-    [filteredBase, activeTab],
-  );
+  const filteredInvoices = filteredBase;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -525,80 +702,13 @@ export default function InvoicesPage() {
   }, [filteredInvoices]);
 
   const handleAutofill = async () => {
-    setStatusMessage(null);
-    if (!currentFile) {
-      setErrors((prev) => ({
-        ...prev,
-        [activeTab]: { ...prev[activeTab], file: t.invoices.errors.fileRequiredForOcr },
-      }));
-      return;
-    }
-
-    setIsReading(true);
-    try {
-      const payload = new FormData();
-      payload.append("file", currentFile);
-      payload.append("tipo_factura", activeTab);
-      const response = await fetch(`${apiBaseUrl}/api/facturas/extract/`, {
-        method: "POST",
-        body: payload,
-      });
-      if (!response.ok) {
-        throw new Error("extract_failed");
-      }
-      const data = await response.json();
-      const totalRaw = unformatCLP(normalizeAmountInput(data.total_amount) || currentForm.amount);
-      const netRaw = unformatCLP(normalizeAmountInput(data.net_amount));
-      const totalNumber = parseAmount(totalRaw);
-      const netNumber = parseAmount(netRaw);
-      const netVat = computeNetVat(totalNumber, netNumber);
-
-      const nextForm: Partial<InvoiceForm> = {
-        invoiceNumber: data.invoice_number || currentForm.invoiceNumber,
-        issueDate: normalizeDateInput(data.issue_date) || currentForm.issueDate,
-        supplier: data.supplier || data.client || currentForm.supplier,
-        amount: totalRaw || currentForm.amount,
-        netAmount: String(netVat.net || "") || currentForm.netAmount,
-        vatAmount: String(netVat.vat || "") || currentForm.vatAmount,
-        rut: data.rut ? unformatRut(String(data.rut)) : currentForm.rut,
-        address: data.address || currentForm.address,
-        contact: data.contact || currentForm.contact,
-        quantity: data.quantity ? String(data.quantity) : currentForm.quantity,
-        unitPrice: data.unit_price ? String(data.unit_price) : currentForm.unitPrice,
-        description:
-          activeTab === "venta"
-            ? data.work_description || currentForm.description
-            : currentForm.description,
-      };
-
-      setForms((prev) => ({
-        ...prev,
-        [activeTab]: { ...prev[activeTab], ...nextForm },
-      }));
-
-      if (activeTab === "compra" && Array.isArray(data.materials)) {
-        setMaterials((prev) => ({
-          ...prev,
-          compra: data.materials
-            .map((item: any, index: number) => ({
-              description: String(item.description ?? item.detalle ?? `Material ${index + 1}`),
-              quantity: String(item.quantity ?? item.cantidad ?? ""),
-            }))
-            .filter((item) => item.description.trim()),
-        }));
-      }
-      setStatusMessage({ type: "success", text: t.invoices.messages.autofillSuccess });
-    } catch {
-      setStatusMessage({ type: "error", text: t.invoices.messages.autofillError });
-    } finally {
-      setIsReading(false);
-    }
+    setStatusMessage({ type: "error", text: t.invoices.messages.error });
   };
 
   const addMaterialRow = () => {
     setMaterials((prev) => ({
       ...prev,
-      [activeTab]: [...prev[activeTab], { description: "", quantity: "" }],
+      [activeTab]: [...prev[activeTab], { description: "", quantity: "1" }],
     }));
   };
 
@@ -610,9 +720,26 @@ export default function InvoicesPage() {
     });
   };
 
+  const addPurchaseMaterialRow = () => {
+    setPurchaseMaterials((prev) => [...prev, { id: createId(), description: "", quantity: "1", unitPrice: "" }]);
+  };
+
+  const updatePurchaseMaterialRow = (id: string, field: keyof PurchaseMaterialRow, value: string) => {
+    setPurchaseMaterials((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: field === "quantity" ? value || "1" : value } : row)),
+    );
+  };
+
+  const removePurchaseMaterialRow = (id: string) => {
+    setPurchaseMaterials((prev) => (prev.length > 1 ? prev.filter((row) => row.id !== id) : prev));
+  };
+
   const resetTab = () => {
     setForms((prev) => ({ ...prev, [activeTab]: { ...DEFAULT_FORM } }));
     setMaterials((prev) => ({ ...prev, [activeTab]: [] }));
+    if (activeTab === "compra") {
+      setPurchaseMaterials([{ id: createId(), description: "", quantity: "1", unitPrice: "" }]);
+    }
     setFiles((prev) => ({ ...prev, [activeTab]: null }));
     setErrors((prev) => ({ ...prev, [activeTab]: {} }));
     setEditingId(null);
@@ -644,10 +771,27 @@ export default function InvoicesPage() {
         contact: invoice.contact || "",
         quantity: invoice.quantityNumber ? String(invoice.quantityNumber) : "",
         unitPrice: invoice.unitPriceNumber ? String(invoice.unitPriceNumber) : "",
+        paymentType: invoice.paymentType || "contado",
+        paymentMethod: invoice.paymentMethod || invoice.paymentType || "contado",
+        paymentStatus: invoice.paymentStatus || "pendiente",
+        dueDate: invoice.dueDate || invoice.chequeDueDate || "",
+        paymentNotes: invoice.paymentNotes || "",
+        chequeBank: invoice.chequeBank || "",
+        chequeNumber: invoice.chequeNumber || "",
+        chequeDueDate: invoice.chequeDueDate || "",
       },
     }));
     if (invoice.type === "compra") {
-      setMaterials((prev) => ({ ...prev, compra: invoice.materials || [] }));
+      const nextMaterials =
+        invoice.materials && invoice.materials.length
+          ? invoice.materials.map((item) => ({
+              id: createId(),
+              description: item.description || "",
+              quantity: item.quantity || "1",
+              unitPrice: item.unitPrice || "",
+            }))
+          : [{ id: createId(), description: "", quantity: "1", unitPrice: "" }];
+      setPurchaseMaterials(nextMaterials);
     }
     setEditingId(invoice.id);
     setStatusMessage({ type: "success", text: "Modo edicion activo" });
@@ -656,13 +800,27 @@ export default function InvoicesPage() {
     }
   };
 
-  const handleDelete = async (invoiceId: string) => {
-    const confirmDelete = typeof window !== "undefined" ? window.confirm("¿Eliminar esta factura?") : true;
+  const handleDelete = async (invoice: InvoiceRecord) => {
+    const confirmDelete = typeof window !== "undefined" ? window.confirm("?Eliminar esta factura?") : true;
     if (!confirmDelete) return;
-    setInvoices((prev) => prev.filter((inv) => inv.id !== invoiceId));
+    if (invoice.type === "compra") {
+      setPurchaseInvoices((prev) => prev.filter((inv) => inv.id !== invoice.id));
+      if (!apiBaseUrl) return;
+      try {
+        await fetch(`${apiBaseUrl}/api/purchase-invoices/${invoice.id}/`, {
+          method: "DELETE",
+          credentials: "include",
+        }).catch(() => {});
+        fetchPurchaseInvoicesFromApi();
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    setInvoices((prev) => prev.filter((inv) => inv.id !== invoice.id));
     if (!apiBaseUrl) return;
     try {
-      await fetch(`${apiBaseUrl}/api/invoices/${invoiceId}/`, {
+      await fetch(`${apiBaseUrl}/api/invoices/${invoice.id}/`, {
         method: "DELETE",
         credentials: "include",
       }).catch(() => {});
@@ -754,72 +912,147 @@ export default function InvoicesPage() {
                   </p>
                 ) : (
                   <div className="invoice-table__wrapper">
-                    <table className="invoice-table">
-                      <thead>
-                        <tr>
-                          <th>{t.invoices.table.number}</th>
-                      <th>{t.invoices.table.date}</th>
-                      <th>{t.invoices.table.supplier}</th>
-                      <th>{t.invoices.table.amount}</th>
-                      <th>{t.invoices.table.description}</th>
-                      <th>{t.invoices.table.attachment}</th>
-                      <th>{t.common.actions}</th>
-                    </tr>
-                  </thead>
-                      <tbody>
-                        {paginatedInvoices.map((invoice) => (
-                          <tr key={invoice.id}>
-                            <td>{invoice.invoiceNumber}</td>
-                            <td>{formatDate(invoice.issueDate, locale)}</td>
-                            <td>{invoice.supplier}</td>
-                            <td>{formatCurrency(invoice.amountNumber)}</td>
-                            <td>{invoice.description || "--"}</td>
-                            <td>
-                          {invoice.attachment && invoice.attachment.dataUrl ? (
-                            <a
-                              href={invoice.attachment.dataUrl}
-                              download={invoice.attachment.name}
-                              className="invoice-link"
-                            >
-                              {invoice.attachment.name}
-                            </a>
-                          ) : (
-                            <span>{t.invoices.table.noAttachment}</span>
-                          )}
-                        </td>
-                        <td>
-                          <button className="invoice-btn invoice-btn--ghost" type="button" onClick={() => handleEdit(invoice)}>
-                            Editar
+                    {activeTab === "compra" ? (
+                      <>
+                        <table className="invoice-table">
+                          <thead>
+                            <tr>
+                              <th>{t.invoices.table.number}</th>
+                              <th>{t.invoices.table.date}</th>
+                              <th>{t.invoices.form.supplier}</th>
+                              <th>{t.invoices.form.amount}</th>
+                              <th>Materiales</th>
+                              <th>{t.common.actions}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedInvoices.map((invoice) => (
+                              <tr key={invoice.id}>
+                                <td>{invoice.invoiceNumber || invoice.id}</td>
+                                <td>{formatDate(invoice.issueDate, locale)}</td>
+                                <td>{invoice.supplier}</td>
+                                <td>{formatCurrency(invoice.amountNumber)}</td>
+                                <td>{invoice.materials?.length ?? 0}</td>
+                                <td>
+                                  <button
+                                    className="invoice-btn invoice-btn--ghost"
+                                    type="button"
+                                    onClick={() => handleEdit(invoice)}
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    className="invoice-btn invoice-btn--ghost"
+                                    type="button"
+                                    onClick={() => handleDelete(invoice)}
+                                  >
+                                    Eliminar
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className="invoice-pagination">
+                          <button
+                            type="button"
+                            className="invoice-btn invoice-btn--ghost"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage <= 1}
+                          >
+                            {t.inventory.previous || "Anterior"}
                           </button>
-                          <button className="invoice-btn invoice-btn--ghost" type="button" onClick={() => handleDelete(invoice.id)}>
-                            Eliminar
+                          <span className="invoice-page-info">
+                            {(t.inventory.page || "P?gina")} {currentPage} / {totalPages}
+                          </span>
+                          <button
+                            type="button"
+                            className="invoice-btn invoice-btn--ghost"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage >= totalPages}
+                          >
+                            {t.inventory.next || "Siguiente"}
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                      </tbody>
-                    </table>
-                    <div className="invoice-pagination">
-                      <button
-                        type="button"
-                        className="invoice-btn invoice-btn--ghost"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage <= 1}
-                      >
-                        {t.inventory.previous || "Anterior"}
-                      </button>
-                      <span className="invoice-page-info">
-                        {(t.inventory.page || "Página")} {currentPage} / {totalPages}
-                      </span>
-                      <button
-                        type="button"
-                        className="invoice-btn invoice-btn--ghost"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage >= totalPages}
-                      >
-                        {t.inventory.next || "Siguiente"}
-                      </button>
-                    </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <table className="invoice-table">
+                          <thead>
+                            <tr>
+                              <th>{t.invoices.table.number}</th>
+                              <th>{t.invoices.table.date}</th>
+                              <th>{t.invoices.table.supplier}</th>
+                              <th>{t.invoices.table.amount}</th>
+                              <th>{t.invoices.table.description}</th>
+                              <th>{t.invoices.table.attachment}</th>
+                              <th>{t.common.actions}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedInvoices.map((invoice) => (
+                              <tr key={invoice.id}>
+                                <td>{invoice.invoiceNumber}</td>
+                                <td>{formatDate(invoice.issueDate, locale)}</td>
+                                <td>{invoice.supplier}</td>
+                                <td>{formatCurrency(invoice.amountNumber)}</td>
+                                <td>{invoice.description || "--"}</td>
+                                <td>
+                                  {invoice.attachment && invoice.attachment.dataUrl ? (
+                                    <a
+                                      href={invoice.attachment.dataUrl}
+                                      download={invoice.attachment.name}
+                                      className="invoice-link"
+                                    >
+                                      {invoice.attachment.name}
+                                    </a>
+                                  ) : (
+                                    <span>{t.invoices.table.noAttachment}</span>
+                                  )}
+                                </td>
+                                <td>
+                                  <button
+                                    className="invoice-btn invoice-btn--ghost"
+                                    type="button"
+                                    onClick={() => handleEdit(invoice)}
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    className="invoice-btn invoice-btn--ghost"
+                                    type="button"
+                                    onClick={() => handleDelete(invoice)}
+                                  >
+                                    Eliminar
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className="invoice-pagination">
+                          <button
+                            type="button"
+                            className="invoice-btn invoice-btn--ghost"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage <= 1}
+                          >
+                            {t.inventory.previous || "Anterior"}
+                          </button>
+                          <span className="invoice-page-info">
+                            {(t.inventory.page || "P?gina")} {currentPage} / {totalPages}
+                          </span>
+                          <button
+                            type="button"
+                            className="invoice-btn invoice-btn--ghost"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage >= totalPages}
+                          >
+                            {t.inventory.next || "Siguiente"}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </section>
@@ -942,7 +1175,7 @@ export default function InvoicesPage() {
           </main>
           {showFormPanel ? (
             <div className="invoice-modal" role="dialog" aria-modal="true">
-              <div className="invoice-modal__backdrop" onClick={closeFormPanel} />
+              <div className="invoice-modal__backdrop" />
               <div className="invoice-modal__dialog" onClick={(event) => event.stopPropagation()}>
                 <div className="invoice-modal__header">
                   <div>
@@ -972,252 +1205,447 @@ export default function InvoicesPage() {
                 </div>
 
                 <form className="invoice-form" onSubmit={handleSubmit} noValidate>
-                  <div className="invoice-form__row">
-                    <div className="invoice-field">
-                      <label htmlFor="invoiceNumber">{t.invoices.form.number}</label>
-                      <input
-                        id="invoiceNumber"
-                        name="invoiceNumber"
-                        type="text"
-                        value={currentForm.invoiceNumber}
-                        onChange={handleInputChange("invoiceNumber")}
-                        aria-invalid={Boolean(currentErrors.invoiceNumber)}
-                        aria-describedby={currentErrors.invoiceNumber ? "invoiceNumber-error" : undefined}
-                      />
-                      {currentErrors.invoiceNumber ? (
-                        <span className="invoice-error" id="invoiceNumber-error">
-                          {currentErrors.invoiceNumber}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="invoice-field">
-                      <label htmlFor="issueDate">{t.invoices.form.issueDate}</label>
-                      <input
-                        id="issueDate"
-                        name="issueDate"
-                        type="date"
-                        value={currentForm.issueDate}
-                        onChange={handleInputChange("issueDate")}
-                        aria-invalid={Boolean(currentErrors.issueDate)}
-                        aria-describedby={currentErrors.issueDate ? "issueDate-error" : undefined}
-                      />
-                      {currentErrors.issueDate ? (
-                        <span className="invoice-error" id="issueDate-error">
-                          {currentErrors.issueDate}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="invoice-form__row">
-                    <div className="invoice-field">
-                      <label htmlFor="supplier">
-                        {activeTab === "compra" ? t.invoices.form.supplier : t.invoices.form.client}
-                      </label>
-                      <input
-                        id="supplier"
-                        name="supplier"
-                        type="text"
-                        value={currentForm.supplier}
-                        onChange={handleInputChange("supplier")}
-                        aria-invalid={Boolean(currentErrors.supplier)}
-                        aria-describedby={currentErrors.supplier ? "supplier-error" : undefined}
-                      />
-                      {currentErrors.supplier ? (
-                        <span className="invoice-error" id="supplier-error">
-                          {currentErrors.supplier}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="invoice-field">
-                      <label htmlFor="amount">{t.invoices.form.amount}</label>
-                      <input
-                        id="amount"
-                        name="amount"
-                        type="number"
-                        value={currentForm.amount}
-                        onChange={handleInputChange("amount")}
-                        aria-invalid={Boolean(currentErrors.amount)}
-                        aria-describedby={currentErrors.amount ? "amount-error" : undefined}
-                      />
-                      {currentErrors.amount ? (
-                        <span className="invoice-error" id="amount-error">
-                          {currentErrors.amount}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="invoice-form__row">
-                    <div className="invoice-field">
-                      <label htmlFor="netAmount">{t.invoices.form.netAmount}</label>
-                      <input
-                        id="netAmount"
-                        name="netAmount"
-                        type="number"
-                        value={currentForm.netAmount || computedNet || ""}
-                        onChange={handleInputChange("netAmount")}
-                      />
-                    </div>
-                    <div className="invoice-field">
-                      <label htmlFor="vatAmount">{t.invoices.form.vatAmount}</label>
-                      <input
-                        id="vatAmount"
-                        name="vatAmount"
-                        type="number"
-                        value={currentForm.vatAmount || calculatedIva || ""}
-                        onChange={handleInputChange("vatAmount")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="invoice-form__row">
-                    <div className="invoice-field">
-                      <label htmlFor="quantity">{activeTab === "venta" ? "Cantidad del trabajo" : "Cantidad"}</label>
-                      <input
-                        id="quantity"
-                        name="quantity"
-                        type="number"
-                        min="1"
-                        value={currentForm.quantity || (activeTab === "venta" ? "1" : "")}
-                        onChange={handleInputChange("quantity")}
-                      />
-                    </div>
-                    <div className="invoice-field">
-                      <label htmlFor="unitPrice">
-                        {activeTab === "venta" ? "Precio unitario (CLP)" : t.invoices.form.unitPrice}
-                      </label>
-                      <input
-                        id="unitPrice"
-                        name="unitPrice"
-                        type="number"
-                        value={currentForm.unitPrice}
-                        onChange={handleInputChange("unitPrice")}
-                      />
-                    </div>
-                  </div>
-
-                  {activeTab === "venta" && currentForm.unitPrice ? (
-                    <div className="invoice-field">
-                      <label>Subtotal neto estimado</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formatCurrency(
-                          (parseInt(currentForm.quantity || "1", 10) || 1) * parseAmount(currentForm.unitPrice || "0"),
-                        )}
-                      />
-                    </div>
-                  ) : null}
-
-                  <div className="invoice-form__row">
-                    <div className="invoice-field">
-                      <label htmlFor="rut">{t.invoices.form.rut}</label>
-                      <input
-                        id="rut"
-                        name="rut"
-                        type="text"
-                        value={formatRut(currentForm.rut)}
-                        onChange={handleInputChange("rut")}
-                      />
-                    </div>
-                    <div className="invoice-field">
-                      <label htmlFor="contact">{t.invoices.form.contact}</label>
-                      <input
-                        id="contact"
-                        name="contact"
-                        type="text"
-                        value={currentForm.contact}
-                        onChange={handleInputChange("contact")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="invoice-field">
-                    <label htmlFor="address">{t.invoices.form.address}</label>
-                    <input
-                      id="address"
-                      name="address"
-                      type="text"
-                      value={currentForm.address}
-                      onChange={handleInputChange("address")}
-                    />
-                  </div>
-
-                  <div className="invoice-field">
-                    <label htmlFor="description">{t.invoices.form.descriptionLabel}</label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      rows={4}
-                      value={currentForm.description}
-                      onChange={handleInputChange("description")}
-                    />
-                  </div>
-
-                  <div className="invoice-field">
-                    <label htmlFor="attachment">{t.invoices.form.attachment}</label>
-                    <div className="invoice-upload-row">
-                      <input
-                        id="attachment"
-                        name="attachment"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                        ref={(node) => (fileInputRefs.current[activeTab] = node)}
-                        onChange={(event) => handleFileChange(event, activeTab)}
-                        aria-invalid={Boolean(currentErrors.file)}
-                        aria-describedby={currentErrors.file ? "attachment-error" : undefined}
-                      />
-                      <button
-                        type="button"
-                        className="invoice-btn invoice-btn--secondary"
-                        onClick={handleAutofill}
-                        disabled={isReading || !currentFile}
-                      >
-                        {isReading ? t.invoices.form.autofilling : t.invoices.form.autofill}
-                      </button>
-                    </div>
-                    <small>{t.invoices.form.autofillHint}</small>
-                    {currentErrors.file ? (
-                      <span className="invoice-error" id="attachment-error">
-                        {currentErrors.file}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {activeTab === "compra" && currentMaterials.length > 0 ? (
-                    <div className="invoice-materials">
-                      <div className="invoice-section__heading">
-                        <h4>{t.invoices.form.materialsDetected}</h4>
-                        <p>{t.invoices.form.materialsHelper}</p>
+                  {activeTab === "compra" ? (
+                    <>
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="supplier">{t.invoices.form.supplier}</label>
+                          <input
+                            id="supplier"
+                            name="supplier"
+                            type="text"
+                            value={currentForm.supplier}
+                            onChange={handleInputChange("supplier")}
+                            aria-invalid={Boolean(currentErrors.supplier)}
+                            aria-describedby={currentErrors.supplier ? "supplier-error" : undefined}
+                          />
+                          {currentErrors.supplier ? (
+                            <span className="invoice-error" id="supplier-error">
+                              {currentErrors.supplier}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="issueDate">{t.invoices.form.issueDate}</label>
+                          <input
+                            id="issueDate"
+                            name="issueDate"
+                            type="date"
+                            value={currentForm.issueDate}
+                            onChange={handleInputChange("issueDate")}
+                            aria-invalid={Boolean(currentErrors.issueDate)}
+                            aria-describedby={currentErrors.issueDate ? "issueDate-error" : undefined}
+                          />
+                          {currentErrors.issueDate ? (
+                            <span className="invoice-error" id="issueDate-error">
+                              {currentErrors.issueDate}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="invoice-materials__list">
-                        {currentMaterials.map((item, index) => (
-                          <div className="invoice-material" key={`${item.description}-${index}`}>
+
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="rut">{t.invoices.form.rut}</label>
+                          <input
+                            id="rut"
+                            name="rut"
+                            type="text"
+                            value={formatRut(currentForm.rut)}
+                            onChange={handleInputChange("rut")}
+                          />
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="netAmount">{t.invoices.form.netAmount}</label>
+                          <input
+                            id="netAmount"
+                            name="netAmount"
+                            type="number"
+                            value={currentForm.netAmount}
+                            onChange={handleInputChange("netAmount")}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="invoice-form__row">
+                      <div className="invoice-field">
+                        <label htmlFor="vatAmount">{t.invoices.form.vatAmount}</label>
+                        <input
+                          id="vatAmount"
+                          name="vatAmount"
+                          type="number"
+                          value={currentForm.vatAmount}
+                          onChange={handleInputChange("vatAmount")}
+                        />
+                      </div>
+                      <div className="invoice-field">
+                        <label htmlFor="amount">{t.invoices.form.amount}</label>
+                        <input
+                          id="amount"
+                          name="amount"
+                          type="number"
+                          value={currentForm.amount}
+                          onChange={handleInputChange("amount")}
+                          aria-invalid={Boolean(currentErrors.amount)}
+                          aria-describedby={currentErrors.amount ? "amount-error" : undefined}
+                        />
+                        {currentErrors.amount ? (
+                          <span className="invoice-error" id="amount-error">
+                            {currentErrors.amount}
+                          </span>
+                        ) : null}
+                      </div>
+                      </div>
+
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="paymentType">Forma de pago</label>
+                          <select
+                            id="paymentType"
+                            name="paymentType"
+                            value={currentForm.paymentMethod || currentForm.paymentType || "contado"}
+                            onChange={handleInputChange("paymentMethod")}
+                          >
+                            <option value="contado">Contado</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="cheque">Cheque</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {currentForm.paymentMethod === "cheque" || currentForm.paymentType === "cheque" ? (
+                        <>
+                          <div className="invoice-form__row">
                             <div className="invoice-field">
-                              <label>{t.invoices.form.materialDescription}</label>
+                              <label htmlFor="chequeBank">Banco del cheque</label>
                               <input
+                                id="chequeBank"
+                                name="chequeBank"
                                 type="text"
-                                value={item.description}
-                                onChange={(event) => updateMaterialRow(index, "description", event.target.value)}
+                                value={currentForm.chequeBank || ""}
+                                onChange={handleInputChange("chequeBank")}
                               />
                             </div>
                             <div className="invoice-field">
-                              <label>{t.invoices.form.materialQuantity}</label>
+                              <label htmlFor="chequeNumber">Número de cheque</label>
                               <input
+                                id="chequeNumber"
+                                name="chequeNumber"
                                 type="text"
-                                value={item.quantity}
-                                onChange={(event) => updateMaterialRow(index, "quantity", event.target.value)}
+                                value={currentForm.chequeNumber || ""}
+                                onChange={handleInputChange("chequeNumber")}
                               />
                             </div>
                           </div>
-                        ))}
+                          <div className="invoice-form__row">
+                            <div className="invoice-field">
+                              <label htmlFor="chequeDueDate">Fecha de vencimiento del cheque</label>
+                              <input
+                                id="chequeDueDate"
+                                name="chequeDueDate"
+                                type="date"
+                                value={currentForm.dueDate || currentForm.chequeDueDate || ""}
+                                onChange={handleInputChange("dueDate")}
+                              />
+                            </div>
+                          </div>
+                          <div className="invoice-field">
+                            <label htmlFor="paymentNotes">Notas de pago</label>
+                            <textarea
+                              id="paymentNotes"
+                              name="paymentNotes"
+                              rows={2}
+                              value={currentForm.paymentNotes || ""}
+                              onChange={handleInputChange("paymentNotes")}
+                            />
+                          </div>
+                        </>
+                      ) : null}
+
+                      <div className="invoice-field">
+                        <label htmlFor="attachment">{t.invoices.form.attachment}</label>
+                        <div className="invoice-upload-row">
+                          <input
+                            id="attachment"
+                            name="attachment"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            ref={(node) => (fileInputRefs.current[activeTab] = node)}
+                            onChange={(event) => handleFileChange(event, activeTab)}
+                            aria-invalid={Boolean(currentErrors.file)}
+                            aria-describedby={currentErrors.file ? "attachment-error" : undefined}
+                          />
+                        </div>
+                        <small>{t.invoices.form.autofillHint}</small>
+                        {currentErrors.file ? (
+                          <span className="invoice-error" id="attachment-error">
+                            {currentErrors.file}
+                          </span>
+                        ) : null}
                       </div>
-                      <button type="button" className="invoice-btn invoice-btn--ghost" onClick={addMaterialRow}>
-                        {t.invoices.form.addMaterial}
-                      </button>
-                    </div>
-                  ) : null}
+
+                      <div className="invoice-materials">
+                        <div className="invoice-section__heading">
+                          <h4>Materiales de la factura</h4>
+                          <p>Agrega cada material con su cantidad y precio unitario opcional.</p>
+                        </div>
+                        <div className="invoice-materials__list">
+                          {purchaseMaterials.map((row) => (
+                            <div className="invoice-material" key={row.id}>
+                              <div className="invoice-field">
+                                <label>Descripci?n del material</label>
+                                <input
+                                  type="text"
+                                  value={row.description}
+                                  onChange={(e) => updatePurchaseMaterialRow(row.id, "description", e.target.value)}
+                                />
+                              </div>
+                              <div className="invoice-field">
+                                <label>Cantidad</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={row.quantity}
+                                  onChange={(e) => updatePurchaseMaterialRow(row.id, "quantity", e.target.value || "1")}
+                                />
+                              </div>
+                              <div className="invoice-field">
+                                <label>Precio unitario (opcional)</label>
+                                <input
+                                  type="number"
+                                  value={row.unitPrice}
+                                  onChange={(e) => updatePurchaseMaterialRow(row.id, "unitPrice", e.target.value)}
+                                />
+                              </div>
+                              {purchaseMaterials.length > 1 ? (
+                                <button
+                                  type="button"
+                                  className="invoice-btn invoice-btn--ghost"
+                                  onClick={() => removePurchaseMaterialRow(row.id)}
+                                >
+                                  Eliminar
+                                </button>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                        <button type="button" className="invoice-btn invoice-btn--ghost" onClick={addPurchaseMaterialRow}>
+                          Agregar material
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="invoiceNumber">{t.invoices.form.number}</label>
+                          <input
+                            id="invoiceNumber"
+                            name="invoiceNumber"
+                            type="text"
+                            value={currentForm.invoiceNumber}
+                            onChange={handleInputChange("invoiceNumber")}
+                            aria-invalid={Boolean(currentErrors.invoiceNumber)}
+                            aria-describedby={currentErrors.invoiceNumber ? "invoiceNumber-error" : undefined}
+                          />
+                          {currentErrors.invoiceNumber ? (
+                            <span className="invoice-error" id="invoiceNumber-error">
+                              {currentErrors.invoiceNumber}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="issueDate">{t.invoices.form.issueDate}</label>
+                          <input
+                            id="issueDate"
+                            name="issueDate"
+                            type="date"
+                            value={currentForm.issueDate}
+                            onChange={handleInputChange("issueDate")}
+                            aria-invalid={Boolean(currentErrors.issueDate)}
+                            aria-describedby={currentErrors.issueDate ? "issueDate-error" : undefined}
+                          />
+                          {currentErrors.issueDate ? (
+                            <span className="invoice-error" id="issueDate-error">
+                              {currentErrors.issueDate}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="supplier">{t.invoices.form.client}</label>
+                          <input
+                            id="supplier"
+                            name="supplier"
+                            type="text"
+                            value={currentForm.supplier}
+                            onChange={handleInputChange("supplier")}
+                            aria-invalid={Boolean(currentErrors.supplier)}
+                            aria-describedby={currentErrors.supplier ? "supplier-error" : undefined}
+                          />
+                          {currentErrors.supplier ? (
+                            <span className="invoice-error" id="supplier-error">
+                              {currentErrors.supplier}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="amount">{t.invoices.form.amount}</label>
+                          <input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            value={currentForm.amount}
+                            onChange={handleInputChange("amount")}
+                            aria-invalid={Boolean(currentErrors.amount)}
+                            aria-describedby={currentErrors.amount ? "amount-error" : undefined}
+                          />
+                          {currentErrors.amount ? (
+                            <span className="invoice-error" id="amount-error">
+                              {currentErrors.amount}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="netAmount">{t.invoices.form.netAmount}</label>
+                          <input
+                            id="netAmount"
+                            name="netAmount"
+                            type="number"
+                            value={currentForm.netAmount || computedNet || ""}
+                            onChange={handleInputChange("netAmount")}
+                          />
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="vatAmount">{t.invoices.form.vatAmount}</label>
+                          <input
+                            id="vatAmount"
+                            name="vatAmount"
+                            type="number"
+                            value={currentForm.vatAmount || calculatedIva || ""}
+                            onChange={handleInputChange("vatAmount")}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="quantity">Cantidad del trabajo</label>
+                          <input
+                            id="quantity"
+                            name="quantity"
+                            type="number"
+                            min="1"
+                            value={currentForm.quantity || "1"}
+                            onChange={handleInputChange("quantity")}
+                          />
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="unitPrice">Precio unitario (CLP)</label>
+                          <input
+                            id="unitPrice"
+                            name="unitPrice"
+                            type="number"
+                            value={currentForm.unitPrice}
+                            onChange={handleInputChange("unitPrice")}
+                          />
+                        </div>
+                      </div>
+
+                      {currentForm.unitPrice ? (
+                        <div className="invoice-field">
+                          <label>Subtotal neto estimado</label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={formatCurrency(
+                              (parseInt(currentForm.quantity || "1", 10) || 1) * parseAmount(currentForm.unitPrice || "0"),
+                            )}
+                          />
+                        </div>
+                      ) : null}
+
+                      <div className="invoice-form__row">
+                        <div className="invoice-field">
+                          <label htmlFor="rut">{t.invoices.form.rut}</label>
+                          <input
+                            id="rut"
+                            name="rut"
+                            type="text"
+                            value={formatRut(currentForm.rut)}
+                            onChange={handleInputChange("rut")}
+                          />
+                        </div>
+                        <div className="invoice-field">
+                          <label htmlFor="contact">{t.invoices.form.contact}</label>
+                          <input
+                            id="contact"
+                            name="contact"
+                            type="text"
+                            value={currentForm.contact}
+                            onChange={handleInputChange("contact")}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="invoice-field">
+                        <label htmlFor="address">{t.invoices.form.address}</label>
+                        <input
+                          id="address"
+                          name="address"
+                          type="text"
+                          value={currentForm.address}
+                          onChange={handleInputChange("address")}
+                        />
+                      </div>
+
+                      <div className="invoice-field">
+                        <label htmlFor="description">{t.invoices.form.descriptionLabel}</label>
+                        <textarea
+                          id="description"
+                          name="description"
+                          rows={4}
+                          value={currentForm.description}
+                          onChange={handleInputChange("description")}
+                        />
+                      </div>
+
+                      <div className="invoice-field">
+                        <label htmlFor="attachment">{t.invoices.form.attachment}</label>
+                        <div className="invoice-upload-row">
+                          <input
+                            id="attachment"
+                            name="attachment"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                            ref={(node) => (fileInputRefs.current[activeTab] = node)}
+                            onChange={(event) => handleFileChange(event, activeTab)}
+                            aria-invalid={Boolean(currentErrors.file)}
+                            aria-describedby={currentErrors.file ? "attachment-error" : undefined}
+                          />
+                          <button
+                            type="button"
+                            className="invoice-btn invoice-btn--secondary"
+                            onClick={handleAutofill}
+                            disabled={isReading || !currentFile}
+                          >
+                            {isReading ? t.invoices.form.autofilling : t.invoices.form.autofill}
+                          </button>
+                        </div>
+                        <small>{t.invoices.form.autofillHint}</small>
+                        {currentErrors.file ? (
+                          <span className="invoice-error" id="attachment-error">
+                            {currentErrors.file}
+                          </span>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
 
                   <div className="invoice-actions">
                     <button type="submit" className="invoice-btn" disabled={isSubmitting}>
@@ -1421,6 +1849,10 @@ function mapApiInvoiceToRecord(raw: any): InvoiceRecord {
     contact: raw.contact || "",
     quantity: raw.quantity ? String(raw.quantity) : "",
     unitPrice: raw.unit_price ? String(raw.unit_price) : "",
+    paymentType: raw.payment_type || raw.paymentType || "contado",
+    chequeBank: raw.cheque_bank || raw.chequeBank || "",
+    chequeNumber: raw.cheque_number || raw.chequeNumber || "",
+    chequeDueDate: raw.cheque_due_date || raw.chequeDueDate || "",
     amountNumber,
     netAmountNumber,
     vatAmountNumber,
