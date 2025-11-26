@@ -97,7 +97,7 @@ export default function InventoryPage() {
                 {isDeveloper && (
                   <p>
                     <a href="/inventario/papelera" style={{ fontWeight: 600 }}>
-                      Papelera / Cambios pendientes
+                      {t.navigation.trash} / {t.navigation.pendingChanges}
                     </a>
                   </p>
                 )}
@@ -128,11 +128,11 @@ export default function InventoryPage() {
                       required
                     />
                     <datalist id="categoriasFormulario">
-                      <option value="Bombas de agua" />
-                      <option value="Herramientas" />
-                      <option value="Materiales eléctricos" />
-                      <option value="Repuestos" />
-                      <option value="Lubricantes" />
+                      <option value={t.categories.waterPumps}>{t.categories.waterPumps}</option>
+                      <option value={t.categories.tools}>{t.categories.tools}</option>
+                      <option value={t.categories.electricalMaterials}>{t.categories.electricalMaterials}</option>
+                      <option value={t.categories.spareParts}>{t.categories.spareParts}</option>
+                      <option value={t.categories.lubricants}>{t.categories.lubricants}</option>
                     </datalist>
 
                     <label className="visually-hidden" htmlFor="nuevaCantidad">
@@ -209,11 +209,11 @@ export default function InventoryPage() {
                     placeholder={t.inventory.filterByCategory}
                   />
                   <datalist id="categorias">
-                    <option value="Bombas de agua" />
-                    <option value="Herramientas" />
-                    <option value="Materiales eléctricos" />
-                    <option value="Repuestos" />
-                    <option value="Lubricantes" />
+                    <option value={t.categories.waterPumps}>{t.categories.waterPumps}</option>
+                    <option value={t.categories.tools}>{t.categories.tools}</option>
+                    <option value={t.categories.electricalMaterials}>{t.categories.electricalMaterials}</option>
+                    <option value={t.categories.spareParts}>{t.categories.spareParts}</option>
+                    <option value={t.categories.lubricants}>{t.categories.lubricants}</option>
                   </datalist>
 
                   <input
@@ -313,7 +313,7 @@ export default function InventoryPage() {
                     <tr data-match="1">
                       <td>1</td>
                       <td>Bombas sumergibles 1HP</td>
-                      <td>Bombas de agua</td>
+                      <td>{t.categories.waterPumps}</td>
                       <td data-quantity="5">
                         <span className="quantity-value">5</span>
                       </td>
@@ -328,12 +328,12 @@ export default function InventoryPage() {
                       </td>
                     </tr>
                     <tr data-match="1">
+                      <td>2</td>
+                      <td>Kit reparación rodamientos</td>
+                      <td>{t.categories.spareParts}</td>
                       <td data-quantity="2">
                         <span className="quantity-value">2</span>
                       </td>
-                      <td>Kit reparación rodamientos</td>
-                      <td>Repuestos</td>
-                      <td>2</td>
                       <td>45.50</td>
                       <td data-foto=""></td>
                       <td>Incluye grasa</td>

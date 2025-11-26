@@ -7,6 +7,7 @@ import { SettingsTabs } from "../components/Tabs";
 export default function AparienciaPage() {
   const [fontScale, setFontScale] = useState<string>("md");
   const [currency, setCurrency] = useState<string>("CLP");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
     try {
@@ -14,6 +15,8 @@ export default function AparienciaPage() {
       if (fs) setFontScale(fs);
       const cur = localStorage.getItem("ajustes_currency");
       if (cur) setCurrency(cur);
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "light") setTheme("light");
     } catch {}
   }, []);
 
@@ -34,6 +37,18 @@ export default function AparienciaPage() {
     } catch {}
   };
 
+  const applyTheme = (checked: boolean) => {
+    const newTheme = checked ? "light" : "dark";
+    setTheme(newTheme);
+    try {
+      localStorage.setItem("theme", newTheme);
+      // Always set the attribute, never remove it
+      document.body.setAttribute("data-theme", newTheme);
+      // Dispatch custom event for same-tab updates (calendario, etc.)
+      window.dispatchEvent(new CustomEvent("theme-changed", { detail: { theme: newTheme } }));
+    } catch {}
+  };
+
   return (
     <>
       <SettingsHero />
@@ -43,8 +58,14 @@ export default function AparienciaPage() {
           <p className="settings-label">Tema</p>
           <div className="settings-actions">
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input type="checkbox" id="themeSwitch" style={{ accentColor: "#4b8ef7" }} />
-              <span id="themeLabel">Claro</span>
+              <input
+                type="checkbox"
+                id="themeSwitch"
+                style={{ accentColor: "#4b8ef7" }}
+                checked={theme === "light"}
+                onChange={(e) => applyTheme(e.target.checked)}
+              />
+              <span id="themeLabel">{theme === "light" ? "Claro" : "Oscuro"}</span>
             </label>
           </div>
 

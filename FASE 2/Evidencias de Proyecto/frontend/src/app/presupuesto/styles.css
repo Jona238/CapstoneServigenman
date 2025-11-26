@@ -62,13 +62,13 @@ body[data-theme="dark"] {
 .budget-wrap {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: var(--card-gap-lg);
   background: var(--budget-surface);
   border: 1px solid var(--budget-border);
-  border-radius: 26px;
-  padding: 36px;
+  border-radius: var(--card-radius-xl);
+  padding: var(--card-padding-2xl);
   box-shadow: var(--budget-shadow);
-  backdrop-filter: blur(16px);
+  backdrop-filter: var(--card-backdrop);
   width: 100%;
   box-sizing: border-box;
 }
@@ -134,12 +134,12 @@ body[data-theme="dark"] {
 .kpi-card {
   background: var(--budget-panel);
   border: 1px solid var(--budget-panel-border);
-  border-radius: 18px;
-  padding: 20px 22px;
+  border-radius: var(--card-radius-md);
+  padding: var(--card-padding-lg);
   box-shadow: var(--budget-card-shadow);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--card-gap-sm);
   width: 100%;
   box-sizing: border-box;
 }
@@ -176,13 +176,13 @@ body[data-theme="dark"] {
 .panel {
   background: var(--budget-panel);
   border: 1px solid var(--budget-panel-border);
-  border-radius: 22px;
-  padding: 26px;
+  border-radius: var(--card-radius-lg);
+  padding: var(--card-padding-lg);
   box-shadow: var(--budget-panel-shadow);
   min-height: 320px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--card-gap-lg);
   width: 100%;
   box-sizing: border-box;
 }

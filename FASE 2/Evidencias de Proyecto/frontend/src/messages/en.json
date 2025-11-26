@@ -285,5 +285,179 @@
       "attachment": "Attachment",
       "noAttachment": "No file"
     }
+  },
+  "navigation": {
+    "trash": "Trash",
+    "pendingChanges": "Pending Changes"
+  },
+  "calendar": {
+    "title": "Operational planning",
+    "operationalCalendar": "Operational calendar",
+    "description": "Maintenance and supply schedule.",
+    "registeredEvents": "Registered events",
+    "nextEvent": "Next event",
+    "noPendingDate": "No pending date",
+    "stats": {
+      "totalEvents": "Registered events",
+      "nextEvent": "Next event",
+      "noNextEvent": "No pending date",
+      "maintenanceCount": "Maintenance",
+      "purchaseCount": "Purchase",
+      "expirationCount": "Expiration"
+    },
+    "eventTypes": {
+      "maintenance": "Maintenance",
+      "purchase": "Purchase",
+      "expiration": "Expiration"
+    },
+    "registerEvent": "Register event",
+    "defineEvents": "Define critical dates for your team.",
+    "eventTitle": "Event title",
+    "eventTitlePlaceholder": "E.g: Preventive maintenance",
+    "description": "Description / notes",
+    "descriptionPlaceholder": "Internal notes for teams or purchases.",
+    "savedLocally": "Data saved locally.",
+    "saveChanges": "Save changes",
+    "editingEvent": "Editing event",
+    "selectDay": "Select a day to review its milestones.",
+    "scheduleFor": "Schedule for {date}",
+    "noEventsScheduled": "No events scheduled for this date.",
+    "eventLegend": "Event types legend",
+    "upcomingMilestones": "Upcoming milestones",
+    "chronologicalPlanning": "Chronological planning",
+    "noPendingMilestones": "No pending milestones.",
+    "filterByType": "Filter by type",
+    "allTypes": "All",
+    "today": "Today"
+  },
+  "papelera": {
+    "title": "Pending Changes / Trash",
+    "description": "Delete requests and changes awaiting approval.",
+    "loading": "Loading…",
+    "noPendingChanges": "No pending changes.",
+    "tableHeaders": {
+      "changeId": "Change ID",
+      "action": "Action",
+      "status": "Status",
+      "item": "Item",
+      "requestedBy": "Requested by",
+      "details": "Details"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "actionTypes": {
+      "delete": "Delete: {name}",
+      "create": "Create: {name}",
+      "edit": "Edit: {name}",
+      "noChanges": "(no detectable changes)"
+    },
+    "errors": {
+      "failedToLoad": "Could not load",
+      "unauthorized": "Unauthorized or server error",
+      "networkError": "Network error"
+    }
+  },
+  "settingsPages": {
+    "accountSettings": "Account Settings",
+    "manageProfile": "Manage your profile, security and account preferences.",
+    "loadingSettings": "Loading settings...",
+    "noData": "No data",
+    "noConfigurations": "No configurations available in this section.",
+    "security": "Security",
+    "securityDescription": "Change your password or enable two-factor authentication (2FA).",
+    "updatePassword": "Update password",
+    "preferences": "Preferences",
+    "minimumStockAlerts": "Minimum stock for alerts",
+    "adjustThreshold": "Adjust the threshold to highlight resources with low stock in red in the inventory and summaries.",
+    "minimumStockUpdated": "Minimum stock updated."
+  },
+  "appearance": {
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "fontSize": "Font size",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "currency": "Currency",
+    "chileanPeso": "Chilean Peso (CLP)",
+    "dollar": "Dollar (USD)",
+    "euro": "Euro (EUR)"
+  },
+  "accessibility": {
+    "title": "Accessibility",
+    "reduceAnimations": "Reduce animations",
+    "highContrast": "High contrast",
+    "contrastLevel": "Contrast level: {level}%",
+    "interfaceSize": "Interface size",
+    "uiScale": "UI Scale: {scale}%",
+    "preferencesSaved": "Preferences saved (demo)"
+  },
+  "language": {
+    "selectLanguage": "Select your preferred language using the buttons above.",
+    "information": "Information",
+    "defaultLanguage": "Default language is Spanish",
+    "changesImmediate": "Changes apply immediately",
+    "savedInCookie": "Your preference is saved in a cookie",
+    "systemWorking": "✓ Language system working correctly",
+    "current": "Current language: Spanish ({locale})"
+  },
+  "categories": {
+    "waterPumps": "Water Pumps",
+    "spareParts": "Spare Parts",
+    "electricalMaterials": "Electrical Materials",
+    "specializedTools": "Specialized Tools",
+    "tools": "Tools",
+    "lubricants": "Lubricants",
+    "noCategoriesInRow": "No categories in this row",
+    "couldNotSave": "Could not save categories"
+  },
+  "notifications": {
+    "changesSaved": "Changes saved successfully.",
+    "creationSent": "Creation sent for developer approval.",
+    "editSent": "Edit sent for developer approval.",
+    "deletionSent": "Deletion sent for developer approval.",
+    "noCategoriesRegistered": "No categories registered yet."
+  },
+  "systemControl": {
+    "title": "System Control",
+    "autoClose": "Automatic system closure",
+    "autoCloseDescription": "Define how many hours your session expires automatically.",
+    "oneHour": "1 hour",
+    "twoHours": "2 hours (Recommended)",
+    "threeHours": "3 hours (Less recommended)",
+    "defaultOption": "The default option is 2 hours (Recommended).",
+    "idleExpiration": "Expiration by inactivity",
+    "idleDescription": "Configure the allowed inactivity time. We will show a warning with a 60-second countdown before closing the session.",
+    "allowedRange": "Allowed range: 30–45 minutes.",
+    "minutes": "min"
+  },
+  "validation": {
+    "fieldsRequired": "All fields are required.",
+    "passwordLength": "The new password must have at least 8 characters.",
+    "passwordCase": "The new password must include uppercase and lowercase letters.",
+    "passwordMismatch": "The password confirmation does not match.",
+    "passwordUpdated": "Password updated successfully (mock without integration)."
+  },
+  "confirmations": {
+    "resourceConfirmation": "Confirm resource modification",
+    "resourceConfirmationQuestion": "Confirm modification of this resource?",
+    "resourceDeletion": "Are you sure you want to delete this resource?",
+    "editingResource": "Editing resource",
+    "saveChanges": "Save changes"
+  },
+  "inventoryMessages": {
+    "creationSent": "Creation sent for developer approval.",
+    "editSent": "Edit sent for developer approval.",
+    "deletionSent": "Deletion sent for developer approval.",
+    "backToInventory": "← Back to inventory"
+  },
+  "errors": {
+    "loadError": "Could not load",
+    "networkError": "Network error",
+    "unauthorizedError": "Unauthorized or server error"
   }
 }

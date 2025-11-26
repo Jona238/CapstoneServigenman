@@ -29,7 +29,22 @@ export default function AppHeader() {
       // ignore network errors
     } finally {
       try { document.cookie = "auth_ok=; Max-Age=0; path=/"; } catch {}
-      window.location.href = "/login";
+
+      // Show goodbye message
+      const logoutMessage = document.createElement("div");
+      logoutMessage.className = "logout-message";
+      logoutMessage.innerHTML = `
+        <div class="logout-message-content">
+          <p>¡Hasta luego!</p>
+          <p>ServiGenman</p>
+        </div>
+      `;
+      document.body.appendChild(logoutMessage);
+
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
     }
   };
 

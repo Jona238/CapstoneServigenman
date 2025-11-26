@@ -308,7 +308,7 @@ nav a:hover {
   background: var(--inventory-panel);
   border: 1px solid var(--inventory-border);
   box-shadow: var(--inventory-shadow);
-  border-radius: 14px;
+  border-radius: var(--card-radius-md);
   padding: 10px 12px;
 }
 .edit-toolbar__inner {
@@ -344,13 +344,13 @@ nav a:hover {
 .inventory-card {
   background: var(--inventory-panel);
   border: 1px solid var(--inventory-border);
-  border-radius: 24px;
-  padding: 26px;
+  border-radius: var(--card-radius-xl);
+  padding: var(--card-padding-xl);
   box-shadow: var(--inventory-shadow);
-  backdrop-filter: blur(16px);
+  backdrop-filter: var(--card-backdrop);
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--card-gap-xl);
 }
 
 .inventory-card__heading h2 {
@@ -569,9 +569,33 @@ select.filtro-input {
 
 .tabla-scroll {
   border: 1px solid var(--inventory-border);
-  border-radius: 18px;
+  border-radius: var(--card-radius-lg);
   overflow: hidden;
   background: var(--inventory-secondary-bg);
+}
+
+@media (max-width: 767px) {
+  .tabla-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabla-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .tabla-scroll::-webkit-scrollbar-track {
+    background: var(--inventory-secondary-bg);
+  }
+
+  .tabla-scroll::-webkit-scrollbar-thumb {
+    background: var(--inventory-border);
+    border-radius: 3px;
+  }
+
+  .tabla-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--card-accent);
+  }
 }
 
 #tablaRecursos {
@@ -619,16 +643,16 @@ select.filtro-input {
 
 #tablaRecursos tbody td[data-quantity] {
   white-space: nowrap;
+  padding: 14px 16px;
 }
 
 #tablaRecursos tbody td[data-quantity] .quantity-value {
   font-weight: 600;
+  display: inline;
+  line-height: inherit;
 }
 
 .inventory-quantity--low {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-weight: 700;
   color: var(--inventory-danger-text);
 }
@@ -743,9 +767,9 @@ select.filtro-input {
 .empty-state__box {
   background: var(--inventory-panel);
   border: 1px solid var(--inventory-border);
-  border-radius: 16px;
+  border-radius: var(--card-radius-md);
   box-shadow: var(--inventory-shadow);
-  padding: 28px 22px;
+  padding: var(--card-padding-lg);
   text-align: center;
   position: relative;
 }
@@ -792,35 +816,302 @@ select.filtro-input {
   border: 0;
 }
 
-/* Responsivo */
-@media (max-width: 900px) {
-  .inventory-header__inner {
-    padding: 22px 24px;
-  }
-  .inventory-shell {
-    padding: 100px 24px 60px;
-  }
-  .inventory-card {
-    padding: 22px;
-  }
-}
+/* ============================================================================
+   MOBILE FIRST - RESPONSIVE BREAKPOINTS ESTANDARIZADOS
+   ============================================================================ */
 
-@media (max-width: 640px) {
+/* EXTRA SMALL - 320px-374px */
+@media (max-width: 374px) {
   .inventory-header__inner {
-    padding: 18px;
+    padding: 14px 12px;
+    gap: 12px;
   }
+
   .inventory-shell {
-    padding: 96px 18px 56px;
+    padding: 90px 12px 40px;
+    gap: 14px;
   }
+
+  .inventory-card {
+    padding: var(--card-padding-sm);
+    gap: var(--card-gap-md);
+    border-radius: var(--card-radius-md);
+  }
+
+  .inventory-card__title {
+    font-size: clamp(14px, 3vw, 18px);
+    margin: 0 0 6px;
+  }
+
+  .inventory-card__subtitle {
+    font-size: 12px;
+  }
+
   .header-bar {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
+
+  nav {
+    flex: 1;
+    width: 100%;
+  }
+
   nav ul {
     justify-content: flex-start;
+    gap: 6px;
+    flex-wrap: wrap;
   }
+
+  nav button,
+  nav a {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 40px;
+  }
+
+  .inventory-input,
+  .inventory-select {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 12px;
+    min-height: 44px;
+  }
+
+  .inventory-button {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 12px;
+    min-height: 44px;
+  }
+
   #tablaRecursos {
     min-width: 100%;
+    font-size: 12px;
+  }
+
+  #tablaRecursos th,
+  #tablaRecursos td {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .inventory-filter,
+  .inventory-sort {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
+/* SMALL MOBILE - 375px-479px */
+@media (min-width: 375px) and (max-width: 479px) {
+  .inventory-header__inner {
+    padding: 16px 14px;
+    gap: 12px;
+  }
+
+  .inventory-shell {
+    padding: 95px 14px 48px;
+    gap: 16px;
+  }
+
+  .inventory-card {
+    padding: var(--card-padding-md);
+    gap: var(--card-gap-md);
+    border-radius: var(--card-radius-lg);
+  }
+
+  .inventory-card__title {
+    font-size: clamp(14px, 3.5vw, 20px);
+  }
+
+  .header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  nav ul {
+    gap: 8px;
+  }
+
+  nav button,
+  nav a {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .inventory-input,
+  .inventory-select {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 13px;
+    min-height: 44px;
+  }
+
+  .inventory-button {
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 13px;
+    min-height: 44px;
+  }
+
+  #tablaRecursos {
+    min-width: 100%;
+    font-size: 13px;
+  }
+
+  #tablaRecursos th,
+  #tablaRecursos td {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+/* TABLET SMALL - 480px-767px */
+@media (min-width: 480px) and (max-width: 767px) {
+  .inventory-header__inner {
+    padding: 18px 16px;
+    gap: 14px;
+  }
+
+  .inventory-shell {
+    padding: 100px 16px 56px;
+    gap: 18px;
+  }
+
+  .inventory-card {
+    padding: var(--card-padding-lg);
+    gap: var(--card-gap-lg);
+    border-radius: var(--card-radius-lg);
+  }
+
+  .inventory-card__title {
+    font-size: clamp(16px, 3.8vw, 22px);
+  }
+
+  .header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  nav ul {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  nav button,
+  nav a {
+    padding: 10px 14px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .inventory-input,
+  .inventory-select {
+    padding: 11px 13px;
+    font-size: 14px;
+    border-radius: 13px;
+    min-height: 44px;
+  }
+
+  .inventory-button {
+    padding: 11px 18px;
+    font-size: 14px;
+    border-radius: 13px;
+    min-height: 44px;
+  }
+
+  #tablaRecursos {
+    min-width: 100%;
+    font-size: 13px;
+  }
+
+  #tablaRecursos th,
+  #tablaRecursos td {
+    padding: 11px;
+    font-size: 13px;
+  }
+}
+
+/* TABLET - 768px-1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .inventory-header__inner {
+    padding: 20px 20px;
+  }
+
+  .inventory-shell {
+    padding: 105px 20px 60px;
+  }
+
+  .inventory-card {
+    padding: var(--card-padding-lg);
+    gap: var(--card-gap-lg);
+  }
+
+  .header-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  nav ul {
+    justify-content: center;
+  }
+
+  #tablaRecursos {
+    font-size: 14px;
+  }
+
+  #tablaRecursos th,
+  #tablaRecursos td {
+    padding: 12px;
+  }
+}
+
+/* LAPTOP - 1024px-1439px */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .inventory-header__inner {
+    padding: 22px 28px;
+  }
+
+  .inventory-shell {
+    padding: 110px 28px 70px;
+  }
+
+  .inventory-card {
+    padding: var(--card-padding-xl);
+  }
+
+  .header-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* DESKTOP - 1440px+ */
+@media (min-width: 1440px) {
+  .inventory-header__inner {
+    padding: 24px 32px;
+  }
+
+  .inventory-shell {
+    padding: 120px 32px 80px;
+  }
+
+  .inventory-card {
+    padding: var(--card-padding-2xl);
+  }
+
+  .header-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 

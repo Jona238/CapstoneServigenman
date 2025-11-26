@@ -1,0 +1,304 @@
+/* ============================================================================
+   SISTEMA UNIFICADO DE VARIABLES CSS PARA TARJETAS
+   Mantiene soporte para Light Mode y Dark Mode en todas las páginas
+   ============================================================================ */
+
+:root {
+  /* ========================================================================
+     BORDER RADIUS - Valores estandarizados
+     ======================================================================== */
+  --card-radius-sm: 12px;   /* Para elementos pequeños (badges, buttons) */
+  --card-radius-md: 16px;   /* Para tarjetas normales */
+  --card-radius-lg: 20px;   /* Para tarjetas principales */
+  --card-radius-xl: 24px;   /* Para contenedores hero */
+
+  /* ========================================================================
+     PADDING - Responsive escalable
+     ======================================================================== */
+  /* Extra small (320px-374px) */
+  --card-padding-xs: 12px 14px;
+
+  /* Small mobile (375px-479px) */
+  --card-padding-sm: 16px 18px;
+
+  /* Mobile/Tablet small (480px-767px) */
+  --card-padding-md: 24px;
+
+  /* Tablet/Laptop (768px-1023px) */
+  --card-padding-lg: 28px;
+
+  /* Desktop (1024px-1439px) */
+  --card-padding-xl: 32px;
+
+  /* Desktop XL (1440px+) */
+  --card-padding-2xl: 36px;
+
+  /* ========================================================================
+     BOX SHADOW - Sistema de sombras consistente
+     ======================================================================== */
+  /* Light mode shadows */
+  --card-shadow-sm: 0 12px 24px rgba(18, 43, 72, 0.12);
+  --card-shadow-md: 0 20px 40px rgba(18, 43, 72, 0.18);
+  --card-shadow-lg: 0 28px 60px rgba(18, 43, 72, 0.25);
+
+  /* Dark mode shadows (más oscuras) */
+  --card-shadow-dark-sm: 0 12px 24px rgba(0, 0, 0, 0.28);
+  --card-shadow-dark-md: 0 24px 50px rgba(0, 0, 0, 0.45);
+  --card-shadow-dark-lg: 0 28px 70px rgba(0, 0, 0, 0.55);
+
+  /* ========================================================================
+     BACKDROP FILTER - Efecto glassmorphism
+     ======================================================================== */
+  --card-backdrop: blur(16px);
+  --card-backdrop-light: blur(12px);
+
+  /* ========================================================================
+     GAP - Espacio entre elementos dentro de tarjetas
+     ======================================================================== */
+  --card-gap-sm: 12px;   /* Mobile */
+  --card-gap-md: 16px;   /* Tablet */
+  --card-gap-lg: 24px;   /* Desktop */
+  --card-gap-xl: 32px;   /* Desktop XL */
+
+  /* ========================================================================
+     COLORES BASE - Light Mode (por defecto)
+     ======================================================================== */
+  --card-background: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(32, 110, 190, 0.2);
+  --card-text: #10253e;
+  --card-muted: #56677f;
+
+  /* Colores neutrales */
+  --card-surface-secondary: rgba(245, 250, 255, 0.9);
+  --card-divider: rgba(30, 110, 190, 0.18);
+
+  /* Estados */
+  --card-accent: linear-gradient(135deg, #2e78ff, #1ac6ff);
+  --card-danger: #d65c5c;
+  --card-success: #1f9d77;
+  --card-warning: #f59e0b;
+
+  /* Colores relacionados */
+  --card-danger-bg: rgba(214, 92, 92, 0.14);
+  --card-danger-border: rgba(214, 92, 92, 0.32);
+  --card-danger-text: #a63f3f;
+
+  --card-success-bg: rgba(31, 157, 119, 0.12);
+  --card-success-border: rgba(31, 157, 119, 0.3);
+
+  --card-warning-bg: rgba(245, 158, 11, 0.12);
+  --card-warning-border: rgba(245, 158, 11, 0.3);
+
+  /* ========================================================================
+     TRANSICIONES Y EFECTOS
+     ======================================================================== */
+  --card-transition: all 0.3s ease;
+  --card-transition-fast: all 0.2s ease;
+  --card-transition-hover: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ============================================================================
+   DARK MODE - Sobrescribe las variables para tema oscuro
+   ============================================================================ */
+
+/* Dark mode automático (prefers-color-scheme) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Colores Dark Mode */
+    --card-background: rgba(10, 35, 60, 0.9);
+    --card-border: rgba(80, 150, 220, 0.35);
+    --card-text: #eaf2ff;
+    --card-muted: #9bb4d3;
+
+    /* Colores neutrales */
+    --card-surface-secondary: rgba(8, 22, 40, 0.78);
+    --card-divider: rgba(255, 255, 255, 0.08);
+
+    /* Estados Dark */
+    --card-accent: linear-gradient(135deg, #6d78ff, #2ad1ff);
+    --card-danger: #ff6b6b;
+    --card-success: #36d3a5;
+    --card-warning: #fbbf24;
+
+    /* Colores relacionados Dark */
+    --card-danger-bg: rgba(255, 107, 107, 0.18);
+    --card-danger-border: rgba(255, 107, 107, 0.4);
+    --card-danger-text: #ffb6b6;
+
+    --card-success-bg: rgba(54, 211, 165, 0.12);
+    --card-success-border: rgba(54, 211, 165, 0.35);
+
+    --card-warning-bg: rgba(251, 191, 36, 0.12);
+    --card-warning-border: rgba(251, 191, 36, 0.35);
+  }
+}
+
+/* Dark mode manual (toggle button) */
+body[data-theme="dark"] {
+  /* Colores Dark Mode */
+  --card-background: rgba(10, 35, 60, 0.9);
+  --card-border: rgba(80, 150, 220, 0.35);
+  --card-text: #eaf2ff;
+  --card-muted: #9bb4d3;
+
+  /* Colores neutrales */
+  --card-surface-secondary: rgba(8, 22, 40, 0.78);
+  --card-divider: rgba(255, 255, 255, 0.08);
+
+  /* Estados Dark */
+  --card-accent: linear-gradient(135deg, #6d78ff, #2ad1ff);
+  --card-danger: #ff6b6b;
+  --card-success: #36d3a5;
+  --card-warning: #fbbf24;
+
+  /* Colores relacionados Dark */
+  --card-danger-bg: rgba(255, 107, 107, 0.18);
+  --card-danger-border: rgba(255, 107, 107, 0.4);
+  --card-danger-text: #ffb6b6;
+
+  --card-success-bg: rgba(54, 211, 165, 0.12);
+  --card-success-border: rgba(54, 211, 165, 0.35);
+
+  --card-warning-bg: rgba(251, 191, 36, 0.12);
+  --card-warning-border: rgba(251, 191, 36, 0.35);
+}
+
+/* Light mode manual (toggle button) - Higher specificity */
+:root, body[data-theme="light"] {
+  /* Colores Light Mode */
+  --card-background: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(32, 110, 190, 0.2);
+  --card-text: #10253e;
+  --card-muted: #56677f;
+
+  /* Colores neutrales */
+  --card-surface-secondary: rgba(245, 250, 255, 0.9);
+  --card-divider: rgba(30, 110, 190, 0.18);
+
+  /* Estados Light */
+  --card-accent: linear-gradient(135deg, #2e78ff, #1ac6ff);
+  --card-danger: #d65c5c;
+  --card-success: #1f9d77;
+  --card-warning: #f59e0b;
+
+  /* Colores relacionados Light */
+  --card-danger-bg: rgba(214, 92, 92, 0.14);
+  --card-danger-border: rgba(214, 92, 92, 0.32);
+  --card-danger-text: #a63f3f;
+
+  --card-success-bg: rgba(31, 157, 119, 0.12);
+  --card-success-border: rgba(31, 157, 119, 0.3);
+
+  --card-warning-bg: rgba(245, 158, 11, 0.12);
+  --card-warning-border: rgba(245, 158, 11, 0.3);
+}
+
+/* ============================================================================
+   VARIABLES ESPECÍFICAS POR PÁGINA (heredan las variables base)
+   Mantienen compatibilidad con código existente
+   ============================================================================ */
+
+/* Inventario */
+:root {
+  --inventory-radius: var(--card-radius-xl);
+  --inventory-padding: var(--card-padding-xl);
+  --inventory-shadow: var(--card-shadow-md);
+}
+
+body[data-theme="dark"] {
+  --inventory-shadow: var(--card-shadow-dark-lg);
+}
+
+/* Categorías */
+:root {
+  --categories-radius: var(--card-radius-xl);
+  --categories-padding: var(--card-padding-xl);
+  --categories-shadow: var(--card-shadow-md);
+}
+
+body[data-theme="dark"] {
+  --categories-shadow: var(--card-shadow-dark-lg);
+}
+
+/* Presupuesto */
+:root {
+  --budget-radius: var(--card-radius-xl);
+  --budget-padding: var(--card-padding-xl);
+  --budget-shadow: var(--card-shadow-md);
+}
+
+body[data-theme="dark"] {
+  --budget-shadow: var(--card-shadow-dark-lg);
+}
+
+/* Inicio/Home */
+:root {
+  --home-radius: var(--card-radius-lg);
+  --home-padding: var(--card-padding-xl);
+  --home-shadow: var(--card-shadow-md);
+}
+
+body[data-theme="dark"] {
+  --home-shadow: var(--card-shadow-dark-lg);
+}
+
+/* Facturas */
+:root {
+  --invoice-radius: var(--card-radius-md);
+  --invoice-padding: var(--card-padding-lg);
+  --invoice-shadow: var(--card-shadow-md);
+}
+
+body[data-theme="dark"] {
+  --invoice-shadow: var(--card-shadow-dark-md);
+}
+
+/* Calendario */
+:root {
+  --calendar-radius: var(--card-radius-xl);
+  --calendar-padding: var(--card-padding-xl);
+  --calendar-shadow: var(--card-shadow-lg);
+}
+
+body[data-theme="dark"] {
+  --calendar-shadow: var(--card-shadow-dark-lg);
+}
+
+/* Ajustes */
+:root {
+  --settings-radius: var(--card-radius-lg);
+  --settings-padding: var(--card-padding-lg);
+  --settings-shadow: var(--card-shadow-md);
+}
+
+body[data-theme="dark"] {
+  --settings-shadow: var(--card-shadow-dark-md);
+}
+
+/* Login/Recuperación */
+:root {
+  --auth-radius: var(--card-radius-lg);
+  --auth-padding: var(--card-padding-md);
+  --auth-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================================
+   ALIAS Y REFERENCIAS COMUNES
+   ============================================================================ */
+
+:root {
+  /* Sombra por defecto para tarjetas */
+  --card-default-shadow: var(--card-shadow-md);
+
+  /* Sombra en dark mode */
+  --card-default-shadow-dark: var(--card-shadow-dark-md);
+
+  /* Radio de borde por defecto */
+  --card-default-radius: var(--card-radius-lg);
+
+  /* Padding por defecto en desktop */
+  --card-default-padding: var(--card-padding-xl);
+
+  /* Backdrop por defecto */
+  --card-default-backdrop: var(--card-backdrop);
+}

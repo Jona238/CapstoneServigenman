@@ -234,21 +234,21 @@
       "attachmentHint": "PDF, DOC o imagen. Máximo 5 MB.",
       "submit": "Guardar factura",
       "saving": "Guardando...",
-      "reset": "Limpiar pesta?a",
+      "reset": "Limpiar pestaña",
       "tabLabel": "Seleccionar tipo de factura",
       "tabs": {
         "purchase": "Factura de compra",
         "sale": "Factura de venta"
       },
-      "purchaseHelper": "Usa esta pesta?a para capturar proveedor, montos y materiales de las facturas de compra.",
-      "salesHelper": "Usa esta pesta?a para capturar cliente, montos y descripci?n del trabajo de las facturas de venta.",
+      "purchaseHelper": "Usa esta pestaña para capturar proveedor, montos y materiales de las facturas de compra.",
+      "salesHelper": "Usa esta pestaña para capturar cliente, montos y descripción del trabajo de las facturas de venta.",
       "client": "Cliente",
       "autofill": "Leer factura y autocompletar",
       "autofilling": "Leyendo...",
-      "autofillHint": "Adjunta el PDF o imagen, presiona el bot?n y leeremos los datos principales autom?ticamente.",
+      "autofillHint": "Adjunta el PDF o imagen, presiona el botón y leeremos los datos principales automáticamente.",
       "materialsDetected": "Materiales detectados",
       "materialsHelper": "Revisa y ajusta las cantidades antes de guardar la factura de compra.",
-      "materialDescription": "Descripci?n",
+      "materialDescription": "Descripción",
       "materialQuantity": "Cantidad",
       "addMaterial": "Agregar material",
       "rut": "RUT",
@@ -270,7 +270,7 @@
       "saved": "Factura registrada correctamente.",
       "error": "No pudimos registrar la factura. Inténtalo nuevamente.",
       "autofillSuccess": "Listo, completamos los campos detectados.",
-      "autofillError": "No pudimos leer la factura. Revisa el archivo e int?ntalo nuevamente."
+      "autofillError": "No pudimos leer la factura. Revisa el archivo e inténtalo nuevamente."
     },
     "table": {
       "eyebrow": "Historial",
@@ -285,5 +285,179 @@
       "attachment": "Adjunto",
       "noAttachment": "Sin archivo"
     }
+  },
+  "navigation": {
+    "trash": "Papelera",
+    "pendingChanges": "Cambios Pendientes"
+  },
+  "calendar": {
+    "title": "Planificación operativa",
+    "operationalCalendar": "Calendario operativo",
+    "description": "Agenda de mantenimiento y abastecimiento.",
+    "registeredEvents": "Eventos registrados",
+    "nextEvent": "Próximo evento",
+    "noPendingDate": "Sin fecha pendiente",
+    "stats": {
+      "totalEvents": "Eventos registrados",
+      "nextEvent": "Próximo evento",
+      "noNextEvent": "Sin fecha pendiente",
+      "maintenanceCount": "Mantenciones",
+      "purchaseCount": "Compras",
+      "expirationCount": "Vencimientos"
+    },
+    "eventTypes": {
+      "maintenance": "Mantención",
+      "purchase": "Compra",
+      "expiration": "Vencimiento"
+    },
+    "registerEvent": "Registrar evento",
+    "defineEvents": "Define fechas críticas para tu equipo.",
+    "eventTitle": "Título del evento",
+    "eventTitlePlaceholder": "Ej: Mantención preventiva",
+    "description": "Descripción / notas",
+    "descriptionPlaceholder": "Notas internas para cuadrillas o compras.",
+    "savedLocally": "Datos guardados localmente.",
+    "saveChanges": "Guardar cambios",
+    "editingEvent": "Editando evento",
+    "selectDay": "Selecciona un día para revisar sus hitos.",
+    "scheduleFor": "Agenda del {date}",
+    "noEventsScheduled": "No hay eventos planificados para esta fecha.",
+    "eventLegend": "Leyenda de tipos de evento",
+    "upcomingMilestones": "Próximos hitos",
+    "chronologicalPlanning": "Planificación cronológica",
+    "noPendingMilestones": "No existen hitos pendientes.",
+    "filterByType": "Filtrar por tipo",
+    "allTypes": "Todos",
+    "today": "Hoy"
+  },
+  "papelera": {
+    "title": "Cambios Pendientes / Papelera",
+    "description": "Solicitudes de eliminación y cambios a la espera de aprobación.",
+    "loading": "Cargando…",
+    "noPendingChanges": "No hay cambios pendientes.",
+    "tableHeaders": {
+      "changeId": "ID Cambio",
+      "action": "Acción",
+      "status": "Estado",
+      "item": "Item",
+      "requestedBy": "Solicitado por",
+      "details": "Detalles"
+    },
+    "actions": {
+      "approve": "Aprobar",
+      "reject": "Rechazar"
+    },
+    "actionTypes": {
+      "delete": "Eliminar: {name}",
+      "create": "Crear: {name}",
+      "edit": "Editar: {name}",
+      "noChanges": "(sin cambios detectables)"
+    },
+    "errors": {
+      "failedToLoad": "No se pudo cargar",
+      "unauthorized": "No autorizado o error del servidor",
+      "networkError": "Error de red"
+    }
+  },
+  "settingsPages": {
+    "accountSettings": "Ajustes de Cuenta",
+    "manageProfile": "Administra tu perfil, seguridad y preferencias de tu cuenta.",
+    "loadingSettings": "Cargando ajustes...",
+    "noData": "Sin datos",
+    "noConfigurations": "No hay configuraciones disponibles en esta sección.",
+    "security": "Seguridad",
+    "securityDescription": "Cambia tu contraseña o activa la autenticación en dos pasos (2FA).",
+    "updatePassword": "Actualizar contraseña",
+    "preferences": "Preferencias",
+    "minimumStockAlerts": "Stock mínimo para alertas",
+    "adjustThreshold": "Ajusta el umbral para resaltar en rojo los recursos con existencias bajas en el inventario y en los resúmenes.",
+    "minimumStockUpdated": "Stock mínimo actualizado."
+  },
+  "appearance": {
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "fontSize": "Tamaño de letra",
+    "small": "Pequeña",
+    "medium": "Mediana",
+    "large": "Grande",
+    "currency": "Moneda",
+    "chileanPeso": "Peso chileno (CLP)",
+    "dollar": "Dólar (USD)",
+    "euro": "Euro (EUR)"
+  },
+  "accessibility": {
+    "title": "Accesibilidad",
+    "reduceAnimations": "Reducir animaciones",
+    "highContrast": "Alto contraste",
+    "contrastLevel": "Nivel de contraste: {level}%",
+    "interfaceSize": "Tamaño de interfaz",
+    "uiScale": "Escala UI: {scale}%",
+    "preferencesSaved": "Preferencias guardadas (demo)"
+  },
+  "language": {
+    "selectLanguage": "Selecciona tu idioma preferido usando los botones de arriba.",
+    "information": "Información",
+    "defaultLanguage": "El idioma por defecto es Español",
+    "changesImmediate": "Los cambios se aplican inmediatamente",
+    "savedInCookie": "Tu preferencia se guarda en una cookie",
+    "systemWorking": "✓ Sistema de idiomas funcionando correctamente",
+    "current": "Idioma actual: Español ({locale})"
+  },
+  "categories": {
+    "waterPumps": "Bombas de agua",
+    "spareParts": "Repuestos",
+    "electricalMaterials": "Materiales eléctricos",
+    "specializedTools": "Herramientas especializadas",
+    "tools": "Herramientas",
+    "lubricants": "Lubricantes",
+    "noCategoriesInRow": "No hay categorías en esta fila",
+    "couldNotSave": "No fue posible guardar las categorías"
+  },
+  "notifications": {
+    "changesSaved": "Cambios guardados correctamente.",
+    "creationSent": "Creación enviada para aprobación del desarrollador.",
+    "editSent": "Edición enviada para aprobación del desarrollador.",
+    "deletionSent": "Eliminación enviada para aprobación del desarrollador.",
+    "noCategoriesRegistered": "No hay categorías registradas todavía."
+  },
+  "systemControl": {
+    "title": "Control del Sistema",
+    "autoClose": "Cierre automático del sistema",
+    "autoCloseDescription": "Define cada cuántas horas expira tu sesión de forma automática.",
+    "oneHour": "1 hora",
+    "twoHours": "2 horas (Recomendado)",
+    "threeHours": "3 horas (Menos recomendado)",
+    "defaultOption": "La opción por defecto es 2 horas (Recomendado).",
+    "idleExpiration": "Expiración por inactividad",
+    "idleDescription": "Configura el tiempo de inactividad permitido. Mostraremos un aviso con un cronómetro de 60 segundos antes de cerrar la sesión.",
+    "allowedRange": "Rango permitido: 30–45 minutos.",
+    "minutes": "min"
+  },
+  "validation": {
+    "fieldsRequired": "Todos los campos son obligatorios.",
+    "passwordLength": "La nueva contraseña debe tener al menos 8 caracteres.",
+    "passwordCase": "La nueva contraseña debe incluir mayúsculas y minúsculas.",
+    "passwordMismatch": "La confirmación de la contraseña no coincide.",
+    "passwordUpdated": "Contraseña actualizada correctamente (mock sin integración)."
+  },
+  "confirmations": {
+    "resourceConfirmation": "Confirmar modificación del recurso",
+    "resourceConfirmationQuestion": "¿Confirmar modificación de este recurso?",
+    "resourceDeletion": "¿Estás seguro de que deseas eliminar este recurso?",
+    "editingResource": "Editando recurso",
+    "saveChanges": "Guardar cambios"
+  },
+  "inventoryMessages": {
+    "creationSent": "Creación enviada para aprobación del desarrollador.",
+    "editSent": "Edición enviada para aprobación del desarrollador.",
+    "deletionSent": "Eliminación enviada para aprobación del desarrollador.",
+    "backToInventory": "← Volver al inventario"
+  },
+  "errors": {
+    "loadError": "No se pudo cargar",
+    "networkError": "Error de red",
+    "unauthorizedError": "No autorizado o error del servidor"
   }
 }
