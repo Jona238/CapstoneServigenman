@@ -11,6 +11,8 @@ export default function RecuperarContrasena() {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
+  const [cooldown, setCooldown] = useState(0); // Evita reenvios seguidos del OTP
+  const [pending, setPending] = useState(false); // Deshabilita UI mientras se envía
   const emailInputRef = useRef<HTMLInputElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<number | null>(null);
@@ -27,10 +29,33 @@ export default function RecuperarContrasena() {
       html.classList.remove("recuperacion-root");
       body.classList.remove("recuperacion-body");
       if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
+        window.clearInterval(timerRef.current);
       }
     };
   }, []);
+
+  useEffect(() => {
+    // Maneja el contador de cooldown para bloquear el reenvio hasta que expire
+    if (cooldown > 0) {
+        if (timerRef.current !== null) {
+            window.clearInterval(timerRef.current);
+        }
+        timerRef.current = window.setInterval(() => {
+          setCooldown((prev) => {
+            if (prev <= 1 && timerRef.current !== null) {
+              window.clearInterval(timerRef.current);
+            }
+            return Math.max(prev - 1, 0);
+          });
+        }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearInterval(timerRef.current);
+      }
+    };
+  }, [cooldown]);
 
   useEffect(() => {
     if (message) {
@@ -53,11 +78,13 @@ export default function RecuperarContrasena() {
 
     setMessage(null);
     setFeedbackType(null);
+    setPending(true);
 
     if (!trimmedUser) {
       const errorMessage = "Por favor ingresa tu usuario.";
       setMessage(errorMessage);
       setFeedbackType("error");
+      setPending(false);
       dispatchIntegrationEvent({
         status: "error",
         payload: { message: errorMessage },
@@ -80,24 +107,29 @@ export default function RecuperarContrasena() {
       try { payload = await res.json(); } catch { payload = null; }
 
       if (!res.ok) {
-        const err = (payload && (payload.detail || payload.error)) || 'No se pudo enviar el correo. Verifica la configuración del servidor.';
+        const err = (payload && (payload.detail || payload.error)) || 'No se pudo enviar el correo. Verifica la configuracion del servidor.';
         setMessage(err);
         setFeedbackType('error');
+        setPending(false);
         dispatchIntegrationEvent({ status: 'error', payload: { username: trimmedUser, message: err } });
         return;
       }
 
-      let text = 'Si el usuario existe y tiene correo asociado, enviaremos un código de verificación.';
+      let text = 'Si el usuario existe y tiene correo asociado, enviaremos un codigo de verificacion.';
       if (payload && payload.code) {
-        text += `\n\n(DEV) Tu código es: ${payload.code}`;
+        text += `\n\n(DEV) Tu codigo es: ${payload.code}`;
       }
+      // Activa cooldown de reenvio para evitar spam de correos
+      setCooldown(payload?.cooldown ?? 60);
       setMessage(text);
       setFeedbackType('success');
+      setPending(false);
       dispatchIntegrationEvent({ status: 'success', payload: { username: trimmedUser, message: text } });
     } catch {
       const err = 'No se pudo procesar la solicitud. Intenta nuevamente.';
       setMessage(err);
       setFeedbackType('error');
+      setPending(false);
       dispatchIntegrationEvent({ status: 'error', payload: { username: trimmedUser, message: err } });
     }
   };
@@ -117,9 +149,11 @@ export default function RecuperarContrasena() {
               <stop offset="100%" stopColor="#2ad1ff" />
             </linearGradient>
           </defs>
-          <path className="wave slow" stroke="url(#recovery-wave-a)" d="M0,130 C180,110 300,85 520,95 C740,105 900,145 1080,135 C1260,125 1360,100 1440,110" />
-          <path className="wave mid" stroke="url(#recovery-wave-b)" d="M0,450 C220,430 360,410 580,420 C800,430 980,470 1140,460 C1300,450 1380,420 1440,430" />
-          <path className="wave" stroke="url(#recovery-wave-a)" d="M0,760 C200,740 340,740 560,740 C780,740 960,770 1120,760 C1280,750 1380,730 1440,740" />
+          {/* Ondas múltiples para replicar el patrón punteado del diseño */}
+          <path className="wave slow" stroke="url(#recovery-wave-a)" d="M0,110 C200,90 360,80 560,90 C760,100 960,130 1180,120 C1340,115 1420,95 1440,110" />
+          <path className="wave mid" stroke="url(#recovery-wave-b)" d="M0,260 C180,240 340,230 560,240 C820,250 980,290 1200,280 C1340,270 1400,250 1440,260" />
+          <path className="wave" stroke="url(#recovery-wave-a)" d="M0,470 C220,450 380,430 600,440 C860,450 1020,490 1220,480 C1360,470 1420,450 1440,460" />
+          <path className="wave slow" stroke="url(#recovery-wave-b)" d="M0,700 C200,680 360,680 580,690 C820,700 1040,730 1240,720 C1360,710 1420,690 1440,700" />
         </svg>
       </div>
 
@@ -148,13 +182,10 @@ export default function RecuperarContrasena() {
         <div>
           <h1 id="recovery-title" className="recovery-title">Recuperar Contrasena</h1>
           <p className="recovery-description">
-            Ingresa tu correo y te enviaremos un <strong>código</strong> para autorizar el cambio de contraseña.
-            Luego, introduce ese código y tu nueva contraseña en el siguiente paso.
+            Ingresa tu correo y te enviaremos un <strong>codigo</strong> para autorizar el cambio de contrasena.
+            Luego, introduce ese codigo y tu nueva contrasena en el siguiente paso.
           </p>
-          {/* 
-            Nota: No incluye integración HTTP real.
-            Emite evento/handler para que la integración lo conecte.
-          */}
+          {/* Nota: Integra la llamada HTTP real al backend /api/password/request/ */}
         </div>
 
         <form className="recovery-form" onSubmit={handleSubmit} noValidate>
@@ -184,12 +215,14 @@ export default function RecuperarContrasena() {
             </div>
           )}
 
-          <button className="recovery-btn" type="submit">Enviar código</button>
+          <button className="recovery-btn" type="submit" disabled={pending || cooldown > 0}>
+            {pending ? "Enviando..." : (cooldown > 0 ? `Reenviar en ${cooldown}s` : "Enviar codigo")}
+          </button>
         </form>
 
         <div className="recovery-links">
           <Link href="/login">Volver al inicio de sesion</Link>
-          <Link href="/recuperacion/validar">Ya tienes un código? Cambiar contraseña</Link>
+          <Link href="/recuperacion/validar">Ya tienes un codigo? Cambiar contrasena</Link>
         </div>
 
         <div className="recovery-footer">
@@ -199,4 +232,3 @@ export default function RecuperarContrasena() {
     </div>
   );
 }
-

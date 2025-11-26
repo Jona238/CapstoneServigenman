@@ -217,6 +217,7 @@
     "summary": {
       "totalInvoices": "Facturas registradas",
       "totalAmount": "Monto total",
+      "totalVat": "IVA total",
       "lastSupplier": "Último proveedor",
       "noRecords": "Sin registros"
     },
@@ -249,7 +250,13 @@
       "materialsHelper": "Revisa y ajusta las cantidades antes de guardar la factura de compra.",
       "materialDescription": "Descripción",
       "materialQuantity": "Cantidad",
-      "addMaterial": "Agregar material"
+      "addMaterial": "Agregar material",
+      "rut": "RUT",
+      "address": "Direcci?n",
+      "contact": "Contacto",
+      "calculatedVat": "IVA calculado (19%): {value}",
+      "netAmount": "Monto neto",
+      "vatAmount": "IVA (19%)"
     },
     "errors": {
       "invoiceRequired": "Ingresa el número de factura.",

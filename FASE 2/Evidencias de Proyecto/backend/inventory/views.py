@@ -8,9 +8,9 @@ from functools import wraps
 from django.http import JsonResponse, HttpRequest, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.contrib.auth.models import AnonymousUser
 
 from .models import Item, PendingChange
+from accounts.authentication import ensure_authenticated_user, user_is_developer
 
 
 def require_authenticated(view_func):
@@ -18,11 +18,9 @@ def require_authenticated(view_func):
 
     @wraps(view_func)
     def _wrapped(request: HttpRequest, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse(
-                {"detail": "Authentication credentials were not provided."},
-                status=401,
-            )
+        _, error = ensure_authenticated_user(request)
+        if error:
+            return error
         return view_func(request, *args, **kwargs)
 
     return _wrapped
@@ -61,17 +59,11 @@ def _item_from_payload(payload: dict, instance: Item | None = None) -> Item:
 
 
 def _require_auth(request: HttpRequest):
-    user = getattr(request, "user", None)
-    if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
-        return JsonResponse({"detail": "Not authenticated"}, status=401)
+    """Wrapper reutilizable para vistas sin decorador."""
+    _, error = ensure_authenticated_user(request)
+    if error:
+        return error
     return None
-
-
-def _is_developer(user) -> bool:
-    try:
-        return bool(user and (user.is_staff or user.groups.filter(name="developer").exists() or user.username == "jona"))
-    except Exception:
-        return False
 
 
 @csrf_exempt
@@ -87,7 +79,7 @@ def items_list_create(request: HttpRequest):
     if request.method == "POST":
         payload = _parse_body(request)
         user = request.user
-        if not _is_developer(user):
+        if not user_is_developer(user):
             # Queue as pending create
             change = PendingChange.objects.create(
                 action=PendingChange.ACTION_CREATE,
@@ -125,7 +117,7 @@ def item_detail_update_delete(request: HttpRequest, item_id: int):
     if request.method in {"PUT", "PATCH"}:
         payload = _parse_body(request)
         user = request.user
-        if not _is_developer(user):
+        if not user_is_developer(user):
             change = PendingChange.objects.create(
                 action=PendingChange.ACTION_UPDATE,
                 status=PendingChange.STATUS_PENDING,
@@ -146,7 +138,7 @@ def item_detail_update_delete(request: HttpRequest, item_id: int):
     if request.method == "DELETE":
         # Developer deletes immediately; others create a pending change
         user = request.user
-        if _is_developer(user):
+        if user_is_developer(user):
             item.delete()
             return JsonResponse({"ok": True}, status=204)
 
@@ -171,7 +163,7 @@ def pending_list(request: HttpRequest):
     if auth_error:
         return auth_error
     user = request.user
-    if not _is_developer(user):
+    if not user_is_developer(user):
         return JsonResponse({"detail": "Forbidden"}, status=403)
     qs = PendingChange.objects.all()
     return JsonResponse({"results": [c.to_dict() for c in qs]}, status=200)
@@ -185,7 +177,7 @@ def pending_approve(request: HttpRequest, change_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
     user = request.user
-    if not _is_developer(user):
+    if not user_is_developer(user):
         return JsonResponse({"detail": "Forbidden"}, status=403)
     try:
         change = PendingChange.objects.get(pk=change_id)
@@ -231,7 +223,7 @@ def pending_reject(request: HttpRequest, change_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
     user = request.user
-    if not _is_developer(user):
+    if not user_is_developer(user):
         return JsonResponse({"detail": "Forbidden"}, status=403)
     try:
         change = PendingChange.objects.get(pk=change_id)
@@ -251,7 +243,7 @@ def pending_count(request: HttpRequest):
     if auth_error:
         return auth_error
     user = request.user
-    if not _is_developer(user):
+    if not user_is_developer(user):
         return JsonResponse({"detail": "Forbidden"}, status=403)
     count = PendingChange.objects.filter(status=PendingChange.STATUS_PENDING).count()
     return JsonResponse({"pending": count}, status=200)

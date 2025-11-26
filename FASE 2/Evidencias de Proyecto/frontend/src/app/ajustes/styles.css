@@ -72,6 +72,10 @@
 .settings-card { background: var(--settings-card); border: 1px solid var(--settings-border); border-radius: 18px; padding: 28px; box-shadow: var(--settings-shadow); display: grid; gap: 16px; backdrop-filter: blur(10px); }
 .settings-title { margin: 0; font-size: clamp(22px, 3vw, 32px); }
 .settings-desc { margin: 0 0 6px; color: var(--settings-muted); }
+.settings-page .waves,
+.settings-page .circuit,
+.settings-page .noise,
+.settings-page .rays { z-index: 0; }
 
 .settings-form { display: grid; gap: 12px; max-width: 760px; }
 .settings-label { font-size: 14px; color: var(--settings-muted); }

@@ -50,11 +50,15 @@ export default function LoginPageClient() {
   const loginBanner = useMemo(() => {
     const expired = search?.get("expired");
     const timeout = search?.get("timeout");
+    const denied = search?.get("denied");
     if (expired === "1") {
       return { message: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.", variant: "warning" as const };
     }
     if (timeout === "1") {
       return { message: "Tu sesión se cerró por inactividad.", variant: "info" as const };
+    }
+    if (denied === "1") {
+      return { message: "Tu usuario no tiene permisos para acceder a esa sección.", variant: "warning" as const };
     }
     return null;
   }, [search]);
@@ -136,18 +140,26 @@ export default function LoginPageClient() {
       try {
         // Set a frontend cookie so middleware can allow navigation
         document.cookie = "auth_ok=1; path=/; max-age=604800"; // 7 days
-        // Compute session expiration based on Auth tokens if provided, else configured close hours (default 2h)
-        const expiresIn = (successPayload as any)?.tokens?.expires_in;
-        if (typeof expiresIn === "number" && Number.isFinite(expiresIn) && expiresIn > 0) {
-          const maxAge = Math.min(24 * 3600, Math.max(300, Math.floor(expiresIn)));
-          const expEpoch = Math.floor(Date.now() / 1000) + maxAge;
-          setCookie("session_exp", String(expEpoch), { maxAgeSeconds: maxAge, path: "/" });
+        // Prefer the expiración exacta firmada por el backend para sincronizar reloj
+        const nowEpoch = Math.floor(Date.now() / 1000);
+        const serverExp = Number(payload?.session_expires_at ?? (successPayload as any)?.session_expires_at);
+        if (Number.isFinite(serverExp) && serverExp > nowEpoch) {
+          const ttl = Math.max(60, serverExp - nowEpoch);
+          setCookie("session_exp", String(serverExp), { maxAgeSeconds: ttl, path: "/" });
         } else {
-          const rawHours = window.localStorage.getItem("system.closeHours");
-          const hours = rawHours ? Math.min(24, Math.max(1, parseInt(rawHours, 10) || 2)) : 2;
-          const maxAge = hours * 3600;
-          const expEpoch = Math.floor(Date.now() / 1000) + maxAge;
-          setCookie("session_exp", String(expEpoch), { maxAgeSeconds: maxAge, path: "/" });
+          // Compute session expiration based on Auth tokens if provided, else configured close hours (default 2h)
+          const expiresIn = (successPayload as any)?.tokens?.expires_in;
+          if (typeof expiresIn === "number" && Number.isFinite(expiresIn) && expiresIn > 0) {
+            const maxAge = Math.min(24 * 3600, Math.max(300, Math.floor(expiresIn)));
+            const expEpoch = nowEpoch + maxAge;
+            setCookie("session_exp", String(expEpoch), { maxAgeSeconds: maxAge, path: "/" });
+          } else {
+            const rawHours = window.localStorage.getItem("system.closeHours");
+            const hours = rawHours ? Math.min(24, Math.max(1, parseInt(rawHours, 10) || 2)) : 2;
+            const maxAge = hours * 3600;
+            const expEpoch = nowEpoch + maxAge;
+            setCookie("session_exp", String(expEpoch), { maxAgeSeconds: maxAge, path: "/" });
+          }
         }
       } catch {}
       router.push("/inicio");
