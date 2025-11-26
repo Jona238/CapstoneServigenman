@@ -10,6 +10,8 @@
     "welcome": "Welcome",
     "home": "Home",
     "inventory": "Inventory",
+    "calendar": "Calendar",
+    "invoices": "Invoices",
     "categories": "Categories",
     "budget": "Budget",
     "settings": "Settings",
@@ -205,5 +207,83 @@
     "next": "Next",
     "emptyState": "No categories registered yet. Add resources to the inventory to build this visual summary.",
     "footer": "Version 1.1 - Personal Portfolio Project"
+  },
+  "invoices": {
+    "hero": {
+      "eyebrow": "Billing control",
+      "title": "Invoice registry and service tracking",
+      "subtitle": "Centralize supporting documents and executed work to improve traceability with procurement and finance."
+    },
+    "summary": {
+      "totalInvoices": "Registered invoices",
+      "totalAmount": "Total amount",
+      "totalVat": "Total VAT",
+      "lastSupplier": "Last supplier",
+      "noRecords": "No records"
+    },
+    "form": {
+      "eyebrow": "Quick entry",
+      "title": "Register new invoice",
+      "description": "Complete the fields to keep purchases and finance aligned.",
+      "tabLabel": "Select invoice type",
+      "tabs": {
+        "purchase": "Purchase invoice",
+        "sale": "Sales invoice"
+      },
+      "purchaseHelper": "Use this tab to capture supplier, amounts and materials for purchase invoices.",
+      "salesHelper": "Use this tab to capture client, amounts and service descriptions for sales invoices.",
+      "number": "Invoice number",
+      "date": "Issue date",
+      "supplier": "Supplier",
+      "client": "Client",
+      "amount": "Total amount",
+      "netAmount": "Net amount",
+      "vatAmount": "VAT (19%)",
+      "rut": "RUT / Tax ID",
+      "address": "Address",
+      "contact": "Contact",
+      "descriptionLabel": "Work description",
+      "attachment": "Attach support file",
+      "attachmentHint": "PDF, DOC or image. Max 5 MB.",
+      "autofill": "Read invoice and autofill",
+      "autofilling": "Reading...",
+      "autofillHint": "Attach the PDF or image, press the button and we will read the main data automatically.",
+      "calculatedVat": "Calculated VAT (19%): {value}",
+      "materialsDetected": "Detected materials",
+      "materialsHelper": "Review and adjust quantities before saving the purchase invoice.",
+      "materialDescription": "Description",
+      "materialQuantity": "Quantity",
+      "addMaterial": "Add material",
+      "submit": "Save invoice",
+      "saving": "Saving...",
+      "reset": "Clear form"
+    },
+    "errors": {
+      "invoiceRequired": "Enter the invoice number.",
+      "dateRequired": "Select the issue date.",
+      "supplierRequired": "Enter the supplier.",
+      "amountInvalid": "Amount must be greater than 0.",
+      "fileTooLarge": "The file exceeds the 5 MB limit.",
+      "fileRequiredForOcr": "Attach a PDF or image to read it."
+    },
+    "messages": {
+      "saved": "Invoice saved successfully.",
+      "error": "We could not register the invoice. Please try again.",
+      "autofillSuccess": "Done! We filled the detected fields.",
+      "autofillError": "We couldn't read the invoice. Check the file and try again."
+    },
+    "table": {
+      "eyebrow": "History",
+      "title": "Recently registered invoices",
+      "helper": "The table syncs automatically with the database and lets you download supporting files.",
+      "empty": "No invoices registered yet.",
+      "number": "Number",
+      "date": "Date",
+      "supplier": "Supplier",
+      "amount": "Amount",
+      "description": "Description",
+      "attachment": "Attachment",
+      "noAttachment": "No file"
+    }
   }
 }
