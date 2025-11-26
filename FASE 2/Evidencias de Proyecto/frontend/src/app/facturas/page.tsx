@@ -355,7 +355,30 @@ export default function InvoicesPage() {
   const handleInputChange =
     (field: keyof InvoiceForm) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setForms((prev) => {
-        const nextForm = applyAmountSideEffects(prev[activeTab], field, event.target.value);
+        let nextForm = applyAmountSideEffects(prev[activeTab], field, event.target.value);
+        if (activeTab === "venta") {
+          if (field === "netAmount") {
+            const netVal = parseAmount(nextForm.netAmount);
+            if (netVal > 0) {
+              const vat = Math.round(netVal * 0.19);
+              nextForm = { ...nextForm, vatAmount: String(vat), amount: String(netVal + vat) };
+            }
+          }
+          if (field === "quantity" || field === "unitPrice") {
+            const qty = parseInt(nextForm.quantity || "0", 10) || 0;
+            const unit = parseAmount(nextForm.unitPrice);
+            if (qty > 0 && unit > 0) {
+              const netVal = qty * unit;
+              const vat = Math.round(netVal * 0.19);
+              nextForm = {
+                ...nextForm,
+                netAmount: String(netVal),
+                vatAmount: String(vat),
+                amount: String(netVal + vat),
+              };
+            }
+          }
+        }
         return { ...prev, [activeTab]: nextForm };
       });
       setErrors((prev) => ({
@@ -702,7 +725,79 @@ export default function InvoicesPage() {
   }, [filteredInvoices]);
 
   const handleAutofill = async () => {
-    setStatusMessage({ type: "error", text: t.invoices.messages.error });
+    if (activeTab !== "venta") return;
+    const saleFile = files.venta;
+    if (!saleFile) {
+      setStatusMessage({ type: "error", text: "Selecciona un archivo para leer la factura de venta." });
+      return;
+    }
+    if (!apiBaseUrl) {
+      setStatusMessage({ type: "error", text: t.invoices.messages.error });
+      return;
+    }
+    setIsReading(true);
+    setStatusMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", saleFile);
+      formData.append("tipo_factura", "venta");
+      const response = await fetch(`${apiBaseUrl}/api/facturas/extract/`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!response.ok) {
+        let detail = "";
+        try {
+          const err = await response.json();
+          detail = err.detail || JSON.stringify(err);
+        } catch {
+          detail = `${response.status} ${response.statusText}`;
+        }
+        setStatusMessage({ type: "error", text: detail || t.invoices.messages.error });
+        return;
+      }
+      const data = await response.json();
+      const nextForm: InvoiceForm = {
+        ...forms.venta,
+        invoiceNumber: data.invoice_number ?? forms.venta.invoiceNumber,
+        issueDate: normalizeDateInput(data.issue_date) || forms.venta.issueDate,
+        supplier: data.client ?? data.supplier ?? forms.venta.supplier,
+        amount: data.total_amount !== undefined && data.total_amount !== null ? String(data.total_amount) : forms.venta.amount,
+        netAmount: data.net_amount !== undefined && data.net_amount !== null ? String(data.net_amount) : forms.venta.netAmount,
+        vatAmount: data.vat_amount !== undefined && data.vat_amount !== null ? String(data.vat_amount) : forms.venta.vatAmount,
+        description: data.work_description ?? forms.venta.description,
+        rut: data.rut ? unformatRut(String(data.rut)) : forms.venta.rut,
+        address: data.address ?? forms.venta.address,
+        contact: data.contact ?? forms.venta.contact,
+        quantity: data.quantity !== undefined && data.quantity !== null ? String(data.quantity) : forms.venta.quantity || "1",
+        unitPrice:
+          data.unit_price !== undefined && data.unit_price !== null ? String(data.unit_price) : forms.venta.unitPrice,
+      };
+      const parsedNet = parseAmount(nextForm.netAmount);
+      const qty = parseInt(nextForm.quantity || "0", 10) || 0;
+      const unit = parseAmount(nextForm.unitPrice);
+      const inferredNet = qty > 0 && unit > 0 ? qty * unit : parsedNet;
+      const netVal = inferredNet > 0 ? inferredNet : parsedNet;
+      if (netVal > 0) {
+        const vat = Math.round(netVal * 0.19);
+        nextForm.netAmount = String(netVal);
+        nextForm.vatAmount = String(vat);
+        nextForm.amount = String(netVal + vat);
+      } else {
+        const parsedTotal = parseAmount(nextForm.amount);
+        const netVat = computeNetVat(parsedTotal, parsedNet);
+        if (!nextForm.netAmount && netVat.net) nextForm.netAmount = String(netVat.net);
+        if (!nextForm.vatAmount && netVat.vat) nextForm.vatAmount = String(netVat.vat);
+      }
+      setForms((prev) => ({ ...prev, venta: nextForm }));
+      setStatusMessage({ type: "success", text: "Factura leída y campos autocompletados." });
+    } catch (error) {
+      console.error("Error al autocompletar factura de venta", error);
+      setStatusMessage({ type: "error", text: t.invoices.messages.error });
+    } finally {
+      setIsReading(false);
+    }
   };
 
   const addMaterialRow = () => {
@@ -1804,7 +1899,7 @@ function computeNetVat(totalValue: number, netOptional?: number) {
     return { net: 0, vat: 0 };
   }
   if (netOptional && !Number.isNaN(netOptional) && netOptional > 0) {
-    const vat = Math.max(totalValue - netOptional, 0);
+    const vat = Math.round(netOptional * 0.19);
     return { net: netOptional, vat };
   }
   const net = Math.round(totalValue / 1.19);
