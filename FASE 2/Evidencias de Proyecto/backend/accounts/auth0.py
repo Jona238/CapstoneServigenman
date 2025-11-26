@@ -45,6 +45,18 @@ class Auth0Result:
     profile: Optional[Dict[str, Any]]
 
 
+@dataclass
+class Auth0ManagementConfig:
+    """Parametros para usar la API de Management y cambiar contrasenas."""
+
+    domain: str
+    client_id: str
+    client_secret: str
+    audience: str
+    connection: Optional[str]
+    timeout: float = 10.0
+
+
 def _get_env(name: str) -> Optional[str]:
     value = os.getenv(name)
     if value is None:
@@ -84,6 +96,100 @@ def load_auth0_config() -> Optional[Auth0Config]:
         realm=realm,
         timeout=timeout,
     )
+
+
+def load_auth0_management_config() -> Optional[Auth0ManagementConfig]:
+    """Carga credenciales para la API de Management (cambio de contrasenas)."""
+
+    domain = _get_env("AUTH0_DOMAIN")
+    client_id = _get_env("AUTH0_MGMT_CLIENT_ID")
+    client_secret = _get_env("AUTH0_MGMT_CLIENT_SECRET")
+
+    if not (domain and client_id and client_secret):
+        return None
+
+    audience = _get_env("AUTH0_MGMT_AUDIENCE") or f"https://{domain}/api/v2/"
+    connection = _get_env("AUTH0_DB_CONNECTION")
+
+    timeout_raw = _get_env("AUTH0_TIMEOUT")
+    timeout = 10.0
+    if timeout_raw:
+        try:
+            timeout = float(timeout_raw)
+        except ValueError:
+            timeout = 10.0
+
+    return Auth0ManagementConfig(
+        domain=domain,
+        client_id=client_id,
+        client_secret=client_secret,
+        audience=audience,
+        connection=connection,
+        timeout=timeout,
+    )
+
+
+def _get_management_token(config: Auth0ManagementConfig) -> str:
+    """
+    Obtiene un access_token de Management via Client Credentials.
+    Comentario: Auth0 recomienda un cliente m2m separado para estas operaciones.
+    """
+    token_url = f"https://{config.domain}/oauth/token"
+    payload: Dict[str, Any] = {
+        "grant_type": "client_credentials",
+        "client_id": config.client_id,
+        "client_secret": config.client_secret,
+        "audience": config.audience,
+    }
+    status, body = _post_form_urlencoded(token_url, payload, config.timeout)
+    if status != 200 or "access_token" not in body:
+        raise Auth0AuthenticationError("No se pudo obtener token de gestión Auth0.", status_code=status or 500)
+    return str(body["access_token"])
+
+
+def _find_user_id_by_email(config: Auth0ManagementConfig, access_token: str, email: str) -> Optional[str]:
+    """Busca el primer usuario por email para luego actualizar la contraseña."""
+    url = f"https://{config.domain}/api/v2/users-by-email?{urlencode({'email': email})}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    status, body = _get_json(url, headers=headers, timeout=config.timeout)
+    if status != 200 or not isinstance(body, list):
+        return None
+    try:
+        first = next(iter(body))
+    except StopIteration:
+        return None
+    user_id = first.get("user_id") if isinstance(first, dict) else None
+    return str(user_id) if user_id else None
+
+
+def update_auth0_password(email: str, new_password: str) -> bool:
+    """
+    Cambia la contraseña del usuario en Auth0 usando la Management API.
+    Devuelve True si se pudo actualizar o False si falta configuración.
+    Lanza Auth0AuthenticationError si Auth0 responde con error.
+    """
+    config = load_auth0_management_config()
+    if config is None:
+        return False  # Sin configuración => seguir solo con Django
+
+    access_token = _get_management_token(config)
+    user_id = _find_user_id_by_email(config, access_token, email)
+    if not user_id:
+        # Si no encontramos por email, no interrumpimos para permitir fallback
+        return False
+
+    url = f"https://{config.domain}/api/v2/users/{user_id}"
+    payload: Dict[str, Any] = {"password": new_password, "connection": config.connection}
+    headers = {"Authorization": f"Bearer {access_token}"}
+    status, body = _patch_json(url, payload, headers=headers, timeout=config.timeout)
+
+    if status not in (200, 201):
+        message = "No se pudo actualizar la contraseña en Auth0."
+        if isinstance(body, dict):
+            message = body.get("message") or body.get("error") or message
+        raise Auth0AuthenticationError(message, status_code=status or 400)
+
+    return True
 
 
 def _send_request(
@@ -133,6 +239,20 @@ def _post_form_urlencoded(
 
 def _get_json(url: str, headers: Dict[str, str], timeout: float) -> tuple[int, Dict[str, Any]]:
     return _send_request(url, data=None, headers=headers, timeout=timeout, method="GET")
+
+
+def _post_json(url: str, payload: Dict[str, Any], headers: Dict[str, str], timeout: float) -> tuple[int, Dict[str, Any]]:
+    """Envía JSON a Auth0 (helper genérico para evitar dependencias externas)."""
+    data = json.dumps(payload).encode("utf-8")
+    merged_headers = {"Content-Type": "application/json", **headers}
+    return _send_request(url, data=data, headers=merged_headers, timeout=timeout, method="POST")
+
+
+def _patch_json(url: str, payload: Dict[str, Any], headers: Dict[str, str], timeout: float) -> tuple[int, Dict[str, Any]]:
+    """Envía PATCH JSON a Auth0 (cambio de contraseña en Management API)."""
+    data = json.dumps(payload).encode("utf-8")
+    merged_headers = {"Content-Type": "application/json", **headers}
+    return _send_request(url, data=data, headers=merged_headers, timeout=timeout, method="PATCH")
 
 
 def authenticate_with_auth0(username: str, password: str) -> Auth0Result:

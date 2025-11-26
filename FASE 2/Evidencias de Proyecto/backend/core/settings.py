@@ -178,3 +178,9 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").lower() in {"1", "true", "yes"}
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in {"1", "true", "yes"}
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@servigenman.local")
+
+# JWT settings so frontend middleware y backend comparten la misma llave
+JWT_SECRET_KEY = os.getenv("DJANGO_JWT_SECRET", SECRET_KEY)
+JWT_ALGORITHM = os.getenv("DJANGO_JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_SECONDS = int(os.getenv("DJANGO_JWT_EXP", "3600"))
+JWT_COOKIE_NAME = os.getenv("DJANGO_JWT_COOKIE", "servigenman_jwt")
