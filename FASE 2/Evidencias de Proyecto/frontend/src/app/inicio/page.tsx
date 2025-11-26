@@ -387,6 +387,3 @@ function applyTheme(useDark: boolean) {
     body.removeAttribute("data-theme");
   }
 }
-
-
-
