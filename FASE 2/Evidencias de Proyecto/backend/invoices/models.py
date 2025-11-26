@@ -35,7 +35,15 @@ class FacturaVenta(models.Model):
 
 
 class CalendarEntry(models.Model):
-  ENTRY_TYPES = (("factura_venta", "Factura de venta"), ("nota", "Nota"))
+  ENTRY_TYPES = (
+      ("factura_venta", "Factura de venta"),
+      ("nota", "Nota"),
+      ("inicio_trabajo", "Inicio de trabajo"),
+      ("termino_trabajo", "Término de trabajo"),
+      ("factura_compra", "Factura de compra"),
+      ("pago_pendiente", "Pago pendiente"),
+      ("pago_compra", "Pago de compra"),
+  )
 
   id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
   date = models.DateField()
@@ -49,6 +57,13 @@ class CalendarEntry(models.Model):
       null=True,
       blank=True,
   )
+  invoice_purchase = models.ForeignKey(
+      "FacturaCompra",
+      null=True,
+      blank=True,
+      on_delete=models.SET_NULL,
+      related_name="calendar_entries",
+  )
   created_at = models.DateTimeField(auto_now_add=True)
 
   class Meta:
@@ -56,3 +71,70 @@ class CalendarEntry(models.Model):
 
   def __str__(self) -> str:  # pragma: no cover - presentation
     return f"{self.date} - {self.title}"
+
+
+class FacturaCompra(models.Model):
+  PAYMENT_TYPES = [
+      ("contado", "Contado"),
+      ("transferencia", "Transferencia"),
+      ("cheque", "Cheque"),
+  ]
+  PAYMENT_STATUS = [
+      ("pendiente", "Pendiente"),
+      ("pagado", "Pagado"),
+      ("parcial", "Parcial"),
+  ]
+
+  supplier = models.CharField(max_length=255)
+  issue_date = models.DateField()
+  rut = models.CharField(max_length=50, blank=True)
+  net_amount = models.DecimalField(max_digits=12, decimal_places=2)
+  tax_amount = models.DecimalField(max_digits=12, decimal_places=2)
+  total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+  payment_method = models.CharField(
+      max_length=20,
+      choices=PAYMENT_TYPES,
+      blank=True,
+      default="contado",
+  )
+  payment_status = models.CharField(
+      max_length=20,
+      choices=PAYMENT_STATUS,
+      blank=True,
+      default="pendiente",
+  )
+  due_date = models.DateField(null=True, blank=True)
+  payment_notes = models.TextField(blank=True)
+  payment_type = models.CharField(
+      max_length=20,
+      choices=PAYMENT_TYPES,
+      blank=True,
+      default="contado",
+  )
+  cheque_bank = models.CharField(max_length=100, blank=True)
+  cheque_number = models.CharField(max_length=50, blank=True)
+  cheque_due_date = models.DateField(null=True, blank=True)
+  is_paid = models.BooleanField(default=False)
+  attachment = models.FileField(upload_to="purchase_invoices/", null=True, blank=True)
+  created_at = models.DateTimeField(auto_now_add=True)
+
+  class Meta:
+    db_table = "invoices_facturacompra"
+    ordering = ["-issue_date", "-created_at"]
+
+  def __str__(self) -> str:  # pragma: no cover
+    return f"Compra {self.supplier} {self.issue_date}"
+
+
+class MaterialCompra(models.Model):
+  factura = models.ForeignKey(
+      FacturaCompra,
+      related_name="materials",
+      on_delete=models.CASCADE,
+  )
+  description = models.CharField(max_length=255)
+  quantity = models.PositiveIntegerField(default=1)
+  unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+  def __str__(self) -> str:  # pragma: no cover
+    return f"{self.description} ({self.quantity})"

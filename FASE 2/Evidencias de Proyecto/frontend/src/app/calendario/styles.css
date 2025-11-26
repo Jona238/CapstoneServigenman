@@ -198,6 +198,10 @@
   background: #3ccf7c;
   border-color: #3ccf7c;
 }
+.legend-swatch--pago {
+  background: #facc15;
+  border-color: #facc15;
+}
 
 .calendar-card h3 {
   margin: 0;
@@ -288,6 +292,17 @@
 .calendar-day--termino_trabajo {
   background: #ff5c74;
   color: #19060b;
+}
+.calendar-day--pago_pendiente {
+  background: #f5c64c;
+  color: #1a1202;
+}
+
+.calendar-day--payment {
+  background: #facc15;
+  border-color: #fde68a;
+  color: #111827;
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6);
 }
 
 .calendar-day--nota {
@@ -527,6 +542,10 @@
 .calendar-tag--expiration {
   background: rgba(255, 116, 148, 0.22);
   color: #ffb5c6;
+}
+.calendar-tag--warning {
+  background: rgba(245, 198, 76, 0.2);
+  color: #f9e0a3;
 }
 
 .calendar-badge.calendar-tag--maintenance,

@@ -10,7 +10,14 @@ import "../(auth)/login/styles.css";
 import "../inventario/styles.css";
 import "./styles.css";
 
-type CalendarEventType = "factura_venta" | "nota" | "factura_compra" | "inicio_trabajo" | "termino_trabajo";
+type CalendarEventType =
+  | "factura_venta"
+  | "nota"
+  | "factura_compra"
+  | "inicio_trabajo"
+  | "termino_trabajo"
+  | "pago_pendiente"
+  | "pago_compra";
 type FilterValue = "all" | CalendarEventType;
 type RangeMode = "month" | "all" | "custom";
 
@@ -89,14 +96,14 @@ const CALENDAR_FALLBACK = {
 };
 
 const STORAGE_KEY = "servigenman_calendar_events_v1";
-const EVENT_TYPES: CalendarEventType[] = ["factura_venta", "factura_compra", "inicio_trabajo", "termino_trabajo", "nota"];
-const NEXT_EVENT_CATEGORIES: { id: "all" | CalendarEventType; label: string }[] = [
-  { id: "all", label: "Todos" },
-  { id: "factura_venta", label: "Facturas de venta" },
-  { id: "factura_compra", label: "Facturas de compra" },
-  { id: "inicio_trabajo", label: "Inicio de trabajo" },
-  { id: "termino_trabajo", label: "Término de trabajo" },
-  { id: "nota", label: "Notas" },
+const EVENT_TYPES: CalendarEventType[] = [
+  "factura_venta",
+  "factura_compra",
+  "inicio_trabajo",
+  "termino_trabajo",
+  "pago_compra",
+  "pago_pendiente",
+  "nota",
 ];
 
 const typeClassName: Record<CalendarEventType, string> = {
@@ -104,6 +111,8 @@ const typeClassName: Record<CalendarEventType, string> = {
   factura_compra: "calendar-tag--warning",
   inicio_trabajo: "calendar-tag--info",
   termino_trabajo: "calendar-tag--danger",
+  pago_compra: "calendar-tag--warning",
+  pago_pendiente: "calendar-tag--warning",
   nota: "calendar-tag--maintenance",
 };
 
@@ -112,6 +121,8 @@ const DAY_COLORS: Record<CalendarEventType, string> = {
   factura_compra: "#ff8c42",
   inicio_trabajo: "#2ed4d4",
   termino_trabajo: "#ff5c74",
+  pago_compra: "#facc15",
+  pago_pendiente: "#f5c64c",
   nota: "#3ccf7c",
 };
 
@@ -137,8 +148,6 @@ export default function CalendarPage() {
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [milestoneIndex, setMilestoneIndex] = useState(0);
-  const [rightSlideIndex, setRightSlideIndex] = useState(0);
 
   const apiBaseUrl = useMemo(() => {
     const sanitize = (u: string) => u.replace(/\/+$/, "");
@@ -244,6 +253,8 @@ export default function CalendarPage() {
       factura_compra: 0,
       inicio_trabajo: 0,
       termino_trabajo: 0,
+      pago_pendiente: 0,
+      pago_compra: 0,
       nota: 0,
       total: events.length,
     };
@@ -262,13 +273,8 @@ export default function CalendarPage() {
     return sortedEvents.filter((event) => event.type === filter);
   }, [sortedEvents, filter]);
 
-  const upcomingEvents = useMemo(() => {
-    return filteredEvents.filter((event) => event.date >= todayKey);
-  }, [filteredEvents, todayKey]);
-  const nextEvent = useMemo(
-    () => sortedEvents.find((event) => event.date >= todayKey) ?? null,
-    [sortedEvents, todayKey],
-  );
+  const upcomingEvents = useMemo(() => filteredEvents.filter((event) => event.date >= todayKey), [filteredEvents, todayKey]);
+  const nextEvent = useMemo(() => sortedEvents.find((event) => event.date >= todayKey) ?? null, [sortedEvents, todayKey]);
 
   const upcomingAll = useMemo(() => sortedEvents.filter((event) => event.date >= todayKey), [sortedEvents, todayKey]);
 
@@ -309,7 +315,9 @@ export default function CalendarPage() {
       factura_venta: "Factura de venta",
       factura_compra: "Factura de compra",
       inicio_trabajo: "Inicio de trabajo",
-      termino_trabajo: "Término de trabajo",
+      termino_trabajo: "Termino de trabajo",
+      pago_compra: "Pago pendiente",
+      pago_pendiente: "Pago pendiente",
       nota: "Nota",
     }),
     [],
@@ -395,33 +403,33 @@ export default function CalendarPage() {
         <AppHeader />
         <div className="inventory-shell calendar-shell">
           <main className="calendar-main">
-            <section className="calendar-hero">
-            <div>
-              <p className="calendar-hero__eyebrow">{calendar.heroEyebrow}</p>
-              <h2>{calendar.heroTitle}</h2>
-              <p>{calendar.heroSubtitle}</p>
-            </div>
-            <div className="calendar-hero__stats">
-              <article className="calendar-stat">
-                <p className="calendar-stat__label">{calendar.stats.totalEvents}</p>
-                <p className="calendar-stat__value">{stats.total}</p>
-              </article>
-              <article className="calendar-stat">
-                <p className="calendar-stat__label">{calendar.stats.nextEvent}</p>
-                <p className="calendar-stat__value calendar-stat__value--accent">
-                  {nextEvent ? formatFullDate(nextEvent.date, locale) : calendar.stats.noNextEvent}
-                </p>
-              </article>
-              <article className="calendar-stat">
-                <p className="calendar-stat__label">Facturas de venta</p>
-                <p className="calendar-stat__value">{stats.factura_venta}</p>
-              </article>
-              <article className="calendar-stat">
-                <p className="calendar-stat__label">Notas</p>
-                <p className="calendar-stat__value">{stats.nota}</p>
-              </article>
-            </div>
-          </section>
+            <header className="hero">
+              <div className="hero-text">
+                <p className="hero-kicker">PLANIFICACIÓN OPERATIVA</p>
+                <h1 className="hero-title">Calendario operativo</h1>
+                <p className="hero-subtitle">Agenda de mantenimiento y abastecimiento.</p>
+              </div>
+              <div className="calendar-hero__stats">
+                <article className="calendar-stat">
+                  <p className="calendar-stat__label">{calendar.stats.totalEvents}</p>
+                  <p className="calendar-stat__value">{stats.total}</p>
+                </article>
+                <article className="calendar-stat">
+                  <p className="calendar-stat__label">{calendar.stats.nextEvent}</p>
+                  <p className="calendar-stat__value calendar-stat__value--accent">
+                    {nextEvent ? formatFullDate(nextEvent.date, locale) : calendar.stats.noNextEvent}
+                  </p>
+                </article>
+                <article className="calendar-stat">
+                  <p className="calendar-stat__label">Facturas de venta</p>
+                  <p className="calendar-stat__value">{stats.factura_venta}</p>
+                </article>
+                <article className="calendar-stat">
+                  <p className="calendar-stat__label">Notas</p>
+                  <p className="calendar-stat__value">{stats.nota}</p>
+                </article>
+              </div>
+            </header>
 
             <div className="calendar-grid calendar-grid--three">
             <section className="calendar-card calendar-card--form leftCard">
@@ -544,9 +552,14 @@ export default function CalendarPage() {
                 {calendarDays.map((day) => {
                   const types = new Set(day.events.map((ev) => ev.type));
                   const presentTypes = Array.from(types) as CalendarEventType[];
+                  const hasPayment =
+                    presentTypes.includes("pago_compra") || presentTypes.includes("pago_pendiente");
                   let variant = "";
                   let inlineStyle: CSSProperties = {};
-                  if (presentTypes.length === 1) {
+                  if (hasPayment) {
+                    variant = "calendar-day--payment";
+                    inlineStyle = { background: "#facc15", color: "#111827", borderColor: "#fde68a" };
+                  } else if (presentTypes.length === 1) {
                     const only = presentTypes[0];
                     variant = `calendar-day--${only}`;
                     inlineStyle = { background: DAY_COLORS[only], color: "#0b0f1e" };
@@ -607,15 +620,18 @@ export default function CalendarPage() {
                   <ul className="calendar-events">
                     {selectedDayEvents.map((event) => (
                       <li key={event.id} className="calendar-event">
-                        <div>
-                          <p className="calendar-event__title">{event.title}</p>
-                          <p className="calendar-event__meta">
-                            <span className={`calendar-tag ${typeClassName[event.type]}`}>
-                              {typeLabels[event.type]}
-                            </span>
+                      <div>
+                        <p className="calendar-event__title">{event.title}</p>
+                        <p className="calendar-event__meta">
+                          <span className={`calendar-tag ${typeClassName[event.type]}`}>
+                            {typeLabels[event.type]}
+                          </span>
                             {event.description ? <span>{event.description}</span> : null}
-                          </p>
-                        </div>
+                        </p>
+                        {event.type === "pago_pendiente" && event.description ? (
+                          <p className="calendar-event__meta">{event.description}</p>
+                        ) : null}
+                      </div>
                         <div className="calendar-event__actions">
                           <button type="button" onClick={() => beginEdit(event)}>
                             {t.common.edit}
@@ -705,6 +721,9 @@ export default function CalendarPage() {
                     <span className="calendar-filter calendar-filter--static">
                       {typeLabels.nota} ({stats.nota})
                     </span>
+                    <span className="calendar-filter calendar-filter--static">
+                      {typeLabels.pago_pendiente} ({stats.pago_pendiente})
+                    </span>
                   </div>
                 </div>
 
@@ -726,6 +745,9 @@ export default function CalendarPage() {
                     <span className="legend-item">
                       <span className="legend-swatch legend-swatch--nota" /> Nota
                     </span>
+                    <span className="legend-item">
+                      <span className="legend-swatch legend-swatch--pago" /> Pago pendiente
+                    </span>
                   </div>
                 </div>
               </div>
@@ -735,42 +757,16 @@ export default function CalendarPage() {
               <div className="calendar-card__header">
                 <div>
                   <p className="calendar-card__eyebrow">{calendar.upcomingTitle}</p>
-                  <div className="hero-switcher">
-                    <button
-                      type="button"
-                      className="hero-switcher__btn"
-                      aria-label="Anterior"
-                      onClick={() =>
-                        setMilestoneIndex((prev) => (prev - 1 + NEXT_EVENT_CATEGORIES.length) % NEXT_EVENT_CATEGORIES.length)
-                      }
-                    >
-                      {"<"}
-                    </button>
-                    <h3 className="hero-switcher__label">Próximos hitos: {NEXT_EVENT_CATEGORIES[milestoneIndex].label}</h3>
-                    <button
-                      type="button"
-                      className="hero-switcher__btn"
-                      aria-label="Siguiente"
-                      onClick={() => setMilestoneIndex((prev) => (prev + 1) % NEXT_EVENT_CATEGORIES.length)}
-                    >
-                      {">"}
-                    </button>
-                  </div>
+                  <h3>{calendar.upcomingSubtitle}</h3>
                 </div>
                 <span className="calendar-chip calendar-chip--muted">{calendar.localOnly}</span>
               </div>
 
-              {(() => {
-                const category = NEXT_EVENT_CATEGORIES[milestoneIndex];
-                const filtered = upcomingEvents.filter((event) =>
-                  category.id === "all" ? true : event.type === category.id,
-                );
-                if (filtered.length === 0) {
-                  return <p className="calendar-empty">No existen hitos pendientes para este filtro.</p>;
-                }
-                return (
-                  <ul className="calendar-upcoming">
-                    {filtered.map((event) => (
+              {upcomingEvents.length === 0 ? (
+                <p className="calendar-empty">{calendar.upcomingEmpty}</p>
+              ) : (
+                <ul className="calendar-upcoming">
+                  {upcomingEvents.map((event) => (
                     <li key={event.id} className="calendar-upcoming__item">
                       <div>
                         <p className="calendar-event__title">{event.title}</p>
@@ -780,6 +776,9 @@ export default function CalendarPage() {
                           </span>
                           <span>{formatFullDate(event.date, locale)}</span>
                         </p>
+                        {event.type === "pago_pendiente" && event.description ? (
+                          <p className="calendar-event__meta">{event.description}</p>
+                        ) : null}
                       </div>
                       <div className="calendar-event__actions">
                         <button type="button" onClick={() => beginEdit(event)}>
@@ -791,10 +790,10 @@ export default function CalendarPage() {
                       </div>
                     </li>
                   ))}
-                  </ul>
-                );
-              })()}
-              </section>
+                </ul>
+              )}
+            </section>
+
             </aside>
             </div>
             {showDayModal ? (
@@ -926,6 +925,7 @@ function buildCalendarDays(
     };
   });
 }
+
 
 
 

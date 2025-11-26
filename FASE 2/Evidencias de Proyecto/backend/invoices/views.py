@@ -4,12 +4,14 @@ import io
 import re
 from decimal import Decimal
 from typing import Any, Dict, List, Tuple, Optional
-from datetime import datetime
+from datetime import datetime, date
 
 from django.http import HttpRequest, HttpResponseNotAllowed, JsonResponse
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from .models import FacturaVenta, CalendarEntry
+from .models import FacturaVenta, CalendarEntry, FacturaCompra, MaterialCompra
 
 # Optional dependencies (loaded lazily to avoid breaking if not installed yet)
 try:  # pragma: no cover - optional import
@@ -822,6 +824,7 @@ def serialize_calendar_entry(entry: CalendarEntry) -> Dict[str, Any]:
         "description": entry.description,
         "type": entry.type,
         "invoice_sale": str(entry.invoice_sale_id) if entry.invoice_sale_id else None,
+        "invoice_purchase": entry.invoice_purchase_id,
         "created_at": entry.created_at.isoformat(),
     }
 
@@ -848,14 +851,356 @@ def _parse_calendar_payload(request: HttpRequest, partial: bool = False) -> Dict
     if (d := pick("description")) is not None:
         payload["description"] = d
     if (tp := pick("type")) is not None:
-        payload["type"] = tp if tp in {"factura_venta", "nota"} else "nota"
+        allowed_types = {choice[0] for choice in CalendarEntry.ENTRY_TYPES}
+        payload["type"] = tp if tp in allowed_types else "nota"
     invoice_sale = pick("invoice_sale")
     if invoice_sale:
         try:
             payload["invoice_sale"] = FacturaVenta.objects.get(pk=invoice_sale)
         except Exception:
             payload["invoice_sale"] = None
+    invoice_purchase = pick("invoice_purchase")
+    if invoice_purchase:
+        try:
+            payload["invoice_purchase"] = FacturaCompra.objects.get(pk=invoice_purchase)
+        except Exception:
+            payload["invoice_purchase"] = None
     return payload
+
+
+# ---------------------------
+# Facturas de compra
+# ---------------------------
+
+def serialize_purchase(instance: FacturaCompra) -> Dict[str, Any]:
+    return {
+        "id": instance.id,
+        "supplier": instance.supplier,
+        "issue_date": instance.issue_date.isoformat() if instance.issue_date else "",
+        "rut": instance.rut,
+        "net_amount": float(instance.net_amount),
+        "tax_amount": float(instance.tax_amount),
+        "total_amount": float(instance.total_amount),
+        "payment_type": instance.payment_type,
+        "cheque_bank": instance.cheque_bank,
+        "cheque_number": instance.cheque_number,
+        "cheque_due_date": instance.cheque_due_date.isoformat() if instance.cheque_due_date else None,
+        "is_paid": instance.is_paid,
+        "payment_method": instance.payment_method,
+        "payment_status": instance.payment_status,
+        "due_date": (instance.due_date or instance.cheque_due_date).isoformat() if (instance.due_date or instance.cheque_due_date) else None,
+        "payment_notes": instance.payment_notes,
+        "attachment": instance.attachment.url if instance.attachment else None,
+        "materials": [
+            {
+                "id": material.id,
+                "description": material.description,
+                "quantity": material.quantity,
+                "unit_price": float(material.unit_price) if material.unit_price is not None else None,
+            }
+            for material in instance.materials.all()
+        ],
+        "created_at": instance.created_at.isoformat(),
+    }
+
+
+@csrf_exempt
+def purchase_invoices_collection(request: HttpRequest):
+    if request.method == "GET":
+        items = FacturaCompra.objects.all().prefetch_related("materials").order_by("-issue_date", "-created_at")
+        return JsonResponse([serialize_purchase(item) for item in items], safe=False, status=200)
+
+    if request.method == "POST":
+        payload, files = _parse_purchase_payload(request)
+        required_errors = []
+        if not payload.get("supplier"):
+            required_errors.append("supplier es requerido")
+        if not payload.get("issue_date"):
+            required_errors.append("issue_date es requerido (YYYY-MM-DD)")
+        if not payload.get("total_amount"):
+            required_errors.append("total_amount es requerido")
+        if required_errors:
+            return JsonResponse({"detail": required_errors}, status=400)
+        try:
+            materials = payload.pop("materials", [])
+            factura = FacturaCompra.objects.create(**payload)
+            if files.get("attachment"):
+                factura.attachment = files["attachment"]
+                factura.save(update_fields=["attachment"])
+            _replace_materials(factura, materials)
+            sync_materials_to_inventory(factura)
+            _sync_calendar_for_purchase(factura, replace=True)
+            return JsonResponse(serialize_purchase(factura), status=201)
+        except Exception as exc:
+            return JsonResponse({"detail": str(exc)}, status=400)
+
+    return HttpResponseNotAllowed(["GET", "POST"])
+
+
+@csrf_exempt
+def purchase_invoice_detail(request: HttpRequest, pk: int):
+    factura = get_object_or_404(FacturaCompra, pk=pk)
+
+    if request.method == "GET":
+        return JsonResponse(serialize_purchase(factura), status=200)
+
+    if request.method == "PUT":
+        payload, files = _parse_purchase_payload(request)
+        materials = payload.pop("materials", None)
+        for field in [
+            "supplier",
+            "issue_date",
+            "rut",
+            "net_amount",
+            "tax_amount",
+            "total_amount",
+            "payment_type",
+            "cheque_bank",
+            "cheque_number",
+            "cheque_due_date",
+            "is_paid",
+            "payment_method",
+            "payment_status",
+            "due_date",
+            "payment_notes",
+        ]:
+            if field in payload:
+                setattr(factura, field, payload[field])
+        if files.get("attachment"):
+            factura.attachment = files["attachment"]
+        factura.save()
+        if materials is not None:
+            _replace_materials(factura, materials)
+            sync_materials_to_inventory(factura)
+        _sync_calendar_for_purchase(factura, replace=True)
+        return JsonResponse(serialize_purchase(factura), status=200)
+
+    if request.method == "DELETE":
+        CalendarEntry.objects.filter(invoice_purchase=factura).delete()
+        factura.delete()
+        return JsonResponse({"deleted": True, "id": pk}, status=204)
+
+    return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
+
+
+def _parse_purchase_payload(request: HttpRequest) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    data: Dict[str, Any] = {}
+    files: Dict[str, Any] = {}
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            import json
+            data = json.loads(request.body.decode() or "{}")
+        except Exception:
+            data = {}
+    else:
+        data = request.POST.dict()
+        files = request.FILES
+    materials_raw = data.get("materials") or []
+    if isinstance(materials_raw, str):
+        try:
+            import json
+            materials_raw = json.loads(materials_raw)
+        except Exception:
+            materials_raw = []
+    materials: List[Dict[str, Any]] = []
+    for item in materials_raw:
+        desc = (item.get("description") or "").strip()
+        qty = item.get("quantity") or 0
+        if not desc:
+            continue
+        try:
+            qty_int = int(qty)
+        except Exception:
+            qty_int = 1
+        qty_int = max(1, qty_int)
+        materials.append(
+            {
+                "description": desc,
+                "quantity": qty_int,
+                "unit_price": _parse_decimal(item.get("unit_price")),
+            }
+        )
+    payment_type = (data.get("payment_type") or "contado").lower()
+    if payment_type not in {"contado", "transferencia", "cheque"}:
+        payment_type = "contado"
+    payment_method = (data.get("payment_method") or payment_type or "contado").lower()
+    if payment_method not in {"contado", "transferencia", "cheque"}:
+        payment_method = "contado"
+    payment_status = (data.get("payment_status") or "pendiente").lower()
+    if payment_status not in {"pendiente", "pagado", "parcial"}:
+        payment_status = "pendiente"
+    due_date_val = data.get("due_date") or data.get("cheque_due_date")
+    payload = {
+        "supplier": data.get("supplier", ""),
+        "issue_date": _parse_date(data.get("issue_date")),
+        "rut": data.get("rut", ""),
+        "net_amount": _parse_decimal(data.get("net_amount")),
+        "tax_amount": _parse_decimal(data.get("tax_amount")),
+        "total_amount": _parse_decimal(data.get("total_amount")),
+        "materials": materials,
+        "payment_type": payment_type,
+        "cheque_bank": data.get("cheque_bank", ""),
+        "cheque_number": data.get("cheque_number", ""),
+        "cheque_due_date": _parse_date(data.get("cheque_due_date")),
+        "is_paid": str(data.get("is_paid", "")).lower() in {"true", "1", "yes"},
+        "payment_method": payment_method,
+        "payment_status": payment_status,
+        "due_date": _parse_date(due_date_val),
+        "payment_notes": data.get("payment_notes", ""),
+    }
+    return payload, files
+
+
+def _replace_materials(factura: FacturaCompra, materials: List[Dict[str, Any]]):
+    factura.materials.all().delete()
+    material_objs: List[MaterialCompra] = []
+    for item in materials:
+        desc = (item.get("description") or "").strip()
+        if not desc:
+            continue
+        qty = item.get("quantity", 1) or 1
+        try:
+            qty_int = int(qty)
+        except Exception:
+            qty_int = 1
+        qty_int = max(1, qty_int)
+        material_objs.append(
+            MaterialCompra(
+                factura=factura,
+                description=desc,
+                quantity=qty_int,
+                unit_price=item.get("unit_price"),
+            )
+        )
+    if material_objs:
+        MaterialCompra.objects.bulk_create(material_objs)
+
+
+def _sync_calendar_for_purchase(factura: FacturaCompra, replace: bool = False) -> None:
+    if replace:
+        CalendarEntry.objects.filter(invoice_purchase=factura).exclude(type="factura_venta").delete()
+
+    # Factura de compra
+    if factura.issue_date:
+        CalendarEntry.objects.update_or_create(
+            invoice_purchase=factura,
+            type="factura_compra",
+            defaults={
+                "date": factura.issue_date,
+                "title": f"Factura Compra #{factura.id} - {factura.supplier}",
+                "description": f"Monto: {factura.total_amount}",
+            },
+        )
+    else:
+        CalendarEntry.objects.filter(invoice_purchase=factura, type="factura_compra").delete()
+
+    # Pago pendiente (cheque) -> nuevo tipo pago_compra
+    if (
+        factura.payment_method == "cheque"
+        and factura.payment_status != "pagado"
+        and factura.due_date
+    ):
+        desc_parts = [f"Monto: {factura.total_amount}"]
+        if factura.cheque_bank:
+            desc_parts.append(f"Banco: {factura.cheque_bank}")
+        if factura.cheque_number:
+            desc_parts.append(f"Número: {factura.cheque_number}")
+        if factura.payment_notes:
+            desc_parts.append(f"Notas: {factura.payment_notes}")
+        CalendarEntry.objects.update_or_create(
+            invoice_purchase=factura,
+            type="pago_compra",
+            defaults={
+                "date": factura.due_date,
+                "title": f"Pago cheque compra #{factura.id} - {factura.supplier}",
+                "description": " | ".join(desc_parts) or "Pago pendiente",
+            },
+        )
+    else:
+        CalendarEntry.objects.filter(invoice_purchase=factura, type__in=["pago_compra", "pago_pendiente"]).delete()
+
+
+def sync_materials_to_inventory(invoice):
+    """
+    Sincroniza materiales de una factura de compra hacia inventario (Item).
+    """
+    from inventory.models import Item
+
+    materials = invoice.materials.all()
+
+    for m in materials:
+        desc = (m.description or "").strip()
+        qty = int(m.quantity or 0)
+        price = m.unit_price or 0
+
+        if not desc or qty <= 0:
+            continue
+
+        existing = Item.objects.filter(recurso__iexact=desc).first()
+
+        if existing:
+            existing.cantidad = (existing.cantidad or 0) + qty
+            if price and price > 0:
+                existing.precio = price
+            existing.save()
+        else:
+            Item.objects.create(
+                recurso=desc,
+                categoria="Por clasificar",
+                cantidad=qty,
+                precio=price if price > 0 else 0,
+                info="Agregado desde factura de compra",
+            )
+
+
+@csrf_exempt
+def purchase_summary(request: HttpRequest):
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+
+    today = date.today()
+    pending_qs = FacturaCompra.objects.filter(
+        payment_method="cheque",
+        payment_status__in=["pendiente", "parcial"],
+        due_date__isnull=False,
+    )
+
+    total_pending = pending_qs.aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
+
+    qs = pending_qs.filter(due_date__gte=today)
+
+    by_month = (
+        qs.annotate(month=TruncMonth("due_date"))
+        .values("month")
+        .annotate(amount=Sum("total_amount"))
+        .order_by("month")
+    )
+
+    pending_by_month = [
+        {"month": value["month"].strftime("%Y-%m") if value["month"] else "", "amount": float(value["amount"] or 0)}
+        for value in by_month
+    ]
+
+    upcoming_payments = [
+        {
+            "id": obj.id,
+            "supplier": obj.supplier,
+            "due_date": obj.due_date.isoformat() if obj.due_date else None,
+            "total_amount": float(obj.total_amount),
+            "payment_method": obj.payment_method,
+            "payment_status": obj.payment_status,
+        }
+        for obj in qs.order_by("due_date")
+    ]
+
+    return JsonResponse(
+        {
+            "total_debt": float(total_pending),
+            "upcoming_payments": upcoming_payments,
+            "pending_by_month": pending_by_month,
+        },
+        status=200,
+    )
 
 
 
