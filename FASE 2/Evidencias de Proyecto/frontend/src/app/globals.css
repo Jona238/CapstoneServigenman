@@ -320,3 +320,43 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ============================================================================
+   NPROGRESS CUSTOMIZATION
+   ============================================================================ */
+
+/* Progress bar color */
+#nprogress .bar {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.8), 0 0 8px rgba(139, 92, 246, 0.6);
+  height: 3px;
+}
+
+/* Spinner color and glow effect */
+#nprogress .spinner {
+  display: none; /* Hides the default spinner */
+}
+
+/* Alternative: If you want to keep the spinner, customize it */
+#nprogress .spinner-icon {
+  border-top-color: #3b82f6;
+  border-left-color: #8b5cf6;
+  box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.8);
+}
+
+/* Ensure nProgress appears on top of other elements */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress * {
+  box-sizing: border-box;
+}
+
+/* Add glow effect on dark mode */
+@media (prefers-color-scheme: dark) {
+  #nprogress .bar {
+    background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.9), 0 0 10px rgba(167, 139, 250, 0.7);
+  }
+}

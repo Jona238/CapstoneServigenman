@@ -4,6 +4,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import SessionManager from "@/lib/session/SessionManager";
 import { ThemeProvider } from "./components/ThemeProvider";
+import NProgressComponent from "./components/NProgress";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider />
+        <NProgressComponent />
         <LanguageProvider>
           {/* Global session + inactivity management (client-side) */}
           <SessionManager />
