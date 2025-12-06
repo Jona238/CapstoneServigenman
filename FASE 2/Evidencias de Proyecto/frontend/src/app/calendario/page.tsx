@@ -6,7 +6,6 @@ import AppFooter from "@/components/AppFooter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
-import { initializeCalendarPage } from "./interaction";
 import "../(auth)/login/styles.css";
 import "../inventario/styles.css";
 import "./styles.css";
@@ -46,6 +45,55 @@ type CalendarDayCell = {
   events: CalendarEvent[];
 };
 
+const CALENDAR_FALLBACK = {
+  heroEyebrow: "Planificación operativa",
+  heroTitle: "Calendario operativo",
+  heroSubtitle: "Agenda de mantenimiento y abastecimiento.",
+  stats: {
+    totalEvents: "Eventos registrados",
+    nextEvent: "Próximo evento",
+    noNextEvent: "Sin fecha pendiente",
+    maintenanceCount: "Mantenciones",
+    purchaseCount: "Compras",
+    expirationCount: "Vencimientos",
+  },
+  formTitle: "Registrar evento",
+  formDescription: "Define fechas críticas para tu equipo.",
+  form: {
+    title: "Título del evento",
+    titlePlaceholder: "Ej: Mantención preventiva",
+    date: "Fecha",
+    type: "Tipo",
+    description: "Descripción / notas",
+    descriptionPlaceholder: "Notas internas para cuadrillas o compras.",
+    helper: "Datos guardados localmente.",
+    createButton: "Agregar",
+    updateButton: "Guardar cambios",
+    cancelEdit: "Cancelar",
+  },
+  editing: "Editando evento",
+  calendarTitle: "Calendario operativo",
+  calendarSubtitle: "Selecciona un día para revisar sus hitos.",
+  selectedDayTitle: "Agenda del {date}",
+  selectedDayEmpty: "No hay eventos planificados para esta fecha.",
+  legend: "Leyenda de tipos de evento",
+  upcomingTitle: "Próximos hitos",
+  upcomingSubtitle: "Planificación cronológica",
+  upcomingEmpty: "No existen hitos pendientes.",
+  localOnly: "Datos guardados localmente",
+  filters: {
+    label: "Filtrar por tipo",
+    all: "Todos",
+  },
+  types: {
+    maintenance: "Mantención",
+    purchase: "Compra",
+    expiration: "Vencimiento",
+  },
+  labels: {
+    today: "Hoy",
+  },
+};
 
 const STORAGE_KEY = "servigenman_calendar_events_v1";
 const EVENT_TYPES: CalendarEventType[] = [
@@ -81,43 +129,15 @@ const DAY_COLORS: Record<CalendarEventType, string> = {
 export default function CalendarPage() {
   useBodyClass();
   const { t, locale } = useLanguage();
-  const calendar = useMemo(() => {
-    const cal = t.calendar ?? {};
-    // Map translations to expected property names for backward compatibility
-    return {
-      ...cal,
-      types: cal.eventTypes ?? {},
-      stats: cal.stats ?? {},
-      heroEyebrow: cal.title ?? "",
-      heroTitle: cal.operationalCalendar ?? "",
-      heroSubtitle: cal.description ?? "",
-      selectedDayTitle: cal.scheduleFor ?? "Agenda del {date}",
-      selectedDayEmpty: cal.noEventsScheduled ?? "",
-      calendarTitle: cal.operationalCalendar ?? "",
-      calendarSubtitle: cal.selectDay ?? "",
-      legend: cal.eventLegend ?? "",
-      upcomingTitle: cal.upcomingMilestones ?? "",
-      upcomingSubtitle: cal.chronologicalPlanning ?? "",
-      upcomingEmpty: cal.noPendingMilestones ?? "",
-      filters: { label: cal.filterByType ?? "Filtrar por tipo", all: cal.allTypes ?? "Todos" },
-      labels: { today: cal.today ?? "Hoy" },
-      form: {
-        title: cal.eventTitle ?? "",
-        titlePlaceholder: cal.eventTitlePlaceholder ?? "",
-        date: "Fecha",
-        type: "Tipo",
-        description: cal.description ?? "",
-        descriptionPlaceholder: cal.descriptionPlaceholder ?? "",
-        helper: cal.savedLocally ?? "",
-        createButton: "Agregar",
-        updateButton: cal.saveChanges ?? "",
-        cancelEdit: "Cancelar",
-      },
-      formTitle: cal.registerEvent ?? "",
-      formDescription: cal.defineEvents ?? "",
-      editing: cal.editingEvent ?? "",
-    };
-  }, [t]);
+  const calendar = useMemo(() => ({
+    ...CALENDAR_FALLBACK,
+    ...(t.calendar ?? {}),
+    stats: { ...CALENDAR_FALLBACK.stats, ...(t.calendar?.stats ?? {}) },
+    form: { ...CALENDAR_FALLBACK.form, ...(t.calendar?.form ?? {}) },
+    filters: { ...CALENDAR_FALLBACK.filters, ...(t.calendar?.filters ?? {}) },
+    types: { ...CALENDAR_FALLBACK.types, ...(t.calendar?.types ?? {}) },
+    labels: { ...CALENDAR_FALLBACK.labels, ...(t.calendar?.labels ?? {}) },
+  }), [t]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [formData, setFormData] = useState<FormState>(() => getDefaultFormState());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -165,13 +185,7 @@ export default function CalendarPage() {
     [apiBaseUrl],
   );
 
-  // Initialize theme handler
-  useEffect(() => {
-    const cleanup = initializeCalendarPage();
-    return cleanup;
-  }, []);
-
-  // Load stored events
+  // Load stored events initially (offline cache)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
