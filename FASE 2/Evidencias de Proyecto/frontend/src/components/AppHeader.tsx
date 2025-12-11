@@ -155,6 +155,7 @@ export default function AppHeader() {
           <ul>
             <li><Link href="/inicio">{t.common.home}</Link></li>
             <li><Link href="/inventario">{t.common.inventory}</Link></li>
+            <li><Link href="/movimientos">Movimientos</Link></li>
             <li><Link href="/facturas">{t.common.invoices}</Link></li>
             <li><Link href="/calendario">{t.common.calendar}</Link></li>
             {isDeveloper && (

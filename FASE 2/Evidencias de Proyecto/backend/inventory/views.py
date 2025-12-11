@@ -8,8 +8,14 @@ from functools import wraps
 from django.http import JsonResponse, HttpRequest, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from rest_framework import viewsets, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.db.models import Sum, F
 
-from .models import Item, PendingChange
+from .models import Item, PendingChange, InventoryMovement
+from .serializers import InventoryMovementSerializer
+from .auth import CsrfExemptSessionAuthentication
 from accounts.authentication import ensure_authenticated_user, user_is_developer
 
 
@@ -55,6 +61,15 @@ def _item_from_payload(payload: dict, instance: Item | None = None) -> Item:
         item.foto = str(payload.get("foto") or "")
     if "info" in payload:
         item.info = str(payload.get("info") or "")
+    if "distribuidor" in payload:
+        item.distribuidor = str(payload.get("distribuidor") or "")
+    if "ubicacion_texto" in payload:
+        item.ubicacion_texto = str(payload.get("ubicacion_texto") or "")
+    if isinstance(payload.get("ubicacion_fotos"), list):
+        item.set_ubicacion_fotos(payload.get("ubicacion_fotos"))
+    elif "ubicacion_foto" in payload:
+        raw = payload.get("ubicacion_foto") or ""
+        item.set_ubicacion_fotos([raw] if raw else [])
     return item
 
 
@@ -247,4 +262,89 @@ def pending_count(request: HttpRequest):
         return JsonResponse({"detail": "Forbidden"}, status=403)
     count = PendingChange.objects.filter(status=PendingChange.STATUS_PENDING).count()
     return JsonResponse({"pending": count}, status=200)
+
+
+class InventoryMovementViewSet(viewsets.ModelViewSet):
+    queryset = InventoryMovement.objects.select_related("item").order_by("-created_at", "-id")
+    serializer_class = InventoryMovementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [CsrfExemptSessionAuthentication]
+
+
+class CategorySummaryAPIView(APIView):
+    authentication_classes = [CsrfExemptSessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request: HttpRequest):
+        qs = Item.objects.all().order_by("categoria", "id")
+        summary: dict[str, dict] = {}
+        for item in qs:
+            name = (item.categoria or "").strip() or "Sin categoria"
+            if name not in summary:
+                summary[name] = {
+                    "name": name,
+                    "total_units": 0,
+                    "total_items": 0,
+                    "total_value": Decimal("0"),
+                    "cover_photo": None,
+                }
+            entry = summary[name]
+            entry["total_units"] += item.cantidad or 0
+            entry["total_items"] += 1
+            try:
+                entry["total_value"] += Decimal(item.cantidad or 0) * Decimal(item.precio or 0)
+            except Exception:
+                pass
+            if not entry["cover_photo"] and item.foto:
+                entry["cover_photo"] = item.foto
+
+        fallback_image = (
+            "data:image/png;base64,"
+            "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJ0lEQVR4Xu3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAA"
+            "AAAAAAAAAAA4HkBdQAAaxJREFUeF7tW22P2zYQfSKiQBKJkmiQpNHY3NnRjaeqqrE4uxPWmXoyVFj4AhtqR5ztx2IDd"
+            "zG8Xx9Ph0L8vyCHgWQI8P9Hz8v3yzbTvoQPnDgA/4MGAYP/gwYBg/+DBgGD/4MGAYP/gwYBg/+DBgGD/4MGAYP/gwYB"
+            "g/+DBgGD/4MGAYP8fyOk8nXk6nXAOq0ql8vl8nE5nEwmEwmk0ml0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDa7XZ7"
+            "nU6nU6nUwmEwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G"
+            "63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nU"
+            "wmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/"
+            "HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0m"
+            "k0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb"
+            "7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43"
+            "G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6n"
+            "UwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4"
+            "/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0"
+            "mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbD"
+            "b7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G4"
+            "3G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6"
+            "nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W"
+            "4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk"
+            "0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYb"
+            "Db7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G"
+            "43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU"
+            "6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63"
+            "W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwm"
+            "k0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HY"
+            "bDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3"
+            "G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6n"
+            "U6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W6"
+            "3W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmE"
+            "wmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7"
+            "HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1Go3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwmEwmEwmk0mk0Go1G"
+            "o3G43G63W63W63W4/HY7HY7HYbDb7fZ7nU6nU6nUwH/BwBhkR7FRVUZQAAAAASUVORK5CYII="
+        )
+
+        results = []
+        for name, data in summary.items():
+            results.append(
+                {
+                    "name": name,
+                    "total_units": data["total_units"],
+                    "total_items": data["total_items"],
+                    "total_value": float(data["total_value"]),
+                    "cover_photo": data["cover_photo"] or fallback_image,
+                }
+            )
+
+        results.sort(key=lambda x: x["name"].lower())
+        return Response(results, status=200)
 
