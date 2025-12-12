@@ -36,6 +36,16 @@ type FilterOptions = {
   resetPage?: boolean;
 };
 
+type OriginalSnapshot = {
+  recurso: string;
+  categoria: string;
+  cantidad: string;
+  precioText: string;
+  precioRaw: string;
+  imgSrc: string;
+  info: string;
+};
+
 const INVENTORY_KEY = "inventarioData";
 const CATS_KEY = "categoriasInventario";
 
@@ -133,6 +143,9 @@ async function apiDeleteItem(id: number): Promise<boolean> {
 const filasPorPagina = 10;
 let paginaActual = 1;
 let currentEditingRow: HTMLTableRowElement | null = null;
+let currentEditRowRef: HTMLTableRowElement | null = null;
+let currentEditOriginal: OriginalSnapshot | null = null;
+let currentEditPhotoDataUrl: string = "";
 
 function showEditToolbar(row: HTMLTableRowElement) {
   currentEditingRow = row;
@@ -352,17 +365,27 @@ export function initializeInventoryPage(): CleanupFn {
       const action = target.dataset.action;
       if (!action) return;
       if (action === "edit") {
-        editarFila(target);
+        event.preventDefault();
+        const fila = target.closest("tr") as HTMLTableRowElement | null;
+        if (fila) openEditModal(fila);
       } else if (action === "delete") {
         eliminarFila(target);
-      } else if (action === "save") {
-        void guardarFila(target);
-      } else if (action === "cancel") {
-        cancelarEdicion(target);
+      } else if (action === "save" || action === "cancel") {
+        event.preventDefault();
       }
     };
     tabla.addEventListener("click", handler);
     cleanupFns.push(() => tabla.removeEventListener("click", handler));
+
+    const imageHandler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const img = target.closest("img.thumb") as HTMLImageElement | null;
+      if (img && img.src) {
+        openImageModal(img.src);
+      }
+    };
+    tabla.addEventListener("click", imageHandler);
+    cleanupFns.push(() => tabla.removeEventListener("click", imageHandler));
   }
 
   // Listen for currency changes
@@ -397,6 +420,80 @@ export function initializeInventoryPage(): CleanupFn {
   };
   window.addEventListener(LOW_STOCK_THRESHOLD_EVENT, thresholdChangeHandler as EventListener);
   cleanupFns.push(() => window.removeEventListener(LOW_STOCK_THRESHOLD_EVENT, thresholdChangeHandler as EventListener));
+
+  const keydownHandler = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      closeImageModal();
+      closeEditModal();
+    }
+  };
+  window.addEventListener("keydown", keydownHandler);
+  cleanupFns.push(() => window.removeEventListener("keydown", keydownHandler));
+
+  const modal = ensureImageModal();
+  if (modal) {
+    const closeTargets = modal.querySelectorAll<HTMLElement>("[data-modal-close]");
+    const modalCloser = (ev: Event) => {
+      ev.preventDefault();
+      closeImageModal();
+    };
+    closeTargets.forEach((el) => el.addEventListener("click", modalCloser));
+    cleanupFns.push(() => closeTargets.forEach((el) => el.removeEventListener("click", modalCloser)));
+  }
+
+  const editModal = ensureEditModal();
+  const editForm = editModal?.querySelector<HTMLFormElement>("#inventoryEditForm");
+  const editFotoInput = editModal?.querySelector<HTMLInputElement>("#editFoto");
+  if (editModal) {
+    const closeTargets = editModal.querySelectorAll<HTMLElement>("[data-edit-modal-close]");
+    const closeHandler = () => closeEditModal();
+    closeTargets.forEach((el) => el.addEventListener("click", closeHandler));
+    cleanupFns.push(() => closeTargets.forEach((el) => el.removeEventListener("click", closeHandler)));
+  }
+
+  if (editForm) {
+    const submitHandler = (e: Event) => {
+      e.preventDefault();
+      const recurso = (editForm.querySelector("#editRecurso") as HTMLInputElement | null)?.value ?? "";
+      const categoria = (editForm.querySelector("#editCategoria") as HTMLInputElement | null)?.value ?? "";
+      const cantidad = (editForm.querySelector("#editCantidad") as HTMLInputElement | null)?.value ?? "0";
+      const precio = (editForm.querySelector("#editPrecio") as HTMLInputElement | null)?.value ?? "0";
+      const info = (editForm.querySelector("#editInfo") as HTMLInputElement | null)?.value ?? "";
+      void guardarEdicionModal({ recurso, categoria, cantidad, precio, info, fotoDataUrl: currentEditPhotoDataUrl });
+    };
+    editForm.addEventListener("submit", submitHandler);
+    cleanupFns.push(() => editForm.removeEventListener("submit", submitHandler));
+  }
+
+  if (editFotoInput) {
+    const changeHandler = async () => {
+      const file = editFotoInput.files?.[0];
+      const prevImg = editModal?.querySelector<HTMLImageElement>("#editFotoPreview");
+      const prevEmpty = editModal?.querySelector<HTMLSpanElement>("#editFotoEmpty");
+      if (file) {
+        const dataUrl = await readFileAsDataURL(file);
+        currentEditPhotoDataUrl = dataUrl;
+        if (prevImg && prevEmpty) {
+          prevImg.src = dataUrl;
+          prevImg.style.display = "block";
+          prevEmpty.style.display = "none";
+        }
+      } else if (prevImg && prevEmpty) {
+        currentEditPhotoDataUrl = currentEditOriginal?.imgSrc ?? "";
+        if (currentEditPhotoDataUrl) {
+          prevImg.src = currentEditPhotoDataUrl;
+          prevImg.style.display = "block";
+          prevEmpty.style.display = "none";
+        } else {
+          prevImg.src = "";
+          prevImg.style.display = "none";
+          prevEmpty.style.display = "inline-flex";
+        }
+      }
+    };
+    editFotoInput.addEventListener("change", changeHandler);
+    cleanupFns.push(() => editFotoInput.removeEventListener("change", changeHandler));
+  }
 
   return () => {
     cleanupFns.forEach((fn) => fn());
@@ -519,6 +616,177 @@ function applyLowStockAlerts() {
       badge.remove();
     }
   });
+}
+
+// -------------------------------------------------
+// Modal para previsualizar imagen de producto
+// -------------------------------------------------
+
+function ensureImageModal() {
+  if (typeof document === "undefined") return null;
+  let modal = document.getElementById("inventoryImageModal") as HTMLDivElement | null;
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "inventoryImageModal";
+    modal.className = "inventory-image-modal";
+    modal.innerHTML = `
+      <div class="inventory-image-modal__backdrop" data-modal-close></div>
+      <div class="inventory-image-modal__dialog">
+        <button type="button" class="inventory-image-modal__close" data-modal-close aria-label="Cerrar">×</button>
+        <img class="inventory-image-modal__img" alt="Vista ampliada" />
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  return modal;
+}
+
+function openImageModal(src: string) {
+  const modal = ensureImageModal();
+  if (!modal) return;
+  const img = modal.querySelector(".inventory-image-modal__img") as HTMLImageElement | null;
+  if (!img) return;
+  img.src = src;
+  modal.classList.add("is-open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeImageModal() {
+  const modal = document.getElementById("inventoryImageModal") as HTMLDivElement | null;
+  if (!modal) return;
+  modal.classList.remove("is-open");
+  document.body.style.overflow = "";
+}
+
+// -------------------------------------------------
+// Modal de edición de recurso
+// -------------------------------------------------
+
+function ensureEditModal() {
+  if (typeof document === "undefined") return null;
+  let modal = document.getElementById("inventoryEditModal") as HTMLDivElement | null;
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "inventoryEditModal";
+    modal.className = "inventory-edit-modal";
+    modal.innerHTML = `
+      <div class="inventory-edit-modal__backdrop" data-edit-modal-close></div>
+      <div class="inventory-edit-modal__dialog">
+        <header class="inventory-edit-modal__header">
+          <h3>Editar recurso</h3>
+          <button type="button" class="inventory-edit-modal__close" data-edit-modal-close aria-label="Cerrar">×</button>
+        </header>
+        <form id="inventoryEditForm" class="inventory-edit-modal__form">
+          <div class="inventory-edit-modal__grid">
+            <label class="inventory-edit-modal__field">
+              <span>ID</span>
+              <input id="editId" type="text" disabled />
+            </label>
+            <label class="inventory-edit-modal__field">
+              <span>Recurso</span>
+              <input id="editRecurso" type="text" class="editar-input" required />
+            </label>
+            <label class="inventory-edit-modal__field">
+              <span>Categoría</span>
+              <input id="editCategoria" type="text" class="editar-input" required />
+            </label>
+            <label class="inventory-edit-modal__field">
+              <span>Cantidad</span>
+              <input id="editCantidad" type="number" min="0" step="1" class="editar-input" />
+            </label>
+            <label class="inventory-edit-modal__field">
+              <span>Precio</span>
+              <input id="editPrecio" type="number" min="0" step="0.01" class="editar-input" />
+            </label>
+            <label class="inventory-edit-modal__field">
+              <span>Info</span>
+              <input id="editInfo" type="text" class="editar-input" />
+            </label>
+          </div>
+          <div class="inventory-edit-modal__media">
+            <div class="inventory-edit-modal__preview" id="editFotoPreviewWrap">
+              <img id="editFotoPreview" class="thumb" alt="" />
+              <span id="editFotoEmpty" class="inventory-edit-modal__empty">Sin imagen</span>
+            </div>
+            <label class="custom-file-input editar-foto-btn" id="editFotoLabel">
+              <span>Cambiar foto</span>
+              <input id="editFoto" type="file" accept="image/*" />
+            </label>
+          </div>
+          <div class="inventory-edit-modal__actions">
+            <button type="button" class="boton-cancelar" data-edit-modal-close>Cancelar</button>
+            <button type="submit" class="boton-guardar">Guardar</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  return modal;
+}
+
+function closeEditModal() {
+  const modal = document.getElementById("inventoryEditModal") as HTMLDivElement | null;
+  if (!modal) return;
+  modal.classList.remove("is-open");
+  document.body.style.overflow = "";
+  currentEditRowRef = null;
+  currentEditOriginal = null;
+  currentEditPhotoDataUrl = "";
+}
+
+function openEditModal(fila: HTMLTableRowElement) {
+  const modal = ensureEditModal();
+  if (!modal) return;
+
+  currentEditRowRef = fila;
+  const tds = fila.querySelectorAll<HTMLTableCellElement>("td");
+  const img = tds[5]?.querySelector<HTMLImageElement>("img");
+
+  const original: OriginalSnapshot = {
+    recurso: tds[1]?.innerText ?? "",
+    categoria: tds[2]?.innerText ?? "",
+    cantidad: tds[3]?.getAttribute("data-quantity") ?? tds[3]?.innerText ?? "0",
+    precioText: tds[4]?.innerText ?? "0",
+    precioRaw: tds[4]?.getAttribute("data-precio") ?? tds[4]?.innerText ?? "0",
+    imgSrc: img?.src ?? "",
+    info: tds[6]?.innerText ?? "",
+  };
+  currentEditOriginal = original;
+  currentEditPhotoDataUrl = original.imgSrc || "";
+
+  const idEl = document.getElementById("editId") as HTMLInputElement | null;
+  const recEl = document.getElementById("editRecurso") as HTMLInputElement | null;
+  const catEl = document.getElementById("editCategoria") as HTMLInputElement | null;
+  const cantEl = document.getElementById("editCantidad") as HTMLInputElement | null;
+  const preEl = document.getElementById("editPrecio") as HTMLInputElement | null;
+  const infoEl = document.getElementById("editInfo") as HTMLInputElement | null;
+  const prevImg = document.getElementById("editFotoPreview") as HTMLImageElement | null;
+  const prevEmpty = document.getElementById("editFotoEmpty") as HTMLSpanElement | null;
+  const fotoInput = document.getElementById("editFoto") as HTMLInputElement | null;
+
+  if (idEl) idEl.value = tds[0]?.innerText ?? "";
+  if (recEl) recEl.value = original.recurso;
+  if (catEl) catEl.value = original.categoria;
+  if (cantEl) cantEl.value = original.cantidad;
+  if (preEl) preEl.value = String(Number.parseFloat(original.precioRaw) || 0);
+  if (infoEl) infoEl.value = original.info;
+
+  if (prevImg && prevEmpty) {
+    if (original.imgSrc) {
+      prevImg.src = original.imgSrc;
+      prevImg.style.display = "block";
+      prevEmpty.style.display = "none";
+    } else {
+      prevImg.src = "";
+      prevImg.style.display = "none";
+      prevEmpty.style.display = "inline-flex";
+    }
+  }
+  if (fotoInput) fotoInput.value = "";
+
+  modal.classList.add("is-open");
+  document.body.style.overflow = "hidden";
 }
 
 function renderInventarioToDOM(arr: InventoryItem[]) {
@@ -836,13 +1104,16 @@ function editarFila(button: HTMLButtonElement) {
   celdas[3].innerHTML = `<input type="number" value="${original.cantidad}" min="0" step="1" class="editar-input" />`;
   celdas[4].innerHTML = `<input type="number" value="${Number.parseFloat(original.precioRaw) || 0}" min="0" step="0.01" class="editar-input precio" />`;
   celdas[5].innerHTML = `
-    <div>
+    <div class="editar-foto-wrap">
       ${
         original.imgSrc
           ? `<img class="thumb" src="${original.imgSrc}" alt="" />`
-          : '<img class="thumb" src="" alt="" />'
+          : ""
       }
-      <input type="file" class="editar-foto" accept="image/*" style="display:block; margin-top:6px;" />
+      <label class="custom-file-input editar-foto-btn">
+        <span>Cambiar foto</span>
+        <input type="file" class="editar-foto" accept="image/*" />
+      </label>
     </div>`;
   celdas[6].innerHTML = `<input type="text" value="${original.info}" class="editar-input info" />`;
   celdas[7].innerHTML = `
@@ -851,6 +1122,155 @@ function editarFila(button: HTMLButtonElement) {
       <button type="button" class="boton-cancelar" data-action="cancel">Cancelar</button>
     </div>`;
   showEditToolbar(fila);
+}
+
+function setDefaultRowActions(fila: HTMLTableRowElement | null) {
+  if (!fila) return;
+  const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
+  if (!celdas[7]) return;
+  celdas[7].innerHTML = `
+    <div class="tabla-acciones">
+      <button type="button" class="boton-editar" data-action="edit">Editar</button>
+      <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
+    </div>`;
+}
+
+function restoreRowFromOriginal(
+  fila: HTMLTableRowElement,
+  original: {
+    recurso: string;
+    categoria: string;
+    cantidad: string;
+    precioText: string;
+    precioRaw: string;
+    imgSrc: string;
+    info: string;
+  }
+) {
+  const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
+  celdas[1].innerText = original.recurso;
+  celdas[2].innerText = original.categoria;
+  const cantidadOriginal = Number.parseInt(original.cantidad ?? "0", 10);
+  const safeCantidad = Number.isNaN(cantidadOriginal) ? 0 : cantidadOriginal;
+  setQuantityCell(celdas[3], safeCantidad);
+  const precioOriginal = Number.parseFloat(original.precioRaw ?? "0");
+  const safePrecio = Number.isNaN(precioOriginal) ? 0 : precioOriginal;
+  celdas[4].setAttribute("data-precio", String(safePrecio));
+  celdas[4].innerText = formatCurrency(safePrecio);
+  if (original.imgSrc) {
+    celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
+    celdas[5].setAttribute("data-foto", "1");
+  } else {
+    celdas[5].innerHTML = "";
+    celdas[5].setAttribute("data-foto", "");
+  }
+  celdas[6].innerText = original.info;
+  setDefaultRowActions(fila);
+}
+
+type ModalEditPayload = {
+  recurso: string;
+  categoria: string;
+  cantidad: string;
+  precio: string;
+  info: string;
+  fotoDataUrl: string;
+};
+
+async function guardarEdicionModal(data: ModalEditPayload) {
+  const fila = currentEditRowRef;
+  if (!fila) return;
+
+  const original = currentEditOriginal ?? {
+    recurso: "",
+    categoria: "",
+    cantidad: "0",
+    precioText: "0",
+    precioRaw: "0",
+    imgSrc: "",
+    info: "",
+  };
+
+  const nuevoRecurso = data.recurso.trim();
+  const nuevaCategoria = data.categoria.trim();
+  const nuevaCantidad = Number.parseInt(data.cantidad || "0", 10);
+  const safeCantidad = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
+  const nuevoPrecio = Number.parseFloat(data.precio || "0");
+  const safePrecio = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
+  const nuevaInfo = data.info.trim();
+  const fotoDataURL = data.fotoDataUrl || "";
+
+  const cambios: string[] = [];
+  if ((original.recurso || "") !== (nuevoRecurso || "")) {
+    cambios.push(`Recurso: "${original.recurso || ""}" → "${nuevoRecurso || ""}"`);
+  }
+  if ((original.categoria || "") !== (nuevaCategoria || "")) {
+    cambios.push(`Categoría: "${original.categoria || ""}" → "${nuevaCategoria || ""}"`);
+  }
+  if ((original.cantidad || "0") !== String(safeCantidad)) {
+    cambios.push(`Cantidad: ${original.cantidad || "0"} → ${safeCantidad}`);
+  }
+  if ((Number.parseFloat(original.precioRaw) || 0) !== safePrecio) {
+    cambios.push(
+      `Precio: ${formatCurrency(Number.parseFloat(original.precioRaw) || 0)} → ${formatCurrency(safePrecio)}`
+    );
+  }
+  if ((original.info || "") !== (nuevaInfo || "")) {
+    cambios.push(`Info: "${original.info || ""}" → "${nuevaInfo || ""}"`);
+  }
+  if ((original.imgSrc || "") !== (fotoDataURL || "")) {
+    cambios.push("Foto: (cambiada)");
+  }
+
+  if (cambios.length === 0) {
+    closeEditModal();
+    return;
+  }
+
+  const idText = fila.cells[0]?.innerText ?? "0";
+  const ok = window.confirm(`Confirmar modificación del recurso #${idText}\n\n${cambios.join("\n")}`);
+  if (!ok) return;
+
+  const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
+  celdas[1].innerText = nuevoRecurso;
+  celdas[2].innerText = nuevaCategoria;
+  setQuantityCell(celdas[3], safeCantidad);
+  celdas[4].setAttribute("data-precio", String(safePrecio));
+  celdas[4].innerText = formatCurrency(safePrecio);
+  if (fotoDataURL) {
+    celdas[5].innerHTML = `<img class="thumb" src="${fotoDataURL}" alt="" />`;
+    celdas[5].setAttribute("data-foto", "1");
+  } else {
+    celdas[5].innerHTML = "";
+    celdas[5].setAttribute("data-foto", "");
+  }
+  celdas[6].innerText = nuevaInfo;
+
+  const id = Number.parseInt(idText, 10) || 0;
+  void apiUpdateItem(id, {
+    id,
+    recurso: nuevoRecurso,
+    categoria: nuevaCategoria,
+    cantidad: safeCantidad,
+    precio: safePrecio,
+    foto: fotoDataURL,
+    info: nuevaInfo,
+  });
+
+  closeEditModal();
+  currentEditRowRef = null;
+  currentEditOriginal = null;
+  currentEditPhotoDataUrl = "";
+
+  persistInventario();
+  const arr = loadJSON<InventoryItem[]>(
+    INVENTORY_KEY,
+    snapshotInventarioDesdeTabla()
+  );
+  renderInventarioToDOM(arr);
+  filtrarTabla({ resetPage: false });
+  ordenarTabla();
+  actualizarPaginacion();
 }
 
 async function guardarFila(button: HTMLButtonElement) {
@@ -874,7 +1294,7 @@ async function guardarFila(button: HTMLButtonElement) {
   const imgElement = celdas[5]?.querySelector<HTMLImageElement>("img");
   const nuevaInfo = celdas[6]?.querySelector<HTMLInputElement>("input")?.value.trim() ?? "";
 
-  let fotoDataURL = imgElement?.src ?? "";
+  let fotoDataURL = imgElement?.getAttribute("src") || "";
   if (fileInput && fileInput.files && fileInput.files[0]) {
     fotoDataURL = await readFileAsDataURL(fileInput.files[0]);
   }
@@ -921,11 +1341,7 @@ async function guardarFila(button: HTMLButtonElement) {
 
       if (cambios.length === 0) {
         // No hay cambios; salir del modo edición sin tocar backend
-        celdas[7].innerHTML = `
-      <div class="tabla-acciones">
-        <button type="button" class="boton-editar" data-action="edit">Editar</button>
-        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
-      </div>`;
+        restoreRowFromOriginal(fila, original);
         fila.dataset.original = "";
         filtrarTabla({ resetPage: false });
         ordenarTabla();
@@ -962,11 +1378,7 @@ async function guardarFila(button: HTMLButtonElement) {
     celdas[5].setAttribute("data-foto", "");
   }
   celdas[6].innerText = nuevaInfo;
-  celdas[7].innerHTML = `
-      <div class="tabla-acciones">
-        <button type="button" class="boton-editar" data-action="edit">Editar</button>
-        <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
-      </div>`;
+  setDefaultRowActions(fila);
 
   const id = Number.parseInt(celdas[0]?.innerText ?? "0", 10);
   // Best-effort sync with backend
@@ -1009,29 +1421,7 @@ function cancelarEdicion(button: HTMLButtonElement) {
     info: string;
   };
 
-  const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
-  celdas[1].innerText = original.recurso;
-  celdas[2].innerText = original.categoria;
-  const cantidadOriginal = Number.parseInt(original.cantidad ?? "0", 10);
-  const safeCantidad = Number.isNaN(cantidadOriginal) ? 0 : cantidadOriginal;
-  setQuantityCell(celdas[3], safeCantidad);
-  const precioOriginal = Number.parseFloat(original.precio ?? "0");
-  const safePrecio = Number.isNaN(precioOriginal) ? 0 : precioOriginal;
-  celdas[4].setAttribute("data-precio", String(safePrecio));
-  celdas[4].innerText = formatCurrency(safePrecio);
-  if (original.imgSrc) {
-    celdas[5].innerHTML = `<img class="thumb" src="${original.imgSrc}" alt="" />`;
-    celdas[5].setAttribute("data-foto", "1");
-  } else {
-    celdas[5].innerHTML = "";
-    celdas[5].setAttribute("data-foto", "");
-  }
-  celdas[6].innerText = original.info;
-  celdas[7].innerHTML = `
-    <div class="tabla-acciones">
-      <button type="button" class="boton-editar" data-action="edit">Editar</button>
-      <button type="button" class="boton-eliminar" data-action="delete">Eliminar</button>
-    </div>`;
+  restoreRowFromOriginal(fila, original);
   fila.dataset.original = "";
   filtrarTabla();
   ordenarTabla();

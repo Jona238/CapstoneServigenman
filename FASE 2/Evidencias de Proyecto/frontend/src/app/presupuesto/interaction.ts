@@ -353,14 +353,22 @@ function buildSharedChartOptions({
     ? "rgba(148, 163, 184, 0.2)"
     : "rgba(148, 163, 184, 0.3)";
 
+  // Usar devicePixelRatio para mejor resolución en pantallas HiDPI
+  const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+
   return {
     responsive: true,
     maintainAspectRatio: false,
+    devicePixelRatio: dpr,
     plugins: {
       legend: {
         labels: {
           color: axisColor,
           usePointStyle: true,
+          font: {
+            size: 12,
+            weight: '500',
+          },
         },
       },
       tooltip: {

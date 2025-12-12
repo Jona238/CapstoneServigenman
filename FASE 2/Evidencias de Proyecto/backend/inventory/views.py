@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import threading
+import urllib.request
 from decimal import Decimal
 
 from functools import wraps
@@ -11,6 +14,45 @@ from django.utils import timezone
 
 from .models import Item, PendingChange
 from accounts.authentication import ensure_authenticated_user, user_is_developer
+
+
+def _send_n8n_webhook(action: str, item_data: dict):
+    """
+    Envía una notificación a N8N con la acción realizada, el item afectado
+    y una instantánea de todo el inventario actual.
+    Se ejecuta en un hilo separado para no bloquear la respuesta.
+    """
+    webhook_url = os.getenv("N8N_WEBHOOK_URL")
+    if not webhook_url:
+        return
+
+    def _worker():
+        try:
+            # Se elimina el snapshot completo para evitar error 413 (Payload Too Large)
+            # all_items = [obj.to_dict() for obj in Item.objects.all().order_by("id")]
+            
+            payload = {
+                "action": action,
+                "affected_item": item_data,
+                # "inventory_snapshot": all_items,
+                "timestamp": timezone.now().isoformat()
+            }
+            
+            req = urllib.request.Request(
+                webhook_url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Django-Inventory-Webhook'
+                },
+                method='POST'
+            )
+            with urllib.request.urlopen(req) as response:
+                pass
+        except Exception as e:
+            print(f"Failed to send N8N webhook: {e}")
+
+    threading.Thread(target=_worker).start()
 
 
 def require_authenticated(view_func):
@@ -95,6 +137,7 @@ def items_list_create(request: HttpRequest):
 
         item = _item_from_payload(payload)
         item.save()
+        _send_n8n_webhook("create", item.to_dict())
         return JsonResponse(item.to_dict(), status=201)
 
     return HttpResponseNotAllowed(["GET", "POST"])
@@ -133,13 +176,16 @@ def item_detail_update_delete(request: HttpRequest, item_id: int):
         partial = request.method == "PATCH"
         updated = _item_from_payload(payload if partial else payload, instance=item)
         updated.save()
+        _send_n8n_webhook("update", updated.to_dict())
         return JsonResponse(updated.to_dict(), status=200)
 
     if request.method == "DELETE":
         # Developer deletes immediately; others create a pending change
         user = request.user
         if user_is_developer(user):
+            item_data = item.to_dict()
             item.delete()
+            _send_n8n_webhook("delete", item_data)
             return JsonResponse({"ok": True}, status=204)
 
         change = PendingChange.objects.create(
@@ -192,7 +238,9 @@ def pending_approve(request: HttpRequest, change_id: int):
         if change.item_id_snapshot:
             try:
                 item = Item.objects.get(pk=change.item_id_snapshot)
+                item_data = item.to_dict()
                 item.delete()
+                _send_n8n_webhook("delete", item_data)
             except Item.DoesNotExist:
                 pass
     elif change.action == PendingChange.ACTION_UPDATE:
@@ -200,6 +248,7 @@ def pending_approve(request: HttpRequest, change_id: int):
             item = Item.objects.get(pk=change.item_id_snapshot)
             updated = _item_from_payload(change.payload or {}, instance=item)
             updated.save()
+            _send_n8n_webhook("update", updated.to_dict())
         except Item.DoesNotExist:
             pass
     elif change.action == PendingChange.ACTION_CREATE:
@@ -207,6 +256,7 @@ def pending_approve(request: HttpRequest, change_id: int):
         item.save()
         change.item = item
         change.item_id_snapshot = item.id
+        _send_n8n_webhook("create", item.to_dict())
     # mark approved
     change.status = PendingChange.STATUS_APPROVED
     change.decided_by = user

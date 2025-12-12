@@ -6,9 +6,11 @@
     "node": "^20.11.0 || 20.x"
   },
   "scripts": {
-    "dev": "powershell -NoProfile -Command \"$env:NEXT_DISABLE_TURBOPACK='1'; $env:NEXT_USE_TURBOPACK='0'; $env:TURBOPACK='0'; $env:WATCHPACK_POLLING='true'; $env:WATCHPACK_POLLING_INTERVAL='1000'; $env:CHOKIDAR_USEPOLLING='true'; $env:CHOKIDAR_INTERVAL='1000'; node .\\node_modules\\next\\dist\\bin\\next dev\"",
+    "dev": "NEXT_DISABLE_TURBOPACK=1 WATCHPACK_POLLING=true WATCHPACK_POLLING_INTERVAL=1000 CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=1000 next dev",
+    "dev:win": "powershell -NoProfile -Command \"$env:NEXT_DISABLE_TURBOPACK='1'; $env:NEXT_USE_TURBOPACK='0'; $env:TURBOPACK='0'; $env:WATCHPACK_POLLING='true'; $env:WATCHPACK_POLLING_INTERVAL='1000'; $env:CHOKIDAR_USEPOLLING='true'; $env:CHOKIDAR_INTERVAL='1000'; node .\\node_modules\\next\\dist\\bin\\next dev\"",
     "dev:ps": "powershell -NoProfile -Command \"$env:WATCHPACK_POLLING='true'; $env:WATCHPACK_POLLING_INTERVAL='1000'; $env:CHOKIDAR_USEPOLLING='true'; $env:CHOKIDAR_INTERVAL='1000'; node .\\node_modules\\next\\dist\\bin\\next dev --no-turbo\"",
-    "clean": "powershell -NoProfile -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
+    "clean": "rm -rf .next",
+    "clean:win": "powershell -NoProfile -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
     "build": "next build",
     "start": "next start",
     "preview": "next build && next start",
@@ -16,7 +18,7 @@
   },
   "dependencies": {
     "js-cookie": "^3.0.5",
-    "next": "15.5.3",
+    "next": "^15.5.7",
     "nprogress": "^0.2.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"

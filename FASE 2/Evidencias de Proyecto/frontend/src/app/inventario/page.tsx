@@ -159,10 +159,13 @@ export default function InventoryPage() {
                       required
                     />
 
-                    <label className="visualmente-hidden" htmlFor="nuevaFoto">
+                    {/* <label className="visualmente-hidden" htmlFor="nuevaFoto">
                       {t.inventory.photo}
+                    </label> */}
+                    <label htmlFor="nuevaFoto" className="custom-file-input">
+                      <span>Elegir Imagen</span>
+                      <input type="file" id="nuevaFoto" accept="image/*" />
                     </label>
-                    <input type="file" id="nuevaFoto" accept="image/*" />
 
                     <label className="visually-hidden" htmlFor="nuevaInfo">
                       {t.inventory.additionalInfo}

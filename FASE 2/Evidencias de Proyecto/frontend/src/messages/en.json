@@ -198,6 +198,8 @@
     "reservedForEmergencies": "Reserved for emergencies"
   },
   "categories": {
+    "mainTitle": "Category Management",
+    "mainDescription": "Organize and visualize inventory resources grouped by categories for better administration.",
     "title": "Categories",
     "description": "Click on a card to view only the resources of that category within the inventory.",
     "hint": "Update categories from inventory. Changes are automatically synchronized.",
@@ -206,7 +208,15 @@
     "previous": "Previous",
     "next": "Next",
     "emptyState": "No categories registered yet. Add resources to the inventory to build this visual summary.",
-    "footer": "Version 1.1 - Personal Portfolio Project"
+    "footer": "Version 1.1 - Personal Portfolio Project",
+    "waterPumps": "Water Pumps",
+    "spareParts": "Spare Parts",
+    "electricalMaterials": "Electrical Materials",
+    "specializedTools": "Specialized Tools",
+    "tools": "Tools",
+    "lubricants": "Lubricants",
+    "noCategoriesInRow": "No categories in this row",
+    "couldNotSave": "Could not save categories"
   },
   "invoices": {
     "hero": {
@@ -404,16 +414,6 @@
     "savedInCookie": "Your preference is saved in a cookie",
     "systemWorking": "✓ Language system working correctly",
     "current": "Current language: Spanish ({locale})"
-  },
-  "categories": {
-    "waterPumps": "Water Pumps",
-    "spareParts": "Spare Parts",
-    "electricalMaterials": "Electrical Materials",
-    "specializedTools": "Specialized Tools",
-    "tools": "Tools",
-    "lubricants": "Lubricants",
-    "noCategoriesInRow": "No categories in this row",
-    "couldNotSave": "Could not save categories"
   },
   "notifications": {
     "changesSaved": "Changes saved successfully.",

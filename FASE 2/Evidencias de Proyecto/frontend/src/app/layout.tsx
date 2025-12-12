@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import SessionManager from "@/lib/session/SessionManager";
 import { ThemeProvider } from "./components/ThemeProvider";
 import NProgressComponent from "./components/NProgress";
+import N8NChatbot from "@/components/N8NChatbot";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
         <LanguageProvider>
           {/* Global session + inactivity management (client-side) */}
           <SessionManager />
+          <N8NChatbot />
           {children}
         </LanguageProvider>
       </body>
