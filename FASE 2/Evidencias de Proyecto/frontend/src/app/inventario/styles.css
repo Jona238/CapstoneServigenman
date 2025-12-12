@@ -113,21 +113,39 @@ body.servigenman-login.inventory-layout[data-theme="dark"] {
   color-scheme: dark;
 }
 
-/* Light mode background override (so it contrasts clearly vs dark) */
+/* Light mode background - use same colors as home page */
 body.servigenman-login.inventory-layout:not([data-theme="dark"]) {
   background:
     radial-gradient(1400px 800px at 70% 90%, rgba(110, 160, 220, 0.15), transparent 60%),
     radial-gradient(1200px 600px at 20% 10%, rgba(160, 200, 255, 0.12), transparent 60%),
     linear-gradient(160deg, #e8eff7 0%, #eaf3ff 60%, #f1f5fb 100%);
+  background-attachment: fixed;
 }
 body.servigenman-login.inventory-layout:not([data-theme="dark"])::after {
-  /* soften the dark vignette from login styles in light mode */
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background:
     radial-gradient(1000px 500px at 50% -10%, rgba(255, 255, 255, 0.20), transparent 60%);
+}
+
+/* Dark mode background - use same colors as home page */
+body.servigenman-login.inventory-layout[data-theme="dark"] {
+  background:
+    radial-gradient(1400px 800px at 70% 90%, rgba(66, 150, 255, 0.12), transparent 60%),
+    radial-gradient(1200px 600px at 20% 10%, rgba(80, 160, 240, 0.1), transparent 60%),
+    linear-gradient(160deg, #051a2c 0%, #0a2e4a 60%, #0b3e4a 100%);
+  background-attachment: fixed;
+}
+
+body.servigenman-login.inventory-layout[data-theme="dark"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1000px 500px at 50% -10%, rgba(80, 160, 240, 0.08), transparent 60%);
 }
 
 /* Apply similar light background to home pages using the shared header */
@@ -169,6 +187,7 @@ body.servigenman-login.home-layout:not([data-theme="dark"])::after {
   margin: 0 auto;
   padding: 120px 32px 72px;
   box-sizing: border-box;
+  background: transparent;
 }
 
 .inventory-header {
@@ -1960,4 +1979,309 @@ td.acciones-cell {
     position: relative;
     top: auto;
   }
+}
+
+/* ============================================================================
+   EXPORT MODAL STYLES
+   ============================================================================ */
+
+.export-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.export-modal-overlay.is-open {
+  display: flex;
+}
+
+.export-modal {
+  position: relative;
+  width: min(600px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--inventory-panel);
+  border: 1px solid var(--inventory-border);
+  border-radius: 16px;
+  box-shadow: var(--inventory-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.export-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--inventory-border);
+  flex-shrink: 0;
+}
+
+.export-modal__header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.export-modal__close {
+  border: none;
+  background: transparent;
+  color: var(--inventory-text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.export-modal__close:hover {
+  background: var(--inventory-neutral-button-hover-bg);
+}
+
+.export-modal__subtitle {
+  margin: 0;
+  padding: 0 20px;
+  padding-top: 12px;
+  color: var(--inventory-muted);
+  font-size: 14px;
+}
+
+.export-modal__body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.export-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.export-columns label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--inventory-surface);
+  border: 1px solid var(--inventory-border);
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease;
+  user-select: none;
+  font-size: 14px;
+  color: var(--inventory-text);
+}
+
+.export-columns label:hover {
+  background: var(--inventory-popover-hover);
+  border-color: var(--inventory-focus-border);
+}
+
+.export-columns input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.export-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-scope p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--inventory-text);
+  font-size: 14px;
+}
+
+.export-scope label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--inventory-surface);
+  border: 1px solid var(--inventory-border);
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease;
+  user-select: none;
+  font-size: 14px;
+  color: var(--inventory-text);
+}
+
+.export-scope label:hover {
+  background: var(--inventory-popover-hover);
+  border-color: var(--inventory-focus-border);
+}
+
+.export-scope input[type="radio"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.export-modal__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid var(--inventory-border);
+  flex-shrink: 0;
+}
+
+.export-modal__footer-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.export-modal__footer-buttons button {
+  flex: 1;
+  min-width: 140px;
+}
+
+.export-modal__cancel {
+  align-self: flex-end;
+  border: 1px solid var(--inventory-neutral-button-border);
+  background: var(--inventory-neutral-button-bg);
+  color: var(--inventory-text);
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+.export-modal__cancel:hover {
+  background: var(--inventory-neutral-button-hover-bg);
+  border-color: var(--inventory-neutral-button-hover-border);
+}
+
+/* Location photos modal */
+.location-photos-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.location-photos-modal-overlay[aria-hidden="false"],
+.location-photos-modal-overlay.is-open {
+  display: flex;
+}
+
+.location-photos-modal {
+  position: relative;
+  width: min(700px, 92vw);
+  max-height: 85vh;
+  background: var(--inventory-panel);
+  border: 1px solid var(--inventory-border);
+  border-radius: 16px;
+  box-shadow: var(--inventory-shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.location-photos-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -20px -20px 0;
+  padding: 20px;
+  border-bottom: 1px solid var(--inventory-border);
+}
+
+.location-photos-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.location-photos-close {
+  border: none;
+  background: transparent;
+  color: var(--inventory-text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-photos-name {
+  margin: 0;
+  color: var(--inventory-muted);
+  font-size: 14px;
+}
+
+.location-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.location-photos-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--inventory-border);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.location-photos-grid img:hover {
+  transform: scale(1.05);
+}
+
+.location-photos-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.location-photos-close-btn {
+  border: 1px solid var(--inventory-neutral-button-border);
+  background: var(--inventory-neutral-button-bg);
+  color: var(--inventory-text);
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+.location-photos-close-btn:hover {
+  background: var(--inventory-neutral-button-hover-bg);
+  border-color: var(--inventory-neutral-button-hover-border);
 }

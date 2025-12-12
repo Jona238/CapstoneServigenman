@@ -15,7 +15,7 @@ import "../inventario/styles.css";
 import "./styles.css";
 
 export default function BudgetPage() {
-  useBodyClass();
+  useBodyClass(["inventory-layout"]);
   const { t } = useLanguage();
   const { currency, decimals, formatCurrency } = useCurrency();
   const [debtSummary, setDebtSummary] = useState<{

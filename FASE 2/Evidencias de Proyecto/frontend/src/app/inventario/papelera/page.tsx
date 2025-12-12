@@ -23,7 +23,7 @@ type Pending = {
 };
 
 export default function PapeleraPage() {
-  useBodyClass();
+  useBodyClass(["inventory-layout"]);
   const router = useRouter();
   const { t } = useLanguage();
   const [items, setItems] = useState<Pending[]>([]);

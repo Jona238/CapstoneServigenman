@@ -4,7 +4,7 @@ import AppFooter from "@/components/AppFooter";
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Script from "next/script";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLowStockThreshold } from "@/hooks/useLowStockThreshold";
@@ -18,12 +18,13 @@ import "./styles.css";
 export default function InventoryPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  useBodyClass();
+  const params = use(searchParams || Promise.resolve({}));
+  useBodyClass(["inventory-layout"]);
   const { t } = useLanguage();
   const initialCategory =
-    typeof searchParams?.categoria === "string" ? searchParams.categoria : "";
+    typeof params?.categoria === "string" ? params.categoria : "";
   const [isDeveloper, setIsDeveloper] = useState(false);
   const { threshold: lowStockThreshold } = useLowStockThreshold();
   const apiBaseUrl = useMemo(() => {
@@ -118,86 +119,6 @@ export default function InventoryPage({
                   </p>
                 )}
               </div>
-
-              <section className="inventory-section">
-                <h3>{t.inventory.addNewResource}</h3>
-                <form id="formAgregar" className="inventory-form">
-                  <div className="form-grid">
-                    <label className="visually-hidden" htmlFor="nuevoRecurso">
-                      {t.inventory.resourceName}
-                    </label>
-                    <input
-                      type="text"
-                      id="nuevoRecurso"
-                      placeholder={t.inventory.resourceName}
-                      required
-                    />
-
-                    <label className="visually-hidden" htmlFor="nuevaCategoria">
-                      {t.inventory.category}
-                    </label>
-                    <input
-                      type="text"
-                      id="nuevaCategoria"
-                      list="categoriasFormulario"
-                      placeholder={t.inventory.category}
-                      required
-                    />
-                    <datalist id="categoriasFormulario">
-                      <option value={t.categories.waterPumps}>{t.categories.waterPumps}</option>
-                      <option value={t.categories.tools}>{t.categories.tools}</option>
-                      <option value={t.categories.electricalMaterials}>{t.categories.electricalMaterials}</option>
-                      <option value={t.categories.spareParts}>{t.categories.spareParts}</option>
-                      <option value={t.categories.lubricants}>{t.categories.lubricants}</option>
-                    </datalist>
-
-                    <label className="visually-hidden" htmlFor="nuevaCantidad">
-                      {t.inventory.quantity}
-                    </label>
-                    <input
-                      type="number"
-                      id="nuevaCantidad"
-                      placeholder={t.inventory.quantity}
-                      min="0"
-                      step="1"
-                      required
-                    />
-
-                    <label className="visually-hidden" htmlFor="nuevoPrecio">
-                      {t.inventory.price}
-                    </label>
-                    <input
-                      type="number"
-                      id="nuevoPrecio"
-                      placeholder={t.inventory.price}
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-
-                    {/* <label className="visualmente-hidden" htmlFor="nuevaFoto">
-                      {t.inventory.photo}
-                    </label> */}
-                    <label htmlFor="nuevaFoto" className="custom-file-input">
-                      <span>Elegir Imagen</span>
-                      <input type="file" id="nuevaFoto" accept="image/*" />
-                    </label>
-
-                    <label className="visually-hidden" htmlFor="nuevaInfo">
-                      {t.inventory.additionalInfo}
-                    </label>
-                    <input
-                      type="text"
-                      id="nuevaInfo"
-                      placeholder={t.inventory.additionalInfo}
-                    />
-                  </div>
-
-                  <button type="submit" className="boton-agregar">
-                    {t.inventory.add}
-                  </button>
-                </form>
-              </section>
 
               <section className="inventory-section">
                 <h3>{t.inventory.filterAndSort}</h3>

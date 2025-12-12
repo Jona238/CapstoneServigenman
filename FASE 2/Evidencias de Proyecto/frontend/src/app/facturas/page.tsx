@@ -152,7 +152,7 @@ const MONTH_LABELS = [
 ];
 
 export default function InvoicesPage() {
-  useBodyClass();
+  useBodyClass(["inventory-layout"]);
   const { t, locale } = useLanguage();
   const { formatCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState<InvoiceType>("compra");

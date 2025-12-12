@@ -761,6 +761,157 @@
   cursor: pointer;
 }
 
+/* ========== DARK THEME OVERRIDES ========== */
+body[data-theme="dark"] .calendar-card {
+  background: rgba(10, 14, 28, 0.95);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .calendar-card__eyebrow {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme="dark"] .calendar-card h3 {
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-range__label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-theme="dark"] .calendar-range__input {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-legend-inline {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+body[data-theme="dark"] .calendar-month-controls button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-month-controls button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+body[data-theme="dark"] .calendar-day__number {
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-day__events {
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-event {
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-stat__label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body[data-theme="dark"] .calendar-stat__value {
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-hero__eyebrow {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body[data-theme="dark"] .calendar-modal__dialog {
+  background: rgba(14, 18, 30, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .calendar-modal__dialog h2,
+body[data-theme="dark"] .calendar-modal__dialog h3,
+body[data-theme="dark"] .calendar-modal__dialog label,
+body[data-theme="dark"] .calendar-modal__dialog p {
+  color: #fff;
+}
+
+body[data-theme="dark"] .calendar-form__field input,
+body[data-theme="dark"] .calendar-form__field select,
+body[data-theme="dark"] .calendar-form__field textarea {
+  background: rgba(8, 12, 24, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* Light theme overrides for better readability */
+body:not([data-theme="dark"]) .calendar-event__title,
+body:not([data-theme="dark"]) .calendar-upcoming__item {
+  color: #000;
+}
+
+body:not([data-theme="dark"]) .calendar-event__meta {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+body:not([data-theme="dark"]) .calendar-event__actions button {
+  color: #0066cc;
+}
+
+body:not([data-theme="dark"]) .calendar-event__actions button:last-child {
+  color: #cc0033;
+}
+
+body:not([data-theme="dark"]) .calendar-empty {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+body:not([data-theme="dark"]) .calendar-filters {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+body:not([data-theme="dark"]) .calendar-filters > p {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+body:not([data-theme="dark"]) .calendar-legend {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Light theme - calendar day colors */
+body:not([data-theme="dark"]) .calendar-day--venta {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--factura_compra {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--inicio_trabajo {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--termino_trabajo {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--pago_pendiente {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--payment {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--nota {
+  color: #fff;
+}
+
+body:not([data-theme="dark"]) .calendar-day--mixed {
+  color: #fff;
+}
+
 @media (max-width: 1100px) {
   .calendar-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
