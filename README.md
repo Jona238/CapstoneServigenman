@@ -1,5 +1,7 @@
 # ServiGenman - Sistema de Gestión Operativa
 
+<img width="1024" height="1024" alt="logo_servigenman" src="https://github.com/user-attachments/assets/334f32e0-1793-46ea-bd10-2365d9b25070" />
+
 ## Descripción
 
 **ServiGenman** es una plataforma web integral que proporciona un control centralizado sobre inventario, facturación, presupuestos, movimientos de recursos, y planificación operativa mediante un calendario interactivo.
