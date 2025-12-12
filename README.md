@@ -123,6 +123,7 @@ pip install -r requirements.txt
 
 **Configuración inicial:**
 ```bash
+python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 ```
