@@ -97,7 +97,7 @@ python-dotenv>=1.0
 
 ### 1. Clonar el repositorio
 ```bash
-git clone <repository-url>
+git clone <https://github.com/Jona238/CapstoneServigenman.git>
 cd CapstoneServigenman
 ```
 
