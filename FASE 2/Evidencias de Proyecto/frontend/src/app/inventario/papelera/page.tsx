@@ -7,6 +7,7 @@ import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AnimatedBackground } from "../../(auth)/login/components/AnimatedBackground";
+import { useBodyClass } from "../../(auth)/login/hooks/useBodyClass";
 import "../../(auth)/login/styles.css";
 import "../styles.css";
 
@@ -22,6 +23,7 @@ type Pending = {
 };
 
 export default function PapeleraPage() {
+  useBodyClass();
   const router = useRouter();
   const { t } = useLanguage();
   const [items, setItems] = useState<Pending[]>([]);
@@ -55,6 +57,18 @@ export default function PapeleraPage() {
       setLoading(false);
     }
   }
+
+  // Agrega/quita la clase en <body> para estilos del inventario
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return () => {};
+    }
+    const inventoryClass = "inventory-layout";
+    document.body.classList.add(inventoryClass);
+    return () => {
+      document.body.classList.remove(inventoryClass);
+    };
+  }, []);
 
   useEffect(() => {
     // Guard: only developers can view this page

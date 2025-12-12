@@ -120,6 +120,86 @@ export default function InventoryPage({
               </div>
 
               <section className="inventory-section">
+                <h3>{t.inventory.addNewResource}</h3>
+                <form id="formAgregar" className="inventory-form">
+                  <div className="form-grid">
+                    <label className="visually-hidden" htmlFor="nuevoRecurso">
+                      {t.inventory.resourceName}
+                    </label>
+                    <input
+                      type="text"
+                      id="nuevoRecurso"
+                      placeholder={t.inventory.resourceName}
+                      required
+                    />
+
+                    <label className="visually-hidden" htmlFor="nuevaCategoria">
+                      {t.inventory.category}
+                    </label>
+                    <input
+                      type="text"
+                      id="nuevaCategoria"
+                      list="categoriasFormulario"
+                      placeholder={t.inventory.category}
+                      required
+                    />
+                    <datalist id="categoriasFormulario">
+                      <option value={t.categories.waterPumps}>{t.categories.waterPumps}</option>
+                      <option value={t.categories.tools}>{t.categories.tools}</option>
+                      <option value={t.categories.electricalMaterials}>{t.categories.electricalMaterials}</option>
+                      <option value={t.categories.spareParts}>{t.categories.spareParts}</option>
+                      <option value={t.categories.lubricants}>{t.categories.lubricants}</option>
+                    </datalist>
+
+                    <label className="visually-hidden" htmlFor="nuevaCantidad">
+                      {t.inventory.quantity}
+                    </label>
+                    <input
+                      type="number"
+                      id="nuevaCantidad"
+                      placeholder={t.inventory.quantity}
+                      min="0"
+                      step="1"
+                      required
+                    />
+
+                    <label className="visually-hidden" htmlFor="nuevoPrecio">
+                      {t.inventory.price}
+                    </label>
+                    <input
+                      type="number"
+                      id="nuevoPrecio"
+                      placeholder={t.inventory.price}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+
+                    {/* <label className="visualmente-hidden" htmlFor="nuevaFoto">
+                      {t.inventory.photo}
+                    </label> */}
+                    <label htmlFor="nuevaFoto" className="custom-file-input">
+                      <span>Elegir Imagen</span>
+                      <input type="file" id="nuevaFoto" accept="image/*" />
+                    </label>
+
+                    <label className="visually-hidden" htmlFor="nuevaInfo">
+                      {t.inventory.additionalInfo}
+                    </label>
+                    <input
+                      type="text"
+                      id="nuevaInfo"
+                      placeholder={t.inventory.additionalInfo}
+                    />
+                  </div>
+
+                  <button type="submit" className="boton-agregar">
+                    {t.inventory.add}
+                  </button>
+                </form>
+              </section>
+
+              <section className="inventory-section">
                 <h3>{t.inventory.filterAndSort}</h3>
                 <div id="filtros" className="filters-panel">
                   <input

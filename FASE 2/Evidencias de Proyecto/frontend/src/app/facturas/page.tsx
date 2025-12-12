@@ -170,6 +170,7 @@ export default function InvoicesPage() {
   const [showFormPanel, setShowFormPanel] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [descriptionModal, setDescriptionModal] = useState<{ open: boolean; title: string; content: string }>({ open: false, title: "", content: "" });
   const [filters, setFilters] = useState({
     year: "",
     month: "",
@@ -275,7 +276,7 @@ export default function InvoicesPage() {
       const parsed: InvoiceRecord[] = JSON.parse(cached);
       const normalized = parsed.map((invoice) => ({
         ...invoice,
-        type: invoice.type === "venta" ? "venta" : "compra",
+        type: (invoice.type === "venta" ? "venta" : "compra") as InvoiceType,
         amountNumber:
           typeof invoice.amountNumber === "number" && !Number.isNaN(invoice.amountNumber)
             ? invoice.amountNumber
@@ -381,6 +382,18 @@ export default function InvoicesPage() {
         }
         return { ...prev, [activeTab]: nextForm };
       });
+      setErrors((prev) => ({
+        ...prev,
+        [activeTab]: { ...prev[activeTab], [field]: undefined },
+      }));
+    };
+
+  const handleSelectChange =
+    (field: keyof InvoiceForm) => (event: ChangeEvent<HTMLSelectElement>) => {
+      setForms((prev) => ({
+        ...prev,
+        [activeTab]: { ...prev[activeTab], [field]: event.target.value },
+      }));
       setErrors((prev) => ({
         ...prev,
         [activeTab]: { ...prev[activeTab], [field]: undefined },
@@ -504,7 +517,7 @@ export default function InvoicesPage() {
         unitPriceNumber,
         createdAt: new Date().toISOString(),
         attachment,
-        materials: activeTab === "compra" ? currentMaterials : undefined,
+        materials: undefined,
       };
 
       await persistInvoice(record, currentFile, Boolean(editingId));
@@ -673,7 +686,7 @@ export default function InvoicesPage() {
     );
     const avgAmount = list.length ? sumAmount(list) / list.length : 0;
     const byClient = list.reduce<Record<string, { count: number; amount: number }>>((map, inv) => {
-      const key = inv.supplier || inv.client || inv.rut || "N/A";
+      const key = inv.supplier || inv.rut || "N/A";
       if (!map[key]) map[key] = { count: 0, amount: 0 };
       map[key].count += 1;
       map[key].amount += inv.amountNumber;
@@ -1006,149 +1019,152 @@ export default function InvoicesPage() {
                     {activeTab === "compra" ? "No hay facturas de compra registradas" : t.invoices.table.empty}
                   </p>
                 ) : (
+                  <>
                   <div className="invoice-table__wrapper">
                     {activeTab === "compra" ? (
-                      <>
-                        <table className="invoice-table">
-                          <thead>
-                            <tr>
-                              <th>{t.invoices.table.number}</th>
-                              <th>{t.invoices.table.date}</th>
-                              <th>{t.invoices.form.supplier}</th>
-                              <th>{t.invoices.form.amount}</th>
-                              <th>Materiales</th>
-                              <th>{t.common.actions}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paginatedInvoices.map((invoice) => (
-                              <tr key={invoice.id}>
-                                <td>{invoice.invoiceNumber || invoice.id}</td>
-                                <td>{formatDate(invoice.issueDate, locale)}</td>
-                                <td>{invoice.supplier}</td>
-                                <td>{formatCurrency(invoice.amountNumber)}</td>
-                                <td>{invoice.materials?.length ?? 0}</td>
-                                <td>
+                      <table className="invoice-table">
+                        <thead>
+                          <tr>
+                            <th>N° Factura</th>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Monto Total</th>
+                            <th>Materiales</th>
+                            <th style={{ textAlign: 'right' }}>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedInvoices.map((invoice) => (
+                            <tr key={invoice.id}>
+                              <td>{invoice.invoiceNumber || `#${invoice.id.slice(0, 8)}`}</td>
+                              <td className="invoice-table__date">{formatDate(invoice.issueDate, locale)}</td>
+                              <td className="invoice-table__supplier" title={invoice.supplier}>{invoice.supplier}</td>
+                              <td className="invoice-table__amount">{formatCurrency(invoice.amountNumber)}</td>
+                              <td className="invoice-table__materials">
+                                <span className="invoice-table__materials-badge">
+                                  {invoice.materials?.length ?? 0}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="invoice-table__actions">
                                   <button
-                                    className="invoice-btn invoice-btn--ghost"
+                                    className="invoice-btn invoice-btn--edit"
                                     type="button"
                                     onClick={() => handleEdit(invoice)}
                                   >
-                                    Editar
+                                    ✏️ Editar
                                   </button>
                                   <button
-                                    className="invoice-btn invoice-btn--ghost"
+                                    className="invoice-btn invoice-btn--delete"
                                     type="button"
                                     onClick={() => handleDelete(invoice)}
                                   >
-                                    Eliminar
+                                    🗑️ Eliminar
                                   </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        <div className="invoice-pagination">
-                          <button
-                            type="button"
-                            className="invoice-btn invoice-btn--ghost"
-                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            disabled={currentPage <= 1}
-                          >
-                            {t.inventory.previous || "Anterior"}
-                          </button>
-                          <span className="invoice-page-info">
-                            {(t.inventory.page || "P?gina")} {currentPage} / {totalPages}
-                          </span>
-                          <button
-                            type="button"
-                            className="invoice-btn invoice-btn--ghost"
-                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={currentPage >= totalPages}
-                          >
-                            {t.inventory.next || "Siguiente"}
-                          </button>
-                        </div>
-                      </>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     ) : (
-                      <>
-                        <table className="invoice-table">
-                          <thead>
-                            <tr>
-                              <th>{t.invoices.table.number}</th>
-                              <th>{t.invoices.table.date}</th>
-                              <th>{t.invoices.table.supplier}</th>
-                              <th>{t.invoices.table.amount}</th>
-                              <th>{t.invoices.table.description}</th>
-                              <th>{t.invoices.table.attachment}</th>
-                              <th>{t.common.actions}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paginatedInvoices.map((invoice) => (
-                              <tr key={invoice.id}>
-                                <td>{invoice.invoiceNumber}</td>
-                                <td>{formatDate(invoice.issueDate, locale)}</td>
-                                <td>{invoice.supplier}</td>
-                                <td>{formatCurrency(invoice.amountNumber)}</td>
-                                <td>{invoice.description || "--"}</td>
-                                <td>
-                                  {invoice.attachment && invoice.attachment.dataUrl ? (
-                                    <a
-                                      href={invoice.attachment.dataUrl}
-                                      download={invoice.attachment.name}
-                                      className="invoice-link"
-                                    >
-                                      {invoice.attachment.name}
-                                    </a>
-                                  ) : (
-                                    <span>{t.invoices.table.noAttachment}</span>
-                                  )}
-                                </td>
-                                <td>
+                      <table className="invoice-table">
+                        <thead>
+                          <tr>
+                            <th>N° Factura</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Monto Total</th>
+                            <th>Descripción</th>
+                            <th>Adjunto</th>
+                            <th style={{ textAlign: 'right' }}>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedInvoices.map((invoice) => (
+                            <tr key={invoice.id}>
+                              <td>{invoice.invoiceNumber || `#${invoice.id.slice(0, 8)}`}</td>
+                              <td className="invoice-table__date">{formatDate(invoice.issueDate, locale)}</td>
+                              <td className="invoice-table__supplier" title={invoice.supplier}>{invoice.supplier}</td>
+                              <td className="invoice-table__amount">{formatCurrency(invoice.amountNumber)}</td>
+                              <td>
+                                {invoice.description ? (
                                   <button
-                                    className="invoice-btn invoice-btn--ghost"
+                                    type="button"
+                                    className="invoice-btn invoice-btn--description"
+                                    onClick={() => setDescriptionModal({
+                                      open: true,
+                                      title: `Factura ${invoice.invoiceNumber || invoice.id.slice(0, 8)}`,
+                                      content: invoice.description
+                                    })}
+                                  >
+                                    📝 Ver descripción
+                                  </button>
+                                ) : (
+                                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>--</span>
+                                )}
+                              </td>
+                              <td>
+                                {invoice.attachment && invoice.attachment.dataUrl ? (
+                                  <a
+                                    href={invoice.attachment.dataUrl}
+                                    download={invoice.attachment.name}
+                                    className="invoice-link"
+                                    title={invoice.attachment.name}
+                                  >
+                                    📎 {invoice.attachment.name.length > 15 ? `${invoice.attachment.name.slice(0, 12)}...` : invoice.attachment.name}
+                                  </a>
+                                ) : (
+                                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>Sin adjunto</span>
+                                )}
+                              </td>
+                              <td>
+                                <div className="invoice-table__actions">
+                                  <button
+                                    className="invoice-btn invoice-btn--edit"
                                     type="button"
                                     onClick={() => handleEdit(invoice)}
                                   >
-                                    Editar
+                                    ✏️ Editar
                                   </button>
                                   <button
-                                    className="invoice-btn invoice-btn--ghost"
+                                    className="invoice-btn invoice-btn--delete"
                                     type="button"
                                     onClick={() => handleDelete(invoice)}
                                   >
-                                    Eliminar
+                                    🗑️ Eliminar
                                   </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        <div className="invoice-pagination">
-                          <button
-                            type="button"
-                            className="invoice-btn invoice-btn--ghost"
-                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            disabled={currentPage <= 1}
-                          >
-                            {t.inventory.previous || "Anterior"}
-                          </button>
-                          <span className="invoice-page-info">
-                            {(t.inventory.page || "P?gina")} {currentPage} / {totalPages}
-                          </span>
-                          <button
-                            type="button"
-                            className="invoice-btn invoice-btn--ghost"
-                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={currentPage >= totalPages}
-                          >
-                            {t.inventory.next || "Siguiente"}
-                          </button>
-                        </div>
-                      </>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     )}
                   </div>
+                  <div className="invoice-pagination">
+                    <button
+                      type="button"
+                      className="invoice-pagination__btn"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                    >
+                      <span>←</span> Anterior
+                    </button>
+                    <span className="invoice-page-info">
+                      <span className="invoice-page-info__current">{currentPage}</span>
+                      <span className="invoice-page-info__total">de {totalPages}</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="invoice-pagination__btn"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                    >
+                      Siguiente <span>→</span>
+                    </button>
+                  </div>
+                  </>
                 )}
               </section>
             </section>
@@ -1270,7 +1286,7 @@ export default function InvoicesPage() {
           </main>
           {showFormPanel ? (
             <div className="invoice-modal" role="dialog" aria-modal="true">
-              <div className="invoice-modal__backdrop" />
+              <div className="invoice-modal__backdrop" onClick={closeFormPanel} />
               <div className="invoice-modal__dialog" onClick={(event) => event.stopPropagation()}>
                 <div className="invoice-modal__header">
                   <div>
@@ -1330,6 +1346,7 @@ export default function InvoicesPage() {
                             onChange={handleInputChange("issueDate")}
                             aria-invalid={Boolean(currentErrors.issueDate)}
                             aria-describedby={currentErrors.issueDate ? "issueDate-error" : undefined}
+                            style={{ marginTop: "20px", height: "51px" }}
                           />
                           {currentErrors.issueDate ? (
                             <span className="invoice-error" id="issueDate-error">
@@ -1399,7 +1416,7 @@ export default function InvoicesPage() {
                             id="paymentType"
                             name="paymentType"
                             value={currentForm.paymentMethod || currentForm.paymentType || "contado"}
-                            onChange={handleInputChange("paymentMethod")}
+                            onChange={handleSelectChange("paymentMethod")}
                           >
                             <option value="contado">Contado</option>
                             <option value="transferencia">Transferencia</option>
@@ -1465,7 +1482,7 @@ export default function InvoicesPage() {
                             name="attachment"
                             type="file"
                             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                            ref={(node) => (fileInputRefs.current[activeTab] = node)}
+                            ref={(node) => { fileInputRefs.current[activeTab] = node; }}
                             onChange={(event) => handleFileChange(event, activeTab)}
                             aria-invalid={Boolean(currentErrors.file)}
                             aria-describedby={currentErrors.file ? "attachment-error" : undefined}
@@ -1488,7 +1505,7 @@ export default function InvoicesPage() {
                           {purchaseMaterials.map((row) => (
                             <div className="invoice-material" key={row.id}>
                               <div className="invoice-field">
-                                <label>Descripci?n del material</label>
+                                <label>Descripción del material</label>
                                 <input
                                   type="text"
                                   value={row.description}
@@ -1559,6 +1576,7 @@ export default function InvoicesPage() {
                             onChange={handleInputChange("issueDate")}
                             aria-invalid={Boolean(currentErrors.issueDate)}
                             aria-describedby={currentErrors.issueDate ? "issueDate-error" : undefined}
+                            style={{ marginTop: "20px", height: "51px" }}
                           />
                           {currentErrors.issueDate ? (
                             <span className="invoice-error" id="issueDate-error">
@@ -1718,7 +1736,7 @@ export default function InvoicesPage() {
                             name="attachment"
                             type="file"
                             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                            ref={(node) => (fileInputRefs.current[activeTab] = node)}
+                            ref={(node) => { fileInputRefs.current[activeTab] = node; }}
                             onChange={(event) => handleFileChange(event, activeTab)}
                             aria-invalid={Boolean(currentErrors.file)}
                             aria-describedby={currentErrors.file ? "attachment-error" : undefined}
@@ -1751,6 +1769,29 @@ export default function InvoicesPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          ) : null}
+          {descriptionModal.open ? (
+            <div className="invoice-modal invoice-modal--description" role="dialog" aria-modal="true">
+              <div className="invoice-modal__backdrop" onClick={() => setDescriptionModal({ open: false, title: "", content: "" })} />
+              <div className="invoice-modal__dialog invoice-modal__dialog--sm" onClick={(event) => event.stopPropagation()}>
+                <div className="invoice-modal__header">
+                  <div>
+                    <h3>📝 Descripción del trabajo</h3>
+                    <p>{descriptionModal.title}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="invoice-btn invoice-btn--ghost"
+                    onClick={() => setDescriptionModal({ open: false, title: "", content: "" })}
+                  >
+                    ✕ Cerrar
+                  </button>
+                </div>
+                <div className="invoice-description-content">
+                  <p>{descriptionModal.content}</p>
+                </div>
               </div>
             </div>
           ) : null}

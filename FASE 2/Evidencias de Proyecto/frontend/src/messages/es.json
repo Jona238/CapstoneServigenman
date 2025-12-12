@@ -198,6 +198,8 @@
     "reservedForEmergencies": "Reservado para urgencias"
   },
   "categories": {
+    "mainTitle": "Gestión de Categorías",
+    "mainDescription": "Organiza y visualiza los recursos del inventario agrupados por categorías para una mejor administración.",
     "title": "Categorías",
     "description": "Haz clic en una tarjeta para ver únicamente los recursos de esa categoría dentro del inventario.",
     "hint": "Actualiza las categorías desde el inventario. Los cambios se sincronizan automáticamente.",
@@ -206,7 +208,15 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "emptyState": "No hay categorías registradas todavía. Agrega recursos en el inventario para construir este resumen visual.",
-    "footer": "Versión 1.1 - Proyecto Personal para Portafolio"
+    "footer": "Versión 1.1 - Proyecto Personal para Portafolio",
+    "waterPumps": "Bombas de agua",
+    "spareParts": "Repuestos",
+    "electricalMaterials": "Materiales eléctricos",
+    "specializedTools": "Herramientas especializadas",
+    "tools": "Herramientas",
+    "lubricants": "Lubricantes",
+    "noCategoriesInRow": "No hay categorías en esta fila",
+    "couldNotSave": "No fue posible guardar las categorías"
   },
   "invoices": {
     "hero": {
@@ -404,16 +414,6 @@
     "savedInCookie": "Tu preferencia se guarda en una cookie",
     "systemWorking": "✓ Sistema de idiomas funcionando correctamente",
     "current": "Idioma actual: Español ({locale})"
-  },
-  "categories": {
-    "waterPumps": "Bombas de agua",
-    "spareParts": "Repuestos",
-    "electricalMaterials": "Materiales eléctricos",
-    "specializedTools": "Herramientas especializadas",
-    "tools": "Herramientas",
-    "lubricants": "Lubricantes",
-    "noCategoriesInRow": "No hay categorías en esta fila",
-    "couldNotSave": "No fue posible guardar las categorías"
   },
   "notifications": {
     "changesSaved": "Cambios guardados correctamente.",

@@ -126,32 +126,35 @@ export default function AppHeader() {
     <header className="inventory-header">
       <div className="inventory-header__inner">
         <div className="header-bar">
-          <h1>{t.header.title}</h1>
-          <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <LanguageSelector />
-            <input type="checkbox" id="themeSwitch" hidden />
-            <label htmlFor="themeSwitch" className="switch" aria-label={t.common.theme} />
-            <span id="themeLabel" className="theme-label">{t.common.light}</span>
+          <div className="inventory-title__wrap">
+            <div className="inventory-title__logo">SG</div>
+            <div>
+              <h1 className="inventory-title">Inventario Servigenman</h1>
+              <p className="inventory-subtitle">Operaciones y control en un solo panel</p>
+            </div>
+          </div>
+          <div className="header-actions refined" aria-label="User and theme controls">
+            <div className="header-actions__group">
+              <LanguageSelector />
+              <div className="theme-toggle">
+                <input type="checkbox" id="themeSwitch" hidden />
+                <label htmlFor="themeSwitch" className="switch" aria-label={t.common.theme} />
+                <span id="themeLabel" className="theme-label">{t.common.light}</span>
+              </div>
+            </div>
             <button
               type="button"
               onClick={handleLogout}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,.12)",
-                background: "linear-gradient(90deg,#7b5cff,#26c4ff)",
-                color: "#fff",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="logout-btn"
               aria-label={t.common.logout}
               title={t.common.logout}
             >
+              <span className="logout-btn__icon" aria-hidden>↩</span>
               {t.common.logout}
             </button>
           </div>
         </div>
-        <nav>
+        <nav className="nav-chipbar" aria-label="Primary">
           <ul>
             <li><Link href="/inicio">{t.common.home}</Link></li>
             <li><Link href="/inventario">{t.common.inventory}</Link></li>

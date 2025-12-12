@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import "./not-found.css";
 
 export default function NotFound() {
+  const isLogged = cookies().get("auth_ok")?.value === "1";
+
   return (
     <main className="not-found" role="main">
       <div className="not-found__glow" aria-hidden />
@@ -16,12 +19,20 @@ export default function NotFound() {
           ingresado o vuelve al panel principal para continuar trabajando.
         </p>
         <div className="not-found__actions">
-          <Link className="not-found__button" href="/inicio">
-            Volver al inicio
-          </Link>
-          <Link className="not-found__secondary" href="/inventario">
-            Ir al inventario
-          </Link>
+          {isLogged ? (
+            <>
+              <Link className="not-found__button" href="/inicio">
+                Volver al inicio
+              </Link>
+              <Link className="not-found__secondary" href="/inventario">
+                Ir al inventario
+              </Link>
+            </>
+          ) : (
+            <Link className="not-found__button" href="/login">
+              Iniciar sesión
+            </Link>
+          )}
         </div>
         <p className="not-found__hint">
           ¿Necesitas ayuda? Ponte en contacto con soporte interno para reportar el

@@ -26,10 +26,6 @@ function getBackendBase(): string {
 
 export async function middleware(request: NextRequest) {
   try {
-    if (process.env.NODE_ENV !== "production") {
-      // In dev, avoid Edge/runtime glitches on Windows by bypassing middleware
-      return NextResponse.next();
-    }
     const { pathname } = request.nextUrl;
 
   // Skip login, recovery, test pages, assets and Next internals

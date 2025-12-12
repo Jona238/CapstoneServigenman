@@ -472,7 +472,7 @@ export default function CalendarPage() {
                     />
                   </div>
 
-                  <div className="calendar-form__field">
+                  <div className="calendar-form__field" style={{ maxWidth: "115px" }}>
                     <label htmlFor="eventType">{calendar.form.type}</label>
                     <select
                       id="eventType"
@@ -611,7 +611,7 @@ export default function CalendarPage() {
                 <div className="calendar-day-detail__header">
                   <h4>{selectedDayTitle}</h4>
                   {isSelectedDayToday ? (
-                    <span className="calendar-chip">{calendar.labels.today}</span>
+                    <span className="calendar-chip" style={{ marginBottom: "15px" }}>{calendar.labels.today} </span>
                   ) : null}
                 </div>
                 {selectedDayEvents.length === 0 ? (
