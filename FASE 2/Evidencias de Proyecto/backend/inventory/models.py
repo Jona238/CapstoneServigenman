@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.validators import MinValueValidator
 
 
 class Item(models.Model):
@@ -13,6 +16,9 @@ class Item(models.Model):
     # Foto puede ser una URL o un data URL (base64). Para simplificar, se guarda como texto.
     foto = models.TextField(blank=True, default="")
     info = models.CharField(max_length=255, blank=True, default="")
+    distribuidor = models.CharField(max_length=255, blank=True, default="")
+    ubicacion_texto = models.CharField(max_length=255, blank=True, default="")
+    ubicacion_foto = models.TextField(blank=True, null=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -23,7 +29,25 @@ class Item(models.Model):
     def __str__(self) -> str:  # pragma: no cover - representational only
         return f"{self.recurso} ({self.categoria})"
 
+    def get_ubicacion_fotos(self) -> list[str]:
+        raw = self.ubicacion_foto or ""
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                return [str(x) for x in data]
+        except Exception:
+            if raw:
+                return [str(raw)]
+        return []
+
+    def set_ubicacion_fotos(self, fotos: list[str] | None) -> None:
+        if not fotos:
+            self.ubicacion_foto = ""
+        else:
+            self.ubicacion_foto = json.dumps(list(fotos))
+
     def to_dict(self) -> dict:
+        ubicacion_fotos = self.get_ubicacion_fotos()
         return {
             "id": self.id,
             "recurso": self.recurso,
@@ -33,6 +57,11 @@ class Item(models.Model):
             "precio": float(self.precio),
             "foto": self.foto or "",
             "info": self.info or "",
+            "distribuidor": self.distribuidor or "",
+            "ubicacion_texto": self.ubicacion_texto or "",
+            "ubicacion_foto": self.ubicacion_foto or "",
+            "ubicacion_fotos": ubicacion_fotos,
+            "ubicacion_fotos_count": len(ubicacion_fotos),
         }
 
 
@@ -90,4 +119,25 @@ class PendingChange(models.Model):
             "decided_by": getattr(self.decided_by, "username", None),
             "decided_at": self.decided_at.isoformat() if self.decided_at else None,
         }
+
+
+class InventoryMovement(models.Model):
+    TYPE_IN = "IN"
+    TYPE_OUT = "OUT"
+    MOVEMENT_TYPES = [
+        (TYPE_IN, "Entrada"),
+        (TYPE_OUT, "Salida"),
+    ]
+
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="movements")
+    movement_type = models.CharField(max_length=3, choices=MOVEMENT_TYPES)
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    comment = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:  # pragma: no cover - representational only
+        return f"{self.get_movement_type_display()} {self.quantity} de {self.item_id}"
 

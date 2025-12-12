@@ -269,10 +269,10 @@
 .invoice-field input,
 .invoice-field textarea {
   border-radius: 14px;
-  border: 1px solid var(--inventory-input-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 12px 14px;
-  background: var(--inventory-input-bg);
-  color: var(--inventory-text);
+  background: rgba(8, 12, 24, 0.85);
+  color: #fff;
   font: inherit;
 }
 
@@ -1183,69 +1183,60 @@
   }
 }
 
-/* TABLET - 768px-1023px */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .invoice-shell {
-    gap: 28px;
-    padding-top: 110px;
-  }
+.invoice-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
 
-  .invoice-main {
-    padding: 0 20px 56px;
-    gap: 22px;
-  }
+.invoice-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 15, 0.65);
+  backdrop-filter: blur(3px);
+}
 
+.invoice-modal__dialog {
+  position: relative;
+  width: min(1100px, 96%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: rgba(12, 18, 32, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.4);
+}
+
+.invoice-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.invoice-modal__header h3 {
+  margin: 0;
+}
+
+.invoice-modal__header p {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (max-width: 720px) {
   .invoice-form__row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .invoice-tabs {
-    display: inline-flex;
-    overflow: visible;
-    width: auto;
-  }
-
-  .invoice-tabs::-webkit-scrollbar {
-    display: auto;
-  }
-
-  .invoice-tab {
-    white-space: normal;
-    flex-shrink: 1;
-  }
-}
-
-/* LAPTOP - 1024px-1439px */
-@media (min-width: 1024px) and (max-width: 1439px) {
-  .invoice-main {
-    padding: 0 28px 64px;
-    gap: 24px;
-  }
-
-  .invoice-form__row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-  }
-
-  .invoice-tabs {
-    display: inline-flex;
-  }
-
-  .invoice-hero {
-    gap: 28px;
-  }
-}
-
-/* DESKTOP - 1440px+ */
-@media (min-width: 1440px) {
-  .invoice-main {
-    padding: 0 32px 72px;
-    gap: 28px;
-  }
-
-  .invoice-form__row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .invoice-layout {
