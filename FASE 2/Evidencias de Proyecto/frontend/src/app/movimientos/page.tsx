@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
+import { AnimatedBackground } from "../(auth)/login/components/AnimatedBackground";
 import {
   apiListItems,
   apiCreateItem,
@@ -11,6 +12,8 @@ import {
   InventoryItem,
   InventoryMovement,
 } from "../inventario/movementsApi";
+import { useBodyClass } from "../(auth)/login/hooks/useBodyClass";
+import "../(auth)/login/styles.css";
 import "../inventario/styles.css";
 
 type TabKey = "IN" | "OUT";
@@ -61,6 +64,9 @@ export default function MovementsPage() {
     () => items.find((it) => it.id === selectedItemId) || null,
     [items, selectedItemId]
   );
+
+  // Apply inventory layout class for background styling
+  useBodyClass(["inventory-layout"]);
 
   useEffect(() => {
     void loadItems();
@@ -378,6 +384,7 @@ export default function MovementsPage() {
 
   return (
     <div className="inventory-page">
+      <AnimatedBackground />
       <AppHeader />
       <div className="inventory-shell">
         <main className="inventory-main">
@@ -490,7 +497,7 @@ export default function MovementsPage() {
                       </div>
 
                       <div>
-                        <span className="field-label">Ubicacion en bodega, estanteria, sector, etc.</span>
+                        <span className="field-label">Ubicacion en bodega</span>
                         <input
                           type="text"
                           id="nuevaUbicacion"
@@ -665,7 +672,7 @@ export default function MovementsPage() {
                     <button type="button" className="boton-limpiar" onClick={handleClearSalida} disabled={loading}>
                       Limpiar salida
                     </button>
-                    <button type="button" className="boton-agregar" onClick={handleSubmit} disabled={loading}>
+                    <button type="button" className="boton-agregar" onClick={handleSubmit} disabled={loading} style={{ marginLeft: "10px" }}>
                       {loading ? "Guardando..." : "Registrar salida"}
                     </button>
                   </div>
@@ -698,9 +705,9 @@ export default function MovementsPage() {
             </div>
 
             <div className="inventory-section" style={{ marginTop: 12 }}>
-              <h3>Ultimos movimientos</h3>
-              <div className="tabla-scroll">
-                <table id="tablaMovimientos" style={{ width: "100%", minWidth: 620 }}>
+              <h3>Últimos movimientos</h3>
+              <div className="tabla-scroll inventory-table-wrapper">
+                <table id="tablaMovimientos" className="inventory-table">
                   <thead>
                     <tr>
                       <th>Fecha</th>

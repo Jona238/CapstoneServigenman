@@ -127,7 +127,7 @@ const DAY_COLORS: Record<CalendarEventType, string> = {
 };
 
 export default function CalendarPage() {
-  useBodyClass();
+  useBodyClass(["inventory-layout"]);
   const { t, locale } = useLanguage();
   const calendar = useMemo(() => ({
     ...CALENDAR_FALLBACK,

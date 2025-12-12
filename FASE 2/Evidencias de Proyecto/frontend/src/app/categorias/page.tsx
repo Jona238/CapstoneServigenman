@@ -65,7 +65,7 @@ async function backendFetch(path: string, options?: RequestInit): Promise<Respon
 }
 
 export default function CategoriesPage() {
-  useBodyClass();
+  useBodyClass(["inventory-layout"]);
   const router = useRouter();
   const { t } = useLanguage();
   const [categories, setCategories] = useState<CategorySummary[]>([]);

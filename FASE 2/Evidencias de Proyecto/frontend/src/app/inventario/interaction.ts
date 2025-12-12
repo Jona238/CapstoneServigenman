@@ -55,6 +55,8 @@ type OriginalSnapshot = {
   precioRaw: string;
   imgSrc: string;
   info: string;
+  distribuidor?: string;
+  ubicacion?: string;
 };
 
 const INVENTORY_KEY = "inventarioData";
@@ -104,7 +106,7 @@ async function apiCreateItem(
     if (!res.ok) return null;
     const data = await res.json();
     if (data && (data as any).pending) {
-      try { alert("Creación enviada para aprobación del desarrollador."); } catch {}
+      try { alert("Creación enviada para aprobación del desarrollador."); } catch { }
       return null;
     }
     return data as InventoryItem;
@@ -125,7 +127,7 @@ async function apiUpdateItem(
     if (!res.ok) return null;
     const data = await res.json();
     if (data && (data as any).pending) {
-      try { alert("Edición enviada para aprobación del desarrollador."); } catch {}
+      try { alert("Edición enviada para aprobación del desarrollador."); } catch { }
       return null;
     }
     return data as InventoryItem;
@@ -145,7 +147,7 @@ async function apiDeleteItem(id: number): Promise<boolean> {
       if (data && (data as any).pending) {
         alert("Eliminación enviada para aprobación del desarrollador.");
       }
-    } catch {}
+    } catch { }
     return true;
   } catch {
     return false;
@@ -158,6 +160,7 @@ let currentEditingRow: HTMLTableRowElement | null = null;
 let currentEditRowRef: HTMLTableRowElement | null = null;
 let currentEditOriginal: OriginalSnapshot | null = null;
 let currentEditPhotoDataUrl: string = "";
+let currentEditUbicacionFotos: string[] = [];
 
 function showEditToolbar(row: HTMLTableRowElement) {
   currentEditingRow = row;
@@ -201,7 +204,7 @@ function hideEditToolbar() {
 
 export function initializeInventoryPage(): CleanupFn {
   if (typeof document === "undefined") {
-    return () => {};
+    return () => { };
   }
 
   const cleanupFns: CleanupFn[] = [];
@@ -351,6 +354,10 @@ export function initializeInventoryPage(): CleanupFn {
         if (fila) openEditModal(fila);
       } else if (action === "delete") {
         eliminarFila(target);
+      } else if (action === "show-location-photos") {
+        event.preventDefault();
+        const itemId = btn.dataset.itemId;
+        if (itemId) openLocationPhotosModal(itemId);
       } else if (action === "save" || action === "cancel") {
         event.preventDefault();
       }
@@ -509,14 +516,47 @@ export function initializeInventoryPage(): CleanupFn {
   }
 
   if (editForm) {
-    const submitHandler = (e: Event) => {
+    const submitHandler = async (e: Event) => {
       e.preventDefault();
+
+      // Get current files and process them if not already processed
+      const editUbicacionFotosInputEl = editForm.querySelector<HTMLInputElement>("#editUbicacionFotos");
+      if (editUbicacionFotosInputEl && editUbicacionFotosInputEl.files && editUbicacionFotosInputEl.files.length > 0) {
+        // Check if files have been processed
+        const files = Array.from(editUbicacionFotosInputEl.files);
+        if (currentEditUbicacionFotos.length !== files.length) {
+          // Files not yet processed, process them now
+          const dataUrls: string[] = [];
+          for (const file of files) {
+            try {
+              const dataUrl = await readFileAsDataURL(file);
+              dataUrls.push(dataUrl);
+            } catch (error) {
+              console.error("Error reading file:", error);
+            }
+          }
+          currentEditUbicacionFotos = dataUrls;
+        }
+      }
+
       const recurso = (editForm.querySelector("#editRecurso") as HTMLInputElement | null)?.value ?? "";
       const categoria = (editForm.querySelector("#editCategoria") as HTMLInputElement | null)?.value ?? "";
       const cantidad = (editForm.querySelector("#editCantidad") as HTMLInputElement | null)?.value ?? "0";
       const precio = (editForm.querySelector("#editPrecio") as HTMLInputElement | null)?.value ?? "0";
+      const distribuidor = (editForm.querySelector("#editDistribuidor") as HTMLInputElement | null)?.value ?? "";
+      const ubicacion = (editForm.querySelector("#editUbicacion") as HTMLInputElement | null)?.value ?? "";
       const info = (editForm.querySelector("#editInfo") as HTMLInputElement | null)?.value ?? "";
-      void guardarEdicionModal({ recurso, categoria, cantidad, precio, info, fotoDataUrl: currentEditPhotoDataUrl });
+      await guardarEdicionModal({
+        recurso,
+        categoria,
+        cantidad,
+        precio,
+        distribuidor,
+        ubicacion,
+        info,
+        fotoDataUrl: currentEditPhotoDataUrl,
+        ubicacionFotos: currentEditUbicacionFotos
+      });
     };
     editForm.addEventListener("submit", submitHandler);
     cleanupFns.push(() => editForm.removeEventListener("submit", submitHandler));
@@ -552,6 +592,30 @@ export function initializeInventoryPage(): CleanupFn {
     cleanupFns.push(() => editFotoInput.removeEventListener("change", changeHandler));
   }
 
+  // Handle location photos
+  const editUbicacionFotosInput = editModal?.querySelector<HTMLInputElement>("#editUbicacionFotos");
+  if (editUbicacionFotosInput) {
+    const changeHandler = async () => {
+      const files = Array.from(editUbicacionFotosInput.files ?? []);
+      if (files.length === 0) {
+        currentEditUbicacionFotos = [];
+        return;
+      }
+      const dataUrls: string[] = [];
+      for (const file of files) {
+        try {
+          const dataUrl = await readFileAsDataURL(file);
+          dataUrls.push(dataUrl);
+        } catch (error) {
+          console.error("Error reading file:", error);
+        }
+      }
+      currentEditUbicacionFotos = dataUrls;
+    };
+    editUbicacionFotosInput.addEventListener("change", changeHandler);
+    cleanupFns.push(() => editUbicacionFotosInput.removeEventListener("change", changeHandler));
+  }
+
   return () => {
     cleanupFns.forEach((fn) => fn());
   };
@@ -576,7 +640,22 @@ function saveJSON(key: string, val: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(val));
   } catch (error) {
-    console.error("Error saving storage", error);
+    // If quota exceeded, try clearing old data and retry
+    if (error instanceof DOMException && error.code === 22) {
+      console.warn("localStorage quota exceeded, clearing old data...");
+      try {
+        // Clear all old inventory-related data to free up space
+        localStorage.removeItem("inventarioData");
+        localStorage.removeItem("categoriasInventario");
+        // Retry saving
+        localStorage.setItem(key, JSON.stringify(val));
+        console.log("Data saved after clearing old items");
+      } catch (retryError) {
+        console.error("Failed to save even after clearing:", retryError);
+      }
+    } else {
+      console.error("Error saving storage", error);
+    }
   }
 }
 
@@ -824,6 +903,14 @@ function ensureEditModal() {
               <input id="editPrecio" type="number" min="0" step="0.01" class="editar-input" />
             </label>
             <label class="inventory-edit-modal__field">
+              <span>Distribuidor</span>
+              <input id="editDistribuidor" type="text" class="editar-input" />
+            </label>
+            <label class="inventory-edit-modal__field">
+              <span>Ubicación</span>
+              <input id="editUbicacion" type="text" class="editar-input" />
+            </label>
+            <label class="inventory-edit-modal__field">
               <span>Info</span>
               <input id="editInfo" type="text" class="editar-input" />
             </label>
@@ -836,6 +923,12 @@ function ensureEditModal() {
             <label class="custom-file-input editar-foto-btn" id="editFotoLabel">
               <span>Cambiar foto</span>
               <input id="editFoto" type="file" accept="image/*" />
+            </label>
+          </div>
+          <div class="inventory-edit-modal__media">
+            <label class="custom-file-input editar-foto-btn">
+              <span>Agregar fotos de ubicación</span>
+              <input id="editUbicacionFotos" type="file" accept="image/*" multiple />
             </label>
           </div>
           <div class="inventory-edit-modal__actions">
@@ -858,6 +951,13 @@ function closeEditModal() {
   currentEditRowRef = null;
   currentEditOriginal = null;
   currentEditPhotoDataUrl = "";
+  currentEditUbicacionFotos = [];
+
+  // Reset file inputs
+  const editFotoInput = modal.querySelector<HTMLInputElement>("#editFoto");
+  if (editFotoInput) editFotoInput.value = "";
+  const editUbicacionFotosInput = modal.querySelector<HTMLInputElement>("#editUbicacionFotos");
+  if (editUbicacionFotosInput) editUbicacionFotosInput.value = "";
 }
 
 function openEditModal(fila: HTMLTableRowElement) {
@@ -875,7 +975,9 @@ function openEditModal(fila: HTMLTableRowElement) {
     precioText: tds[4]?.innerText ?? "0",
     precioRaw: tds[4]?.getAttribute("data-precio") ?? tds[4]?.innerText ?? "0",
     imgSrc: img?.src ?? "",
-    info: tds[6]?.innerText ?? "",
+    info: tds[9]?.innerText ?? "",
+    distribuidor: tds[6]?.innerText?.trim() ?? "",
+    ubicacion: tds[7]?.innerText?.trim() ?? "",
   };
   currentEditOriginal = original;
   currentEditPhotoDataUrl = original.imgSrc || "";
@@ -885,6 +987,8 @@ function openEditModal(fila: HTMLTableRowElement) {
   const catEl = document.getElementById("editCategoria") as HTMLInputElement | null;
   const cantEl = document.getElementById("editCantidad") as HTMLInputElement | null;
   const preEl = document.getElementById("editPrecio") as HTMLInputElement | null;
+  const distEl = document.getElementById("editDistribuidor") as HTMLInputElement | null;
+  const ubicEl = document.getElementById("editUbicacion") as HTMLInputElement | null;
   const infoEl = document.getElementById("editInfo") as HTMLInputElement | null;
   const prevImg = document.getElementById("editFotoPreview") as HTMLImageElement | null;
   const prevEmpty = document.getElementById("editFotoEmpty") as HTMLSpanElement | null;
@@ -895,6 +999,8 @@ function openEditModal(fila: HTMLTableRowElement) {
   if (catEl) catEl.value = original.categoria;
   if (cantEl) cantEl.value = original.cantidad;
   if (preEl) preEl.value = String(Number.parseFloat(original.precioRaw) || 0);
+  if (distEl) distEl.value = tds[6]?.innerText?.trim() ?? "";
+  if (ubicEl) ubicEl.value = tds[7]?.innerText?.trim() ?? "";
   if (infoEl) infoEl.value = original.info;
 
   if (prevImg && prevEmpty) {
@@ -909,6 +1015,12 @@ function openEditModal(fila: HTMLTableRowElement) {
     }
   }
   if (fotoInput) fotoInput.value = "";
+
+  const ubicacionFotosInput = modal.querySelector<HTMLInputElement>("#editUbicacionFotos");
+  if (ubicacionFotosInput) ubicacionFotosInput.value = "";
+
+  // Reset ubicacion fotos array
+  currentEditUbicacionFotos = [];
 
   modal.classList.add("is-open");
   document.body.style.overflow = "hidden";
@@ -1010,7 +1122,21 @@ function snapshotInventarioDesdeTabla(): InventoryItem[] {
 function persistInventario() {
   const items = snapshotInventarioDesdeTabla();
   inventoryCache = items;
-  saveJSON(INVENTORY_KEY, items);
+  // Don't save fotos or ubicacion_fotos to localStorage to avoid exceeding storage quota
+  const itemsWithoutPhotos = items.map((item) => ({
+    id: item.id,
+    recurso: item.recurso,
+    categoria: item.categoria,
+    cantidad: item.cantidad,
+    precio: item.precio,
+    distribuidor: item.distribuidor,
+    ubicacion_texto: item.ubicacion_texto,
+    info: item.info,
+    foto: undefined,
+    ubicacion_fotos: undefined,
+    ubicacion_fotos_count: item.ubicacion_fotos_count,
+  }));
+  saveJSON(INVENTORY_KEY, itemsWithoutPhotos);
 }
 
 async function bootstrapInventario() {
@@ -1019,12 +1145,39 @@ async function bootstrapInventario() {
 
   if (Array.isArray(fromApi)) {
     data = fromApi;
-    saveJSON(INVENTORY_KEY, data);
+    // Don't save fotos or ubicacion_fotos to localStorage to avoid exceeding storage quota
+    const dataWithoutPhotos = data.map((item) => ({
+      id: item.id,
+      recurso: item.recurso,
+      categoria: item.categoria,
+      cantidad: item.cantidad,
+      precio: item.precio,
+      distribuidor: item.distribuidor,
+      ubicacion_texto: item.ubicacion_texto,
+      info: item.info,
+      foto: undefined,
+      ubicacion_fotos: undefined,
+      ubicacion_fotos_count: item.ubicacion_fotos_count,
+    }));
+    saveJSON(INVENTORY_KEY, dataWithoutPhotos);
   } else {
     data = loadJSON<InventoryItem[] | null>(INVENTORY_KEY, null);
     if (!Array.isArray(data) || !data.length) {
       data = snapshotInventarioDesdeTabla();
-      saveJSON(INVENTORY_KEY, data);
+      const dataWithoutPhotos = data.map((item) => ({
+        id: item.id,
+        recurso: item.recurso,
+        categoria: item.categoria,
+        cantidad: item.cantidad,
+        precio: item.precio,
+        distribuidor: item.distribuidor,
+        ubicacion_texto: item.ubicacion_texto,
+        info: item.info,
+        foto: undefined,
+        ubicacion_fotos: undefined,
+        ubicacion_fotos_count: item.ubicacion_fotos_count,
+      }));
+      saveJSON(INVENTORY_KEY, dataWithoutPhotos);
     }
   }
 
@@ -1287,11 +1440,10 @@ function editarFila(button: HTMLButtonElement) {
   celdas[4].innerHTML = `<input type="number" value="${Number.parseFloat(original.precioRaw) || 0}" min="0" step="0.01" class="editar-input edit-input precio" title="Precio unitario del producto" />`;
   celdas[5].innerHTML = `
     <div class="editar-foto-wrap">
-      ${
-        original.imgSrc
-          ? `<img class="thumb" src="${original.imgSrc}" alt="" />`
-          : ""
-      }
+      ${original.imgSrc
+      ? `<img class="thumb" src="${original.imgSrc}" alt="" />`
+      : ""
+    }
       <label class="custom-file-input editar-foto-btn">
         <span>Cambiar foto</span>
         <input type="file" class="editar-foto" accept="image/*" />
@@ -1374,11 +1526,14 @@ type ModalEditPayload = {
   categoria: string;
   cantidad: string;
   precio: string;
+  distribuidor: string;
+  ubicacion: string;
   info: string;
   fotoDataUrl: string;
+  ubicacionFotos?: string[];
 };
 
-async function guardarEdicionModal(data: ModalEditPayload) {
+async function guardarEdicionModal(data: ModalEditPayload): Promise<void> {
   const fila = currentEditRowRef;
   if (!fila) return;
 
@@ -1398,6 +1553,8 @@ async function guardarEdicionModal(data: ModalEditPayload) {
   const safeCantidad = Number.isNaN(nuevaCantidad) ? 0 : nuevaCantidad;
   const nuevoPrecio = Number.parseFloat(data.precio || "0");
   const safePrecio = Number.isNaN(nuevoPrecio) ? 0 : nuevoPrecio;
+  const nuevoDistribuidor = data.distribuidor.trim();
+  const nuevaUbicacion = data.ubicacion.trim();
   const nuevaInfo = data.info.trim();
   const fotoDataURL = data.fotoDataUrl || "";
 
@@ -1422,6 +1579,15 @@ async function guardarEdicionModal(data: ModalEditPayload) {
   if ((original.imgSrc || "") !== (fotoDataURL || "")) {
     cambios.push("Foto: (cambiada)");
   }
+  if ((original.distribuidor || "") !== (nuevoDistribuidor || "")) {
+    cambios.push(`Distribuidor: "${original.distribuidor || ""}" → "${nuevoDistribuidor || ""}"`);
+  }
+  if ((original.ubicacion || "") !== (nuevaUbicacion || "")) {
+    cambios.push(`Ubicación: "${original.ubicacion || ""}" → "${nuevaUbicacion || ""}"`);
+  }
+  if (data.ubicacionFotos && data.ubicacionFotos.length > 0) {
+    cambios.push(`Fotos de ubicación: ${data.ubicacionFotos.length} foto(s) agregada(s)`);
+  }
 
   if (cambios.length === 0) {
     closeEditModal();
@@ -1445,10 +1611,12 @@ async function guardarEdicionModal(data: ModalEditPayload) {
     celdas[5].innerHTML = "";
     celdas[5].setAttribute("data-foto", "");
   }
-  celdas[6].innerText = nuevaInfo;
+  celdas[6].innerText = nuevoDistribuidor;
+  celdas[7].innerText = nuevaUbicacion;
+  celdas[9].innerText = nuevaInfo;
 
   const id = Number.parseInt(idText, 10) || 0;
-  void apiUpdateItem(id, {
+  const result = await apiUpdateItem(id, {
     id,
     recurso: nuevoRecurso,
     categoria: nuevaCategoria,
@@ -1456,6 +1624,9 @@ async function guardarEdicionModal(data: ModalEditPayload) {
     precio: safePrecio,
     foto: fotoDataURL,
     info: nuevaInfo,
+    distribuidor: nuevoDistribuidor,
+    ubicacion_texto: nuevaUbicacion,
+    ubicacion_fotos: data.ubicacionFotos && data.ubicacionFotos.length > 0 ? data.ubicacionFotos : undefined,
   });
 
   closeEditModal();
@@ -1463,6 +1634,43 @@ async function guardarEdicionModal(data: ModalEditPayload) {
   currentEditOriginal = null;
   currentEditPhotoDataUrl = "";
 
+  // If the item was updated successfully (not pending), reload from backend
+  if (result) {
+    try {
+      const res = await backendFetch("/api/inventory/items/", { method: "GET" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results && Array.isArray(data.results)) {
+          const items = data.results as InventoryItem[];
+          // Don't save fotos or ubicacion_fotos to localStorage to avoid exceeding storage quota
+          const itemsWithoutPhotos = items.map((item) => ({
+            id: item.id,
+            recurso: item.recurso,
+            categoria: item.categoria,
+            cantidad: item.cantidad,
+            precio: item.precio,
+            distribuidor: item.distribuidor,
+            ubicacion_texto: item.ubicacion_texto,
+            info: item.info,
+            foto: undefined,
+            ubicacion_fotos: undefined,
+            ubicacion_fotos_count: item.ubicacion_fotos_count,
+          }));
+          saveJSON(INVENTORY_KEY, itemsWithoutPhotos);
+          inventoryCache = items;
+          renderInventarioToDOM(items);
+          filtrarTabla({ resetPage: false });
+          ordenarTabla();
+          actualizarPaginacion();
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error reloading inventory from backend:", error);
+    }
+  }
+
+  // Fallback: reload from local cache if backend fetch fails or item is pending
   persistInventario();
   const arr = loadJSON<InventoryItem[]>(
     INVENTORY_KEY,
@@ -1474,7 +1682,7 @@ async function guardarEdicionModal(data: ModalEditPayload) {
   actualizarPaginacion();
 }
 
-async function guardarFila(button: HTMLButtonElement) {
+async function guardarFila(button: HTMLButtonElement): Promise<void> {
   const fila = button.closest("tr");
   if (!fila) return;
   const celdas = fila.querySelectorAll<HTMLTableCellElement>("td");
@@ -1612,7 +1820,7 @@ async function guardarFila(button: HTMLButtonElement) {
   setDefaultRowActions(fila);
 
   // Best-effort sync with backend
-  void apiUpdateItem(itemId, {
+  const result = await apiUpdateItem(itemId, {
     id: itemId,
     recurso: nuevoRecurso,
     categoria: nuevaCategoria,
@@ -1628,6 +1836,45 @@ async function guardarFila(button: HTMLButtonElement) {
   fila.dataset.original = "";
   fila.dataset.locationPhotos = JSON.stringify(ubicacionFotosActualizadas);
   fila.dataset.locationPhotosCount = String(ubicacionFotosCount);
+
+  // If the item was updated successfully (not pending), reload from backend
+  if (result) {
+    try {
+      const res = await backendFetch("/api/inventory/items/", { method: "GET" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results && Array.isArray(data.results)) {
+          const items = data.results as InventoryItem[];
+          // Don't save fotos or ubicacion_fotos to localStorage to avoid exceeding storage quota
+          const itemsWithoutPhotos = items.map((item) => ({
+            id: item.id,
+            recurso: item.recurso,
+            categoria: item.categoria,
+            cantidad: item.cantidad,
+            precio: item.precio,
+            distribuidor: item.distribuidor,
+            ubicacion_texto: item.ubicacion_texto,
+            info: item.info,
+            foto: undefined,
+            ubicacion_fotos: undefined,
+            ubicacion_fotos_count: item.ubicacion_fotos_count,
+          }));
+          saveJSON(INVENTORY_KEY, itemsWithoutPhotos);
+          inventoryCache = items;
+          renderInventarioToDOM(items);
+          filtrarTabla({ resetPage: false });
+          ordenarTabla();
+          actualizarPaginacion();
+          hideEditToolbar();
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error reloading inventory from backend:", error);
+    }
+  }
+
+  // Fallback: update local cache if backend fetch fails or item is pending
   persistInventario();
   const arr = loadJSON<InventoryItem[]>(INVENTORY_KEY, snapshotInventarioDesdeTabla());
   const idx = arr.findIndex((it) => it.id === itemId);
@@ -1641,7 +1888,7 @@ async function guardarFila(button: HTMLButtonElement) {
     info: nuevaInfo,
     distribuidor: nuevoDistribuidor || undefined,
     ubicacion_texto: nuevaUbicacionTexto || undefined,
-    ubicacion_fotos: ubicacionFotosActualizadas,
+    ubicacion_fotos: undefined,
     ubicacion_fotos_count: ubicacionFotosCount,
   };
   if (idx >= 0) {
@@ -1650,7 +1897,21 @@ async function guardarFila(button: HTMLButtonElement) {
     arr.push(updatedItem);
   }
   inventoryCache = arr;
-  saveJSON(INVENTORY_KEY, arr);
+  // Don't save fotos or ubicacion_fotos to localStorage to avoid exceeding storage quota
+  const arrWithoutPhotos = arr.map((item) => ({
+    id: item.id,
+    recurso: item.recurso,
+    categoria: item.categoria,
+    cantidad: item.cantidad,
+    precio: item.precio,
+    distribuidor: item.distribuidor,
+    ubicacion_texto: item.ubicacion_texto,
+    info: item.info,
+    foto: undefined,
+    ubicacion_fotos: undefined,
+    ubicacion_fotos_count: item.ubicacion_fotos_count,
+  }));
+  saveJSON(INVENTORY_KEY, arrWithoutPhotos);
   renderInventarioToDOM(arr);
   filtrarTabla({ resetPage: false });
   ordenarTabla();
@@ -1722,7 +1983,7 @@ async function agregarRecurso(event: SubmitEvent) {
     "";
   const cantidad = Number.parseInt(
     (document.getElementById("nuevaCantidad") as HTMLInputElement | null)?.value ||
-      "0",
+    "0",
     10
   );
   const precio = Number.parseFloat(
@@ -1860,7 +2121,16 @@ function prepareExportData(
   scope: "visible" | "todo",
   selectedKeys?: string[]
 ) {
-  const filas = scope === "visible" ? filasPaginaActual() : filasFiltradas();
+  let filas: HTMLTableRowElement[];
+
+  if (scope === "visible") {
+    filas = filasPaginaActual();
+  } else {
+    // "todo" - obtener todas las filas de la tabla (no solo filtradas)
+    const tbody = document.querySelector<HTMLTableSectionElement>("#tablaRecursos tbody");
+    filas = tbody ? Array.from(tbody.querySelectorAll("tr")) : [];
+  }
+
   const headers = encabezadosTabla();
   const datos = datosDesdeFilas(filas);
 
@@ -2105,26 +2375,165 @@ function aplicarPresetCategoria() {
   localStorage.removeItem("presetCategoria");
 }
 
-
-
-
-
-function getCurrencyPrefs(){
-  try{
-    const curr = localStorage.getItem('ajustes_currency') || 'CLP';
-    const decimalsRaw = localStorage.getItem('ajustes_currency_decimals');
-    const decimals = decimalsRaw !== null ? parseInt(decimalsRaw,10) : (curr==='CLP'?0:2);
-    const locale = curr==='CLP' ? 'es-CL' : (curr==='EUR' ? 'es-ES' : 'en-US');
-    return { curr, decimals, locale };
-  }catch{ return { curr:'CLP', decimals:0, locale:'es-CL' }; }
+function openExportModal() {
+  const modal = document.getElementById("exportModal");
+  if (modal) {
+    modal.classList.add("is-open");
+    document.body.style.overflow = "hidden";
+  }
 }
 
-function formatCurrency(value:number){
+function closeExportModal() {
+  const modal = document.getElementById("exportModal");
+  if (modal) {
+    modal.classList.remove("is-open");
+    document.body.style.overflow = "";
+  }
+}
+
+function openLocationPhotosModal(itemId: number | string) {
+  const modal = document.getElementById("locationPhotosModal");
+  if (!modal) return;
+
+  const tabla = document.querySelector<HTMLTableElement>("#tablaRecursos");
+  if (!tabla) return;
+
+  // Find the button and get the row from it
+  const btn = tabla.querySelector<HTMLButtonElement>(`button[data-action="show-location-photos"][data-item-id="${itemId}"]`);
+  if (!btn) return;
+
+  const row = btn.closest<HTMLTableRowElement>("tr");
+  if (!row) return;
+
+  // Get the item data
+  const fotosCell = row.querySelector<HTMLTableCellElement>('td[data-photos]');
+  if (!fotosCell) return;
+
+  const fotosJson = fotosCell.getAttribute("data-photos");
+  let fotos: string[] = [];
+  try {
+    fotos = fotosJson ? JSON.parse(fotosJson) : [];
+  } catch {
+    fotos = [];
+  }
+
+  // Get the resource name
+  const recursoCell = row.querySelector<HTMLTableCellElement>("td:nth-child(2)");
+  const recursoName = recursoCell?.textContent || "Recurso";
+
+  // Update modal content
+  const titleEl = modal.querySelector<HTMLHeadingElement>("#locationPhotosTitle");
+  if (titleEl) titleEl.textContent = `Fotos de ubicación - ${recursoName}`;
+
+  const nameEl = modal.querySelector<HTMLParagraphElement>(".location-photos-name");
+  if (nameEl) nameEl.textContent = recursoName;
+
+  const gridEl = modal.querySelector<HTMLDivElement>(".location-photos-grid");
+  if (gridEl) {
+    gridEl.innerHTML = "";
+    if (fotos.length === 0) {
+      gridEl.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; padding: 20px; color: rgba(255,255,255,0.6);">No hay fotos de ubicación</p>';
+    } else {
+      fotos.forEach((fotoUrl) => {
+        const img = document.createElement("img");
+        img.src = fotoUrl;
+        img.alt = "Foto de ubicación";
+        img.style.width = "100%";
+        img.style.height = "auto";
+        img.style.borderRadius = "8px";
+        gridEl.appendChild(img);
+      });
+    }
+  }
+
+  // Show modal
+  modal.setAttribute("aria-hidden", "false");
+  modal.classList.add("is-open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeLocationPhotosModal() {
+  const modal = document.getElementById("locationPhotosModal");
+  if (modal) {
+    modal.setAttribute("aria-hidden", "true");
+    modal.classList.remove("is-open");
+    document.body.style.overflow = "";
+  }
+}
+
+function handleExport(format: "csv" | "excel") {
+  // Obtener columnas seleccionadas
+  const selectedColumns: string[] = [];
+  document.querySelectorAll<HTMLInputElement>('input[name="exportColumn"]:checked').forEach((input) => {
+    selectedColumns.push(input.value);
+  });
+
+  if (selectedColumns.length === 0) {
+    alert("Por favor selecciona al menos una columna para exportar");
+    return;
+  }
+
+  // Obtener alcance seleccionado
+  const scope = (document.querySelector<HTMLInputElement>('input[name="exportScope"]:checked')?.value || "visible") as "visible" | "todo";
+
+  // Preparar datos según el alcance
+  const { headers, rows } = prepareExportData(scope, selectedColumns);
+
+  if (format === "csv") {
+    exportarCSV(headers, rows, scope);
+  } else if (format === "excel") {
+    exportarExcel(headers, rows, scope);
+  }
+
+  closeExportModal();
+}
+
+function setupGlobalActions() {
+  const editBtn = document.getElementById("inventoryEditSelected") as HTMLButtonElement | null;
+  const deleteBtn = document.getElementById("inventoryDeleteSelected") as HTMLButtonElement | null;
+
+  if (editBtn) {
+    editBtn.addEventListener("click", () => {
+      const selectedRow = document.querySelector<HTMLTableRowElement>("#tablaRecursos tbody tr.selected-row");
+      if (selectedRow) {
+        openEditModal(selectedRow);
+      }
+    });
+  }
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", () => {
+      const selectedRow = document.querySelector<HTMLTableRowElement>("#tablaRecursos tbody tr.selected-row");
+      if (selectedRow) {
+        const btn = selectedRow.querySelector<HTMLButtonElement>('button[data-action="delete"]');
+        if (btn) {
+          eliminarFila(btn);
+        }
+      }
+    });
+  }
+}
+
+
+
+
+
+function getCurrencyPrefs() {
+  try {
+    const curr = localStorage.getItem('ajustes_currency') || 'CLP';
+    const decimalsRaw = localStorage.getItem('ajustes_currency_decimals');
+    const decimals = decimalsRaw !== null ? parseInt(decimalsRaw, 10) : (curr === 'CLP' ? 0 : 2);
+    const locale = curr === 'CLP' ? 'es-CL' : (curr === 'EUR' ? 'es-ES' : 'en-US');
+    return { curr, decimals, locale };
+  } catch { return { curr: 'CLP', decimals: 0, locale: 'es-CL' }; }
+}
+
+function formatCurrency(value: number) {
   const { curr, decimals, locale } = getCurrencyPrefs();
-  try{
-    return new Intl.NumberFormat(locale,{style:'currency',currency:curr,maximumFractionDigits:decimals}).format(value||0);
-  }catch{
-    return String(value||0);
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: curr, maximumFractionDigits: decimals }).format(value || 0);
+  } catch {
+    return String(value || 0);
   }
 }
 
